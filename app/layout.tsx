@@ -26,7 +26,7 @@ const ibmPlexMono = IBM_Plex_Mono({
 
 const barlow = Barlow({
   variable: "--font-body",
-  weight: "500",
+  weight: ["400", "500"],
   subsets: ["latin"],
 });
 

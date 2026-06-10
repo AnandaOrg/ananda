@@ -1,4 +1,7 @@
+"use client";
+
 import Image from "next/image";
+import { useFlavor } from "./FlavorProvider";
 
 /**
  * Section 4 — "The Pathways to Bliss" flavor poster (Figma node 76:9304, a
@@ -43,7 +46,7 @@ function Floating({ src, alt, rotate, inner, box, center, crop, shadow, sizes }:
       };
 
   return (
-    <div className="absolute flex items-center justify-center" style={place}>
+    <div className="pointer-events-none absolute flex items-center justify-center" style={place}>
       <div style={{ transform: `rotate(${rotate}deg)` }}>
         <div
           className="relative overflow-hidden"
@@ -85,6 +88,7 @@ const FLAVORS = [
 ];
 
 export default function Pathways() {
+  const { open } = useFlavor();
   return (
     <section
       className="relative w-full overflow-hidden bg-[#eb4638]"
@@ -120,20 +124,25 @@ export default function Pathways() {
           The Pathways to Bliss
         </p>
 
-        {/* Colour bands */}
-        {BANDS.map((b) => (
-          <div
+        {/* Colour bands (click to open flavour) */}
+        {BANDS.map((b, i) => (
+          <button
             key={b.color + b.top}
-            className="absolute"
+            type="button"
+            aria-label={`Open ${FLAVORS[i].label}`}
+            onClick={() => open(i)}
+            className="absolute cursor-pointer appearance-none border-0 p-0"
             style={{ left: u(-1.97), top: u(b.top), width: u(1477), height: u(321.713), backgroundColor: b.color }}
           />
         ))}
 
         {/* Giant flavour names (over the bands) */}
-        {FLAVORS.map((f) => (
-          <p
+        {FLAVORS.map((f, i) => (
+          <button
             key={f.label}
-            className="absolute whitespace-nowrap font-bold uppercase"
+            type="button"
+            onClick={() => open(i)}
+            className="absolute cursor-pointer appearance-none whitespace-nowrap border-0 bg-transparent p-0 text-left font-bold uppercase"
             style={{
               left: u(f.left),
               top: f.top != null ? u(f.top) : undefined,
@@ -146,7 +155,7 @@ export default function Pathways() {
             }}
           >
             {f.label}
-          </p>
+          </button>
         ))}
 
         {/* Lemon — top right */}
@@ -212,21 +221,23 @@ export default function Pathways() {
         />
 
         {/* SEE FLAVORS pill */}
-        <div
-          className="absolute flex items-center justify-center overflow-hidden bg-[#fff0e5]"
+        <button
+          type="button"
+          onClick={() => open(0)}
+          className="absolute flex cursor-pointer appearance-none items-center justify-center overflow-hidden border-0 bg-[#fff0e5]"
           style={{ left: u(1125), top: u(48.25), padding: `${u(14)} ${u(24)}`, borderRadius: u(50.032) }}
         >
           <div className="flex items-center" style={{ gap: u(15.01) }}>
             <span
               className="font-semibold uppercase text-[#eb4638]"
-              style={{ fontFamily: "var(--font-display)", fontSize: u(40), lineHeight: 0.8, letterSpacing: u(-2.8) }}
+              style={{ fontFamily: "var(--font-display)", fontSize: u(40), lineHeight: 0.8, letterSpacing: u(-2.8), textBoxTrim: "trim-both", textBoxEdge: "cap alphabetic" } as React.CSSProperties}
             >
               see flavors
             </span>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/s4-arrow.svg" alt="" style={{ width: u(15.644), height: u(30.807) }} />
           </div>
-        </div>
+        </button>
       </div>
     </section>
   );

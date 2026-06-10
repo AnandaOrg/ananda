@@ -1,0 +1,165 @@
+"use client";
+
+import Image from "next/image";
+import { useEffect, useRef } from "react";
+
+type Item = { src: string; alt: string };
+
+const COPIES = 3; // render the set 3× and live in the middle copy for an infinite loop
+
+/**
+ * Infinite, swipeable / draggable scroll-snapped photo carousel.
+ * - Touch (mobile): native horizontal scroll + snap.
+ * - Mouse (desktop): click-and-drag to scroll, plus trackpad/wheel.
+ *
+ * Looping: the slides are rendered three times; we start in the middle copy and
+ * silently shift `scrollLeft` by one copy-width whenever the scroll nears an
+ * edge. Because the copies are identical the jump is invisible, so it scrolls
+ * forever in either direction. Snap is disabled during a mouse drag (mandatory
+ * snap otherwise fights every `scrollLeft` update and stutters) and restored on
+ * release. `snapAlign="center"` centres the active slide (neighbour peeks);
+ * `"start"` is a left-aligned filmstrip. `snapType="proximity"` feels looser.
+ */
+export default function WildCarousel({
+  items,
+  slideW,
+  slideH,
+  gap,
+  pad = "0px",
+  snapAlign = "center",
+  snapType = "mandatory",
+  startIndex = 0,
+}: {
+  items: Item[];
+  slideW: string;
+  slideH: string;
+  gap: string;
+  pad?: string;
+  snapAlign?: "center" | "start";
+  snapType?: "mandatory" | "proximity" | "none";
+  startIndex?: number;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const drag = useRef({ active: false, startX: 0, startScroll: 0, lastX: 0, lastT: 0, v: 0 });
+  const oneCopy = useRef(0);
+  const raf = useRef(0);
+  const momentum = useRef(0);
+
+  const n = items.length;
+  const looped = Array.from({ length: COPIES }, () => items).flat();
+
+  useEffect(() => {
+    const c = ref.current;
+    if (!c) return;
+
+    const measure = () => {
+      const a = c.children[0] as HTMLElement | undefined;
+      const b = c.children[n] as HTMLElement | undefined;
+      if (a && b) oneCopy.current = b.offsetLeft - a.offsetLeft;
+    };
+    const center = () => {
+      const t = c.children[n + Math.min(startIndex, n - 1)] as HTMLElement | undefined;
+      if (t) c.scrollLeft = snapAlign === "center" ? t.offsetLeft - (c.clientWidth - t.clientWidth) / 2 : t.offsetLeft;
+    };
+    measure();
+    center();
+
+    const wrap = () => {
+      const oc = oneCopy.current;
+      if (!oc) return;
+      const x = c.scrollLeft;
+      if (x < oc * 0.5) {
+        c.scrollLeft = x + oc;
+        if (drag.current.active) drag.current.startScroll += oc;
+      } else if (x > oc * 1.5) {
+        c.scrollLeft = x - oc;
+        if (drag.current.active) drag.current.startScroll -= oc;
+      }
+    };
+    const onScroll = () => {
+      if (raf.current) return;
+      raf.current = requestAnimationFrame(() => {
+        raf.current = 0;
+        wrap();
+      });
+    };
+    const onResize = () => {
+      measure();
+      center();
+    };
+
+    c.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onResize);
+    return () => {
+      c.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onResize);
+      if (raf.current) cancelAnimationFrame(raf.current);
+      if (momentum.current) cancelAnimationFrame(momentum.current);
+    };
+  }, [n, startIndex, snapAlign]);
+
+  const stopMomentum = () => {
+    if (momentum.current) cancelAnimationFrame(momentum.current);
+    momentum.current = 0;
+  };
+
+  const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (e.pointerType !== "mouse") return; // touch/pen use native scrolling
+    const c = ref.current;
+    if (!c) return;
+    stopMomentum();
+    drag.current = { active: true, startX: e.clientX, startScroll: c.scrollLeft, lastX: e.clientX, lastT: performance.now(), v: 0 };
+    c.setPointerCapture(e.pointerId);
+  };
+  const onPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    const c = ref.current;
+    if (!c || !drag.current.active) return;
+    const now = performance.now();
+    const dt = Math.max(1, now - drag.current.lastT);
+    drag.current.v = (e.clientX - drag.current.lastX) / dt; // cursor px/ms
+    drag.current.lastX = e.clientX;
+    drag.current.lastT = now;
+    c.scrollLeft = drag.current.startScroll - (e.clientX - drag.current.startX);
+  };
+  const endDrag = (e: React.PointerEvent<HTMLDivElement>) => {
+    const c = ref.current;
+    if (!c || !drag.current.active) return;
+    drag.current.active = false;
+    c.releasePointerCapture?.(e.pointerId);
+    // Inertia: a flick keeps gliding and decelerates; it stops wherever it lands (no snap).
+    let v = drag.current.v;
+    if (Math.abs(v) < 0.05) return; // a slow release just stays put
+    const friction = 0.94;
+    const tick = () => {
+      v *= friction;
+      if (Math.abs(v) < 0.02) {
+        momentum.current = 0;
+        return;
+      }
+      c.scrollLeft -= v * 16;
+      momentum.current = requestAnimationFrame(tick);
+    };
+    momentum.current = requestAnimationFrame(tick);
+  };
+
+  // Drive scroll-snap explicitly: "none" = fully free (no stepping); otherwise snap on the x axis.
+  const alignClass = snapAlign === "center" ? "snap-center" : "snap-start";
+
+  return (
+    <div
+      ref={ref}
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={endDrag}
+      onPointerCancel={endDrag}
+      className="flex cursor-grab select-none overflow-x-auto active:cursor-grabbing [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      style={{ gap, paddingInline: pad, scrollBehavior: "auto", overscrollBehaviorX: "contain", scrollSnapType: snapType === "none" ? "none" : `x ${snapType}` }}
+    >
+      {looped.map((p, i) => (
+        <div key={i} className={`relative shrink-0 overflow-hidden ${snapType === "none" ? "" : alignClass}`} style={{ width: slideW, height: slideH }}>
+          <Image src={p.src} alt={p.alt} fill sizes="40vw" draggable={false} className="pointer-events-none object-cover" />
+        </div>
+      ))}
+    </div>
+  );
+}

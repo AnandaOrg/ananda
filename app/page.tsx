@@ -4,11 +4,20 @@ import pourPhoto from "../public/ananda-pour.png";
 import AboutCollage from "./AboutCollage";
 import Pathways from "./Pathways";
 import Ritual from "./Ritual";
+import DropList from "./DropList";
+import Footer from "./Footer";
+import MobileIntro from "./mobile/MobileIntro";
+import MobileCollage from "./mobile/MobileCollage";
+import MobilePathways from "./mobile/MobilePathways";
+import MobileAbout from "./mobile/MobileAbout";
+import MobileRitual from "./mobile/MobileRitual";
+import MobileSocial from "./mobile/MobileSocial";
+import FlavorProvider from "./FlavorProvider";
 
 export default function Home() {
   return (
-    <>
-      {/* Section 1 — splash */}
+    <FlavorProvider>
+      {/* Section 1 — splash (shared) */}
       <section className="relative flex h-screen items-center justify-center overflow-hidden">
         <Image
           src={oceanBackground}
@@ -25,12 +34,12 @@ export default function Home() {
           width={283}
           height={192}
           priority
-          className="relative w-[clamp(180px,22vw,283px)] h-auto"
+          className="relative h-auto w-[74vw] max-w-[290px] md:w-[clamp(180px,22vw,283px)] md:max-w-none"
         />
       </section>
 
       {/* Section 2 — Ditch the glass */}
-      <section className="flex min-h-screen items-center justify-center overflow-hidden bg-[#fff0e5] px-6 py-24">
+      <section className="hidden min-h-screen items-center justify-center overflow-hidden bg-[#fff0e5] px-6 py-24 md:flex">
         <div className="flex flex-col items-center text-center text-[#eb4638]">
           <p
             className="mb-[clamp(1.5rem,4vw,3.5rem)] text-[14px] uppercase leading-[0.87] tracking-[0.98px]"
@@ -60,15 +69,33 @@ export default function Home() {
           </h2>
         </div>
       </section>
+      <MobileIntro />
 
       {/* Section 3 — What we're about */}
-      <AboutCollage />
+      <div className="hidden md:block">
+        <AboutCollage />
+      </div>
+      <MobileCollage />
 
       {/* Section 4 — The Pathways to Bliss */}
-      <Pathways />
+      <div className="hidden md:block">
+        <Pathways />
+      </div>
+      <MobilePathways />
 
-      {/* Section 5 — The Ritual / ANANDA in the Wild */}
-      <Ritual />
-    </>
+      {/* Section 5 — The Ritual / ANANDA in the Wild (desktop is one section) */}
+      <div className="hidden md:block">
+        <Ritual />
+      </div>
+      <MobileAbout />
+      <MobileRitual />
+      <MobileSocial />
+
+      {/* Section 6 — Join the drop list (shared) */}
+      <DropList />
+
+      {/* Section 7 — Footer (shared) */}
+      <Footer />
+    </FlavorProvider>
   );
 }

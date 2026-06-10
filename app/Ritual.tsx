@@ -1,4 +1,6 @@
 import Image from "next/image";
+import RevealStatement, { STATEMENT_PARAS } from "./RevealStatement";
+import WildCarousel from "./mobile/WildCarousel";
 
 /**
  * Section 5 — "The Ritual" / "ANANDA in the Wild" (Figma node 74:8391, a
@@ -152,8 +154,10 @@ export default function Ritual() {
         className="relative mx-auto"
         style={{ ["--u" as string]: "calc(100cqw / 1440)", width: u(1440), height: u(4024) }}
       >
-        {/* Intro statement */}
-        <div
+        {/* Intro statement — letter-fill reveal on scroll */}
+        <RevealStatement
+          paras={STATEMENT_PARAS}
+          smallFontSize={u(27.296)}
           className="absolute font-bold"
           style={{
             left: u(78.23),
@@ -165,31 +169,7 @@ export default function Ritual() {
             letterSpacing: u(-2.3699),
             color: RED,
           }}
-        >
-          <p className="mb-0">
-            ANANDA IS THE SUPREME JOY OF THE PRESENT{" "}
-            <span className="underline" style={{ fontSize: u(27.296), letterSpacing: u(-1.6928) }}>
-              MOMENT.
-            </span>
-          </p>
-          <p className="mb-0">IT’S THE FEELING OF THE BASS HITTING YOUR CHEST,</p>
-          <p>
-            THE SUN WASHING{" "}
-            <span className="underline" style={{ fontSize: u(27.296) }}>
-              OVER THE
-            </span>{" "}
-            POOL, AND THE SENSE THAT THERE IS NOWHERE ELSE ON EARTH YOU’D RATHER BE. WE BOTTLED THAT
-            EXACT FEELING.{" "}
-            <span className="underline" style={{ fontSize: u(27.296) }}>
-              THEN WE
-            </span>{" "}
-            DITCHED THE BOTTLE. THIS IS HIGH-FIDELITY MIXOLOGY PACKED FOR{" "}
-            <span className="underline" style={{ fontSize: u(27.296) }}>
-              ABSOLUTE
-            </span>{" "}
-            FREEDOM.
-          </p>
-        </div>
+        />
 
         {/* Decorative mandala */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -282,13 +262,17 @@ export default function Ritual() {
           ))}
         </div>
 
-        {/* "In the wild" photo strip (full-bleed, runs off both edges) */}
-        <div className="absolute flex items-center" style={{ left: u(-636), top: u(3374.84) }}>
-          {WILD.map((p) => (
-            <div key={p.src} className="relative shrink-0 overflow-hidden" style={{ width: u(p.w), height: u(p.h) }}>
-              <Image src={p.src} alt={p.alt} fill sizes="40vw" className="object-cover" />
-            </div>
-          ))}
+        {/* "In the wild" photo carousel — drag / scroll through the gallery */}
+        <div className="absolute" style={{ left: 0, top: u(3374.84), width: u(1440) }}>
+          <WildCarousel
+            items={WILD}
+            slideW={u(525.269)}
+            slideH={u(652.058)}
+            gap="0px"
+            snapAlign="start"
+            snapType="none"
+            startIndex={0}
+          />
         </div>
       </div>
     </section>
