@@ -19,6 +19,9 @@ const COPIES = 3; // render the set 3× and live in the middle copy for an infin
  * snap otherwise fights every `scrollLeft` update and stutters) and restored on
  * release. `snapAlign="center"` centres the active slide (neighbour peeks);
  * `"start"` is a left-aligned filmstrip. `snapType="proximity"` feels looser.
+ *
+ * `autoplay` (px/s): when set, the carousel slowly drifts forward; interaction
+ * pauses it and releases resume it without a position jump.
  */
 export default function WildCarousel({
   items,
@@ -29,6 +32,7 @@ export default function WildCarousel({
   snapAlign = "center",
   snapType = "mandatory",
   startIndex = 0,
+  autoplay,
 }: {
   items: Item[];
   slideW: string;
@@ -38,12 +42,16 @@ export default function WildCarousel({
   snapAlign?: "center" | "start";
   snapType?: "mandatory" | "proximity" | "none";
   startIndex?: number;
+  autoplay?: number; // pixels per second; omit to disable
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const drag = useRef({ active: false, startX: 0, startScroll: 0, lastX: 0, lastT: 0, v: 0 });
   const oneCopy = useRef(0);
   const raf = useRef(0);
   const momentum = useRef(0);
+  const interacting = useRef(false);
+  const autoRaf = useRef(0);
+  const autoTime = useRef(0);
 
   const n = items.length;
   const looped = Array.from({ length: COPIES }, () => items).flat();
@@ -90,13 +98,33 @@ export default function WildCarousel({
 
     c.addEventListener("scroll", onScroll, { passive: true });
     window.addEventListener("resize", onResize);
+
+    // Autoplay: drift forward at `autoplay` px/s; pause while the user interacts
+    // and reset the clock so there's no position jump on resume.
+    if (autoplay) {
+      autoTime.current = 0;
+      const loop = (t: number) => {
+        if (!interacting.current) {
+          if (ref.current && autoTime.current > 0) {
+            ref.current.scrollLeft += autoplay * (t - autoTime.current) / 1000;
+          }
+          autoTime.current = t;
+        } else {
+          autoTime.current = 0; // discard elapsed time while paused
+        }
+        autoRaf.current = requestAnimationFrame(loop);
+      };
+      autoRaf.current = requestAnimationFrame(loop);
+    }
+
     return () => {
       c.removeEventListener("scroll", onScroll);
       window.removeEventListener("resize", onResize);
       if (raf.current) cancelAnimationFrame(raf.current);
       if (momentum.current) cancelAnimationFrame(momentum.current);
+      if (autoRaf.current) cancelAnimationFrame(autoRaf.current);
     };
-  }, [n, startIndex, snapAlign]);
+  }, [n, startIndex, snapAlign, autoplay]);
 
   const stopMomentum = () => {
     if (momentum.current) cancelAnimationFrame(momentum.current);
@@ -104,6 +132,7 @@ export default function WildCarousel({
   };
 
   const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    interacting.current = true;
     if (e.pointerType !== "mouse") return; // touch/pen use native scrolling
     const c = ref.current;
     if (!c) return;
@@ -122,6 +151,7 @@ export default function WildCarousel({
     c.scrollLeft = drag.current.startScroll - (e.clientX - drag.current.startX);
   };
   const endDrag = (e: React.PointerEvent<HTMLDivElement>) => {
+    interacting.current = false;
     const c = ref.current;
     if (!c || !drag.current.active) return;
     drag.current.active = false;

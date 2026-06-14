@@ -71,16 +71,26 @@ export default function MobileCollage() {
           box={{ left: 7.51, top: 33.92, width: 388.367, height: 445.572 }}
         />
 
-        {/* Blue pouch scene (rotated -1.64) */}
-        <Masked
-          photo="/c-bluepouch.png"
-          alt="Pouring a chilled ANANDA cocktail"
-          mask="/m-strawb.svg"
-          maskSize={[290.652, 302.298]}
-          maskPos={[8.027, 14.939]}
-          box={{ left: 53.19, top: 76.14, width: 308.305, height: 351.02 }}
-          inner={{ width: 298.646, height: 342.635, rotate: -1.64 }}
-        />
+        {/* Blue pouch scene */}
+        <div
+          className="absolute flex items-center justify-center"
+          style={{ left: mu(53), top: mu(723), width: mu(201), height: mu(730) }}
+        >
+          <div style={{ transform: "rotate(-0.64deg)" }}>
+            <div
+              className="relative overflow-hidden"
+              style={{ width: mu(196), height: mu(720) }}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/c-bluepouch.png"
+                alt="Pouring a chilled ANANDA cocktail"
+                className="absolute max-w-none object-cover"
+                style={{ width: "97.57%", height: "96.85%", left: "2.63%", top: "-3.48%" }}
+              />
+            </div>
+          </div>
+        </div>
 
         {/* Hand & lemon (rotated -0.64) */}
         <Masked

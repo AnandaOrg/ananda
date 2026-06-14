@@ -52,7 +52,7 @@ export default function MobileSocial() {
         {/* Photo carousel — centred slide with a sliver of the neighbours peeking,
             free-scrolling, edge-to-edge, flush with the section below. */}
         <div className="absolute left-0" style={{ top: mu(341.5), width: mu(390) }}>
-          <WildCarousel items={WILD} slideW={mu(300)} slideH={mu(503.5)} gap="0px" pad="0px" snapType="none" startIndex={1} />
+          <WildCarousel items={WILD} slideW={mu(300)} slideH={mu(503.5)} gap="0px" pad="0px" snapType="none" startIndex={1} autoplay={80} />
         </div>
       </div>
     </section>

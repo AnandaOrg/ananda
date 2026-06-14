@@ -121,17 +121,26 @@ export default function AboutCollage() {
           box={{ left: -15.612, top: -108.123, width: 1074.037, height: 1232.237 }}
         />
 
-        {/* Blue pouch scene — lower left/centre */}
-        <Masked
-          photo={bluePouch}
-          alt="Pouring a chilled ANANDA cocktail"
-          mask="/m-strawb.svg"
-          maskSize={[729.146, 735.028]}
-          maskPos={[20.492, 36.923]}
-          sizes="55vw"
-          box={{ left: 98.02, top: 1824.54, width: 745.788, height: 853.023 }}
-          inner={{ width: 736.348, height: 844.808, rotate: -0.64 }}
-        />
+        {/* Blue pouch scene — lower centre */}
+        <div
+          className="absolute flex items-center justify-center"
+          style={{ left: u(297.52), top: u(1878.54), width: u(789.24), height: u(905.94) }}
+        >
+          <div style={{ transform: "rotate(-0.64deg)" }}>
+            <div
+              className="relative overflow-hidden"
+              style={{ width: u(779.28), height: u(897.12) }}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={bluePouch.src}
+                alt="Pouring a chilled ANANDA cocktail"
+                className="absolute max-w-none object-cover"
+                style={{ width: "97.57%", height: "96.85%", left: "2.63%", top: "-3.48%" }}
+              />
+            </div>
+          </div>
+        </div>
 
         {/* Red wave */}
         <div

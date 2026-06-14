@@ -272,6 +272,7 @@ export default function Ritual() {
             snapAlign="start"
             snapType="none"
             startIndex={0}
+            autoplay={80}
           />
         </div>
       </div>

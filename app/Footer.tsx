@@ -8,6 +8,7 @@ import { mu, MU_VAR } from "./mobile/scale";
 
 const ud = (n: number) => `calc(var(--ud) * ${n})`;
 const UD_VAR = { ["--ud" as string]: "calc(100cqw / 1440)" } as const;
+const getCurrentYear = () => new Date().getFullYear();
 
 function Socials({ scale }: { scale: (n: number) => string }) {
   return (
@@ -37,7 +38,7 @@ export default function Footer() {
               <img src="/ananda-logo.svg" alt="ANANDA Cocktails" style={{ width: mu(152.482), height: "auto" }} />
               <Socials scale={mu} />
               <p className="text-center text-[#fff0e5]" style={{ fontFamily: "var(--font-body)", fontWeight: 400, fontSize: mu(14), lineHeight: mu(18), width: mu(280) }}>
-                © 2026 Ananda Cocktails. All Rights Reserved.
+                © {getCurrentYear()} Ananda Cocktails. All Rights Reserved.
               </p>
             </div>
           </div>
@@ -52,7 +53,7 @@ export default function Footer() {
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/ananda-logo.svg" alt="ANANDA Cocktails" style={{ width: ud(152.482), height: "auto" }} />
             <p className="text-center text-[#fff0e5]" style={{ fontFamily: "var(--font-body)", fontWeight: 400, fontSize: ud(14), lineHeight: ud(14), width: ud(280) }}>
-              © 2026 Ananda Cocktails. All Rights Reserved.
+              © {getCurrentYear()} Ananda Cocktails. All Rights Reserved.
             </p>
             <Socials scale={ud} />
           </div>

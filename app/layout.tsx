@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono, Anek_Kannada, IBM_Plex_Mono, Barlow } from "next/font/google";
+import { Geist, Geist_Mono, IBM_Plex_Mono, Barlow } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -12,10 +13,19 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-const anekKannada = Anek_Kannada({
+const anekKannada = localFont({
+  src: [
+    {
+      path: "./fonts/AnekKannada-latin-ext.woff2",
+      style: "normal",
+    },
+    {
+      path: "./fonts/AnekKannada-latin.woff2",
+      style: "normal",
+    },
+  ],
   variable: "--font-display",
-  weight: ["600", "700"],
-  subsets: ["latin"],
+  display: "swap",
 });
 
 const ibmPlexMono = IBM_Plex_Mono({
