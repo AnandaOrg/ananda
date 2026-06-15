@@ -1,6 +1,5 @@
 import Image, { type StaticImageData } from "next/image";
-import picnic from "../public/c-picnic.png";
-import bluePouch from "../public/c-bluepouch.png";
+import redPouch from "../public/c-redpouch.png";
 import pineapple from "../public/c-pineapple.png";
 import strawberry from "../public/c-strawberry.png";
 import topHand from "../public/c-tophand.png";
@@ -110,17 +109,6 @@ export default function AboutCollage() {
           box={{ left: 930.8, top: 1008.67, width: 396.208, height: 792.416 }}
         />
 
-        {/* Picnic — top left */}
-        <Masked
-          photo={picnic}
-          alt="Friends sharing ANANDA cocktails on the grass"
-          mask="/m-diamond.svg"
-          maskSize={[814.926, 829.07]}
-          maskPos={[89.9, 164.033]}
-          sizes="75vw"
-          box={{ left: -15.612, top: -108.123, width: 1074.037, height: 1232.237 }}
-        />
-
         {/* Blue pouch scene — lower centre */}
         <div
           className="absolute flex items-center justify-center"
@@ -133,7 +121,7 @@ export default function AboutCollage() {
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src={bluePouch.src}
+                src={redPouch.src}
                 alt="Pouring a chilled ANANDA cocktail"
                 className="absolute max-w-none object-cover"
                 style={{ width: "97.57%", height: "96.85%", left: "2.63%", top: "-3.48%" }}
@@ -193,16 +181,16 @@ export default function AboutCollage() {
           inner={{ width: 604.722, height: 750.69, rotate: -90 }}
         />
 
-        {/* Hand & lemon — top, over picnic */}
+        {/* Picnic cooler scene — top left */}
         <Masked
           photo={topHand}
-          alt="A hand squeezing fresh citrus"
-          mask="/m-diamond.svg"
-          maskSize={[827.912, 836.01]}
-          maskPos={[27.303, 41.315]}
-          sizes="60vw"
-          box={{ left: 110.73, top: 8.63, width: 852.622, height: 970.753 }}
-          inner={{ width: 825.912, height: 947.565, rotate: -1.64 }}
+          alt="Friends sharing ANANDA cocktails at a picnic cooler"
+          mask="/m-14.svg"
+          maskSize={[746.535, 592.314]}
+          maskPos={[89.9, 164.033]}
+          sizes="75vw"
+          box={{ left: -15.612, top: -108.123, width: 1074.037, height: 1232.237 }}
+          inner={{ width: 1074.037, height: 1232.237, rotate: 0 }}
         />
 
         {/* Copy block — top right */}
