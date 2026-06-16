@@ -3,6 +3,8 @@ import redPouch from "../public/c-redpouch.png";
 import pineapple from "../public/c-pineapple.png";
 import strawberry from "../public/c-strawberry.png";
 import topHand from "../public/c-tophand.png";
+import AboutCopyBlock from "./AboutCopyBlock";
+import PouchScroll from "./PouchScroll";
 
 /**
  * Section 3 — "What we're about" collage (Figma node 71:7812, a 1440×3000 frame).
@@ -140,34 +142,7 @@ export default function AboutCollage() {
         </div>
 
         {/* Product pouch — overlaid on the wave */}
-        <div
-          className="absolute flex -translate-x-1/2 -translate-y-1/2 items-center justify-center"
-          style={{
-            left: `calc(50% - ${u(190.37)})`,
-            top: `calc(50% + ${u(1013.66)})`,
-            width: u(390.15),
-            height: u(477.453),
-          }}
-        >
-          <div style={{ transform: "rotate(158.5deg)" }}>
-            <div
-              className="relative overflow-hidden"
-              style={{
-                width: u(257.084),
-                height: u(411.893),
-                boxShadow: `${u(11)} ${u(8)} ${u(28.7)} 0 rgba(0,0,0,0.25)`,
-              }}
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src="/c-pouch.png"
-                alt="ANANDA cocktail pouch"
-                className="absolute max-w-none"
-                style={{ width: "177.86%", height: "111.18%", left: "-40.81%", top: "-7.3%" }}
-              />
-            </div>
-          </div>
-        </div>
+        <PouchScroll />
 
         {/* Strawberries with pouch — left, mid */}
         <Masked
@@ -194,43 +169,7 @@ export default function AboutCollage() {
         />
 
         {/* Copy block — top right */}
-        <div
-          className="absolute flex flex-col"
-          style={{ left: u(965), top: u(92.16), width: u(401) }}
-        >
-          <div style={{ padding: `${u(10)} ${u(14)}` }}>
-            <p
-              className="whitespace-nowrap uppercase"
-              style={{
-                fontFamily: "var(--font-mono-label)",
-                fontSize: u(10),
-                lineHeight: 0.87,
-                letterSpacing: u(0.7),
-              }}
-            >
-              What we’re about
-            </p>
-          </div>
-          <div style={{ padding: `${u(10)} ${u(14)}` }}>
-            <div
-              style={{
-                fontFamily: "var(--font-body)",
-                fontSize: u(16),
-                lineHeight: 1.6,
-                letterSpacing: u(0.16),
-              }}
-            >
-              <p className="mb-0">
-                Premium, bar-strength cocktails mixed for the makers, the movers, and the
-                midnight sun.
-              </p>
-              <p>
-                No glass, no pretense. Just pure, uninhibited joy - ready whenever and
-                wherever you are.
-              </p>
-            </div>
-          </div>
-        </div>
+        <AboutCopyBlock />
       </div>
     </section>
   );

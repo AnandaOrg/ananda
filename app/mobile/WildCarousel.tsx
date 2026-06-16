@@ -106,11 +106,14 @@ export default function WildCarousel({
       const loop = (t: number) => {
         if (!interacting.current) {
           if (ref.current && autoTime.current > 0) {
-            ref.current.scrollLeft += autoplay * (t - autoTime.current) / 1000;
+            // cap dt so a backgrounded tab doesn't cause a position lurch on return;
+            // sqrt easing makes slow speeds feel glidy rather than mechanical
+            const dt = Math.min(t - autoTime.current, 50);
+            ref.current.scrollLeft += autoplay * Math.sqrt(dt / 1000);
           }
           autoTime.current = t;
         } else {
-          autoTime.current = 0; // discard elapsed time while paused
+          autoTime.current = 0;
         }
         autoRaf.current = requestAnimationFrame(loop);
       };
@@ -159,7 +162,7 @@ export default function WildCarousel({
     // Inertia: a flick keeps gliding and decelerates; it stops wherever it lands (no snap).
     let v = drag.current.v;
     if (Math.abs(v) < 0.05) return; // a slow release just stays put
-    const friction = 0.94;
+    const friction = 0.5;
     const tick = () => {
       v *= friction;
       if (Math.abs(v) < 0.02) {

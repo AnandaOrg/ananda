@@ -1,0 +1,1 @@
+export const CAROUSEL_AUTOPLAY_SPEED = 10; // px/s

@@ -59,7 +59,7 @@ export default function MobilePathways() {
       <div className="relative" style={{ ...MU_VAR, width: mu(390), height: mu(1176) }}>
         {/* Colour bands (click to open flavour) */}
         {BANDS.map((b, i) => (
-          <button key={b.color} type="button" aria-label={`Open ${FLAVORS[i].label}`} onClick={() => open(i)} className="absolute cursor-pointer appearance-none border-0 p-0" style={{ left: 0, top: mu(b.top), width: mu(390), height: mu(200), backgroundColor: b.color }} />
+          <button key={b.color} type="button" aria-label={`Open ${FLAVORS[i].label}`} onClick={(e) => open(i, e)} className="absolute cursor-pointer appearance-none border-0 p-0" style={{ left: 0, top: mu(b.top), width: mu(390), height: mu(200), backgroundColor: b.color }} />
         ))}
 
         {/* Giant flavour names */}
@@ -67,7 +67,7 @@ export default function MobilePathways() {
           <button
             key={f.label}
             type="button"
-            onClick={() => open(i)}
+            onClick={(e) => open(i, e)}
             className="absolute cursor-pointer appearance-none whitespace-nowrap border-0 bg-transparent p-0 text-left font-bold uppercase"
             style={{ left: mu(f.left), top: mu(f.top), width: mu(f.width), color: f.color, fontFamily: "var(--font-display)", fontSize: mu(200), lineHeight: 0.8, letterSpacing: mu(-16) }}
           >
@@ -85,7 +85,7 @@ export default function MobilePathways() {
               The Pathways to Bliss
             </p>
           </div>
-          <button type="button" onClick={() => open(0)} className="flex cursor-pointer appearance-none items-center justify-center overflow-hidden border-0 bg-[#fff0e5]" style={{ padding: `${mu(8)} ${mu(12)}`, borderRadius: mu(25.016) }}>
+          <button type="button" onClick={(e) => open(0, e)} className="flex cursor-pointer appearance-none items-center justify-center overflow-hidden border-0 bg-[#fff0e5]" style={{ padding: `${mu(8)} ${mu(12)}`, borderRadius: mu(25.016) }}>
             <div className="flex items-center" style={{ gap: mu(7.505) }}>
               <span className="font-semibold uppercase text-[#eb4638]" style={{ fontFamily: "var(--font-display)", fontSize: mu(20), lineHeight: 0.8, letterSpacing: mu(-1.4), textBoxTrim: "trim-both", textBoxEdge: "cap alphabetic" } as React.CSSProperties}>
                 see flavors

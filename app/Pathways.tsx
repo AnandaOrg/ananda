@@ -130,7 +130,7 @@ export default function Pathways() {
             key={b.color + b.top}
             type="button"
             aria-label={`Open ${FLAVORS[i].label}`}
-            onClick={() => open(i)}
+            onClick={(e) => open(i, e)}
             className="absolute cursor-pointer appearance-none border-0 p-0"
             style={{ left: u(-1.97), top: u(b.top), width: u(1477), height: u(321.713), backgroundColor: b.color }}
           />
@@ -141,7 +141,7 @@ export default function Pathways() {
           <button
             key={f.label}
             type="button"
-            onClick={() => open(i)}
+            onClick={(e) => open(i, e)}
             className="absolute cursor-pointer appearance-none whitespace-nowrap border-0 bg-transparent p-0 text-left font-bold uppercase"
             style={{
               left: u(f.left),
@@ -223,7 +223,7 @@ export default function Pathways() {
         {/* SEE FLAVORS pill */}
         <button
           type="button"
-          onClick={() => open(0)}
+          onClick={(e) => open(0, e)}
           className="absolute flex cursor-pointer appearance-none items-center justify-center overflow-hidden border-0 bg-[#fff0e5]"
           style={{ left: u(1125), top: u(48.25), padding: `${u(14)} ${u(24)}`, borderRadius: u(50.032) }}
         >

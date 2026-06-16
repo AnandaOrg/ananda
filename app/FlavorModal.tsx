@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { motion } from "framer-motion";
 
 /**
  * Full-screen flavour detail overlay (Figma 198:4281 / 4607 / 5127 / 5571).
@@ -175,19 +176,22 @@ function FruitImg({ f }: { f: Fruit }) {
   );
 }
 
-function Chevron({ color, flip, width = u(46), height = u(90) }: { color: string; flip?: boolean; width?: string; height?: string }) {
-  return (
-    <svg viewBox="0 0 46 90" style={{ width, height, transform: flip ? "scaleX(-1)" : undefined }} fill="none" aria-hidden>
-      <path d="M5 5 L41 45 L5 85" stroke={color} strokeWidth={6} strokeLinecap="round" strokeLinejoin="round" />
+function Chevron({ color, flip, width = u(47), height = u(91) }: { color: string; flip?: boolean; width?: string; height?: string }) {
+  return flip ? (
+    <svg width={width} height={height} viewBox="0 0 47 91" fill="none" aria-hidden>
+      <path d="M39.5635 78.9873C36.6697 76.0787 33.5156 73.02 31.8398 71.582C30.9896 70.4486 30.0285 69.4119 29.1895 68.5332C28.1839 67.4801 27.3848 66.6787 26.6738 65.8574C22.2698 60.0727 13.2037 51.302 6.48926 45.4307C7.66131 44.3343 8.87308 43.271 10.1309 42.1709C12.4727 40.1226 15.0124 37.9058 17.3037 35.2783L25.3057 27.2109L25.5264 26.9883L25.7139 26.7363C28.9504 22.3865 33.5791 18.1841 38.001 13.8311C39.1719 12.6784 40.3163 11.5366 41.4473 10.4043C41.3372 14.8669 41.2257 19.4106 41.1641 23.1826L41.1641 23.2109C41.007 38.9788 40.7613 54.746 40.4268 70.5107L40.4268 70.5225C40.3749 73.2917 40.3953 76.5968 40.3945 79.8262C40.1165 79.5446 39.8389 79.2641 39.5635 78.9873Z" stroke={color} strokeWidth="8.83982" />
+    </svg>
+  ) : (
+    <svg width={width} height={height} viewBox="0 0 47 91" fill="none" aria-hidden>
+      <path d="M6.53223 11.79C9.42605 14.6987 12.5801 17.7574 14.2559 19.1953C15.1061 20.3287 16.0672 21.3655 16.9062 22.2441C17.9118 23.2972 18.7109 24.0986 19.4219 24.9199C23.8259 30.7047 32.892 39.4754 39.6064 45.3467C38.4344 46.443 37.2226 47.5063 35.9648 48.6064C33.623 50.6547 31.0833 52.8715 28.792 55.499L20.79 63.5664L20.5693 63.7891L20.3818 64.041C17.1453 68.3909 12.5166 72.5933 8.09473 76.9463C6.92383 78.0989 5.7794 79.2408 4.64844 80.373C4.75855 75.9105 4.87003 71.3668 4.93164 67.5947V67.5664C5.08866 51.7986 5.33442 36.0313 5.66895 20.2666V20.2549C5.72077 17.4857 5.70036 14.1805 5.70117 10.9512C5.97924 11.2327 6.2568 11.5132 6.53223 11.79Z" stroke={color} strokeWidth="8.83982" />
     </svg>
   );
 }
 
 function CloseIcon({ color }: { color: string }) {
   return (
-    <svg viewBox="0 0 60 60" fill="none" className="size-full" aria-hidden>
-      <circle cx="30" cy="30" r="28.5" stroke={color} strokeWidth="2" />
-      <path d="M21 21 L39 39 M39 21 L21 39" stroke={color} strokeWidth="2.5" strokeLinecap="round" />
+    <svg viewBox="0 0 27 27" fill="none" className="size-full" aria-hidden>
+      <path d="M25.2 1.19922L1.19995 25.1992M1.19995 1.19922L25.2 25.1992" stroke={color} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
@@ -209,23 +213,25 @@ function Scene({ f }: { f: Flavor }) {
 
 export default function FlavorModal({
   index,
+  origin,
   onClose,
   onNav,
 }: {
   index: number | null;
+  origin: { x: number; y: number };
   onClose: () => void;
   onNav: (dir: number) => void;
 }) {
-  const [shown, setShown] = useState(false);
   const open = index !== null;
-
+  // shown: drives the outer explosion — flips true once after mount, never resets on nav
+  const [shown, setShown] = useState(false);
+  // isInitialOpen: true only on the very first render, false on all subsequent nav re-renders
+  const isFirstOpenRef = useRef(true);
+  const isInitialOpen = isFirstOpenRef.current;
   useEffect(() => {
-    if (open) {
-      const id = requestAnimationFrame(() => setShown(true));
-      return () => cancelAnimationFrame(id);
-    }
-    setShown(false);
-  }, [open, index]);
+    setShown(true);
+    isFirstOpenRef.current = false;
+  }, []);
 
   useEffect(() => {
     if (!open) return;
@@ -247,12 +253,15 @@ export default function FlavorModal({
   const f = FLAVORS[index];
 
   return (
-    <div
+    <motion.div
       role="dialog"
       aria-modal="true"
       aria-label={`${f.name} cocktail`}
-      className="fixed inset-0 z-50 overflow-hidden transition-opacity duration-300"
-      style={{ backgroundColor: f.bg, opacity: shown ? 1 : 0 }}
+      className="fixed inset-0 z-50 overflow-hidden"
+      style={{ backgroundColor: f.bg, originX: origin.x, originY: origin.y }}
+      initial={false}
+      animate={{ scale: shown ? 1 : 0, rotate: shown ? 0 : -1080, opacity: shown ? 1 : 0 }}
+      transition={{ type: "spring", stiffness: 130, damping: 18 }}
     >
       {/* ───────── Desktop / tablet: 16:9 stage that fits inside the viewport ───────── */}
       <div className="hidden size-full md:flex md:items-center md:justify-center">
@@ -265,8 +274,17 @@ export default function FlavorModal({
           <div className="absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 flex-col items-center" style={{ gap: u(40) }}>
             <div className="flex flex-col items-center" style={{ gap: u(40) }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={f.pouch.src} alt={`ANANDA ${f.name} pouch`} className="block w-auto max-w-none object-contain" style={{ height: u(720) }} />
-              <div key={f.key} className="flex flex-col items-center" style={{ gap: u(14), color: f.textColor }}>
+              <motion.img
+                key={`${f.key}-pouch`}
+                src={f.pouch.src}
+                alt={`ANANDA ${f.name} pouch`}
+                className="pointer-events-none block w-auto max-w-none object-contain"
+                style={{ height: u(720) }}
+                initial={isInitialOpen ? { scale: 5, rotate: 1080, opacity: 0 } : { opacity: 0 }}
+                animate={isInitialOpen ? { scale: 1, rotate: 0, opacity: 1 } : { opacity: 1 }}
+                transition={isInitialOpen ? { type: "spring", stiffness: 160, damping: 20 } : { duration: 0.25 }}
+              />
+              <div key={`${f.key}-text`} className="flex flex-col items-center" style={{ gap: u(14), color: f.textColor }}>
                 <p aria-label="Ingredients" className="whitespace-nowrap uppercase" style={{ fontFamily: "var(--font-mono-label)", fontSize: u(16), lineHeight: 0.87, letterSpacing: u(1.12) }}>
                   <Reveal text="Ingredients" delay={0} />
                 </p>
@@ -295,7 +313,7 @@ export default function FlavorModal({
           </div>
 
           <button type="button" aria-label="Close" onClick={onClose} className="absolute cursor-pointer" style={{ left: u(1813.9), top: u(36), width: u(60), height: u(60) }}>
-            <CloseIcon color={f.nameColor} />
+            <CloseIcon color={f.textColor} />
           </button>
         </div>
       </div>
@@ -313,8 +331,17 @@ export default function FlavorModal({
         {/* Fitted content */}
         <div className="absolute inset-0 flex flex-col items-center justify-center px-6" style={{ gap: "4vh" }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={f.pouch.src} alt={`ANANDA ${f.name} pouch`} className="block w-auto max-w-none object-contain" style={{ height: "42vh" }} />
-          <div key={f.key} className="flex flex-col items-center text-center" style={{ gap: "0.7rem", color: f.textColor }}>
+          <motion.img
+            key={`${f.key}-pouch`}
+            src={f.pouch.src}
+            alt={`ANANDA ${f.name} pouch`}
+            className="pointer-events-none block w-auto max-w-none object-contain"
+            style={{ height: "42vh" }}
+            initial={isInitialOpen ? { scale: 5, rotate: 1080, opacity: 0 } : { opacity: 0 }}
+            animate={isInitialOpen ? { scale: 1, rotate: 0, opacity: 1 } : { opacity: 1 }}
+            transition={isInitialOpen ? { type: "spring", stiffness: 160, damping: 20 } : { duration: 0.25 }}
+          />
+          <div key={`${f.key}-text`} className="flex flex-col items-center text-center" style={{ gap: "0.7rem", color: f.textColor }}>
             <p aria-label="Ingredients" className="whitespace-nowrap uppercase" style={{ fontFamily: "var(--font-mono-label)", fontSize: 11, lineHeight: 0.87, letterSpacing: "0.8px" }}>
               <Reveal text="Ingredients" delay={0} />
             </p>
@@ -345,9 +372,9 @@ export default function FlavorModal({
 
         {/* Close */}
         <button type="button" aria-label="Close" onClick={onClose} className="absolute right-4 top-4 size-10 cursor-pointer">
-          <CloseIcon color={f.nameColor} />
+          <CloseIcon color={f.textColor} />
         </button>
       </div>
-    </div>
+    </motion.div>
   );
 }

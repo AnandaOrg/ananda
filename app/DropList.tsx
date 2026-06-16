@@ -26,7 +26,7 @@ export default function DropList() {
               </p>
             </div>
             <div className="flex flex-col items-start" style={{ gap: mu(19.87), width: mu(256.65) }}>
-              <p className="font-semibold uppercase text-[#fff0e5]" style={{ fontFamily: "var(--font-display)", fontSize: mu(24), lineHeight: 0.8, letterSpacing: mu(-1.68) }}>
+              <p className="font-semibold uppercase text-[#fff0e5]" style={{ fontFamily: "var(--font-display)", fontSize: mu(24), lineHeight: 0.8, letterSpacing: mu(-1.68), paddingLeft: mu(19.57) }}>
                 Get on the list
               </p>
               <form className="relative w-full" onSubmit={noSubmit} style={{ height: mu(48.598) }}>
@@ -52,8 +52,8 @@ export default function DropList() {
               Join the drop list
             </p>
           </div>
-          <div className="flex flex-col items-start justify-center" style={{ gap: ud(38.105), width: ud(492.185) }}>
-            <p className="font-semibold uppercase text-[#fff0e5]" style={{ fontFamily: "var(--font-display)", fontSize: ud(48), lineHeight: 0.8, letterSpacing: ud(-3.36) }}>
+          <div className="flex flex-col items-start justify-center" style={{ gap: ud(38.105), width: ud(492.185), marginBottom: ud(26) }}>
+            <p className="font-semibold uppercase text-[#fff0e5]" style={{ fontFamily: "var(--font-display)", fontSize: ud(48), lineHeight: 0.8, letterSpacing: ud(-3.36), paddingLeft: ud(37.54) }}>
               Get on the list
             </p>
             <form className="relative w-full" onSubmit={noSubmit} style={{ height: ud(93.197) }}>

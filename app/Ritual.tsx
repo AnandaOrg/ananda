@@ -1,6 +1,7 @@
 import Image from "next/image";
 import RevealStatement, { STATEMENT_PARAS } from "./RevealStatement";
 import WildCarousel from "./mobile/WildCarousel";
+import { CAROUSEL_AUTOPLAY_SPEED } from "./configs";
 
 /**
  * Section 5 — "The Ritual" / "ANANDA in the Wild" (Figma node 74:8391, a
@@ -272,7 +273,7 @@ export default function Ritual() {
             snapAlign="start"
             snapType="none"
             startIndex={0}
-            autoplay={80}
+            autoplay={CAROUSEL_AUTOPLAY_SPEED}
           />
         </div>
       </div>
