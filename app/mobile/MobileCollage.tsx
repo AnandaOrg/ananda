@@ -1,5 +1,6 @@
 import Image from "next/image";
 import { mu, MU_VAR, maskStyle } from "./scale";
+import ScrollVideoCanvas from "../ScrollVideoCanvas";
 
 /** Mobile section 3 — "What we're about" collage (Figma 184:1260, 390×1600). */
 
@@ -40,25 +41,19 @@ export default function MobileCollage() {
   return (
     <section className="w-full overflow-hidden bg-[#fff0e5] md:hidden" style={{ containerType: "inline-size" }}>
       <div className="relative" style={{ ...MU_VAR, width: mu(390), height: mu(1600) }}>
-        {/* Pineapple */}
-        <Masked
-          photo="/c-pineapple.png"
+        {/* Pineapple — GSAP scroll-scrubbed */}
+        <ScrollVideoCanvas
+          frameBase="/frames/ananas/"
+          frameCount={120}
           alt="Pineapple slices against a blue sky"
-          mask="/m-pineapple.svg"
-          maskSize={[160.061, 320.121]}
-          maskPos={[2.436, 6.01]}
-          box={{ left: 263.8, top: 652.78, width: 166.943, height: 333.885 }}
-        />
-
-        {/* Strawberry (rotated -90) */}
-        <Masked
-          photo="/c-strawberry.png"
-          alt="An ANANDA pouch nestled in fresh strawberries"
-          mask="/m-14.svg"
-          maskSize={[276.326, 219.242]}
-          maskPos={[0.361, 1.968]}
-          box={{ left: -36.66, top: 707.26, width: 277.863, height: 223.834 }}
-          inner={{ width: 223.834, height: 277.863, rotate: -90 }}
+          style={{
+            position: "absolute",
+            left: mu(263.8),
+            top: mu(652.78),
+            width: mu(166.943),
+            height: mu(333.885),
+            ...maskStyle("/m-pineapple.svg", 160.061, 320.121, 2.436, 6.01),
+          }}
         />
 
         {/* Picnic */}

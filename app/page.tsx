@@ -1,5 +1,4 @@
 import Image from "next/image";
-import oceanBackground from "../public/ananda-bg.png";
 import AboutCollage from "./AboutCollage";
 import DitchTheGlass from "./DitchTheGlass";
 import Pathways from "./Pathways";
@@ -19,14 +18,13 @@ export default function Home() {
     <FlavorProvider>
       {/* Section 1 — splash (shared) */}
       <section className="relative flex h-screen items-center justify-center overflow-hidden">
-        <Image
-          src={oceanBackground}
-          alt=""
-          fill
-          priority
-          placeholder="blur"
-          sizes="100vw"
-          className="object-cover"
+        <video
+          src="/videos/hero.mp4"
+          autoPlay
+          muted
+          loop
+          playsInline
+          className="absolute inset-0 h-full w-full object-cover"
         />
         <Image
           src="/ananda-logo.svg"

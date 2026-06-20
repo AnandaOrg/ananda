@@ -31,7 +31,10 @@ export default function DitchTheGlass() {
 
       diamond.style.transform = `rotate(${rotate}deg) scale(${scale})`;
       imageWrap.style.transform = `rotate(${-rotate}deg) scale(1.5)`;
-      console.log(p, scale, rotate);
+
+      // Fade out pour photo as section 3 enters view
+      const fade = p < 0.65 ? 1 : Math.max(0, 1 - (p - 0.65) / 0.35);
+      imageWrap.style.opacity = String(fade);
     };
 
     const onScroll = () => {

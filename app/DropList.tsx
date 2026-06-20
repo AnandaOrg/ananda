@@ -31,7 +31,7 @@ export default function DropList() {
               </p>
               <form className="relative w-full" onSubmit={noSubmit} style={{ height: mu(48.598) }}>
                 <input type="email" required placeholder="Your email" aria-label="Your email"
-                  className="absolute inset-0 w-full rounded-full bg-[#fff0e5] text-[#0a142f] outline-none placeholder:text-[#0a142f]/55"
+                  className="absolute inset-0 w-full rounded-full bg-[#fff0e5] text-[#0a142f] outline-none placeholder:text-[#eb4638]"
                   style={{ fontFamily: "var(--font-body)", fontSize: mu(14), paddingLeft: mu(19.57), paddingRight: mu(56), borderRadius: mu(24.299) }} />
                 <button type="submit" aria-label="Subscribe" className="absolute -translate-y-1/2" style={{ right: mu(8.1), top: "50%", width: mu(32.399), height: mu(32.399) }}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -58,7 +58,7 @@ export default function DropList() {
             </p>
             <form className="relative w-full" onSubmit={noSubmit} style={{ height: ud(93.197) }}>
               <input type="email" required placeholder="Your email" aria-label="Your email"
-                className="absolute inset-0 w-full bg-[#fff0e5] text-[#0a142f] outline-none placeholder:text-[#0a142f]/55"
+                className="absolute inset-0 w-full bg-[#fff0e5] text-[#0a142f] outline-none placeholder:text-[#eb4638]"
                 style={{ fontFamily: "var(--font-body)", fontSize: ud(24), paddingLeft: ud(37.54), paddingRight: ud(100), borderRadius: ud(46.599) }} />
               <button type="submit" aria-label="Subscribe" className="absolute -translate-y-1/2" style={{ right: ud(15.53), top: "50%", width: ud(62.132), height: ud(62.132) }}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
