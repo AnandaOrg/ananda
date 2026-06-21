@@ -1,7 +1,9 @@
 "use client";
 
 import Image from "next/image";
+import { useCallback, useRef } from "react";
 import { useFlavor } from "./FlavorProvider";
+import GlbViewer, { type GlbViewerHandle } from "./GlbViewer";
 
 /**
  * Section 4 — "The Pathways to Bliss" flavor poster (Figma node 76:9304, a
@@ -89,6 +91,20 @@ const FLAVORS = [
 
 export default function Pathways() {
   const { open } = useFlavor();
+  const glbRef = useRef<GlbViewerHandle>(null);
+
+  const openWithSpin = useCallback((i: number) => {
+    glbRef.current?.spin();
+    // Capture GLB centre now (before any scroll shift during the delay)
+    const rect = glbRef.current?.getRect() ?? new DOMRect();
+    const origin = {
+      x: (rect.left + rect.width / 2) / window.innerWidth,
+      y: (rect.top + rect.height / 2) / window.innerHeight,
+    };
+    // Let the spin build up (~3 turns done by 500 ms), then expand the modal from it
+    setTimeout(() => open(i, origin), 500);
+  }, [open]);
+
   return (
     <section
       className="relative w-full overflow-hidden bg-[#eb4638]"
@@ -130,7 +146,7 @@ export default function Pathways() {
             key={b.color + b.top}
             type="button"
             aria-label={`Open ${FLAVORS[i].label}`}
-            onClick={(e) => open(i, e)}
+            onClick={() => openWithSpin(i)}
             className="absolute cursor-pointer appearance-none border-0 p-0"
             style={{ left: u(-1.97), top: u(b.top), width: u(1477), height: u(321.713), backgroundColor: b.color }}
           />
@@ -141,7 +157,7 @@ export default function Pathways() {
           <button
             key={f.label}
             type="button"
-            onClick={(e) => open(i, e)}
+            onClick={() => openWithSpin(i)}
             className="absolute cursor-pointer appearance-none whitespace-nowrap border-0 bg-transparent p-0 text-left font-bold uppercase"
             style={{
               left: u(f.left),
@@ -178,17 +194,7 @@ export default function Pathways() {
           crop={{ width: "143.08%", height: "181.55%", left: "-22.78%", top: "-36.97%" }}
         />
 
-        {/* Blue Santorini pouch */}
-        <Floating
-          src="/s4-pouch-blue.png"
-          alt="ANANDA Santorini cocktail pouch"
-          rotate={-90}
-          center={{ x: -43.07, y: -141.33, width: 665.874, height: 415.607 }}
-          inner={{ width: 415.607, height: 665.874 }}
-          crop={{ width: "177.86%", height: "111.18%", left: "-40.81%", top: "-7.3%" }}
-          shadow
-          sizes="50vw"
-        />
+        {/* Santorini GLB — replaced by 3-D viewer */}
 
         {/* Elderflower — right, over Gaia */}
         <Floating
@@ -208,22 +214,33 @@ export default function Pathways() {
           inner={{ width: 202.429, height: 209.017 }}
         />
 
-        {/* Red Kyoto pouch */}
-        <Floating
-          src="/s4-pouch-red.png"
-          alt="ANANDA Kyoto cocktail pouch"
-          rotate={-90}
-          center={{ x: -46.72, y: 746.38, width: 673.154, height: 297.321 }}
-          inner={{ width: 297.321, height: 673.154 }}
-          crop={{ width: "263.38%", height: "116.33%", left: "-81.87%", top: "-9.26%" }}
-          shadow
-          sizes="50vw"
+        {/* Kyoto GLB — replaced by 3-D viewer */}
+
+        {/* 3-D viewer — model tracks viewport centre through all 4 bands.
+            Canvas top u(720) → bottom u(1970); Gaia/Kyoto boundary is at 76 % of canvas.
+            transitionAt=0.765 fires just after that boundary; 0.04 window = crisp cut.
+            u(1250) is the minimum height to reach Kyoto centre (u 1832) without clipping. */}
+        <GlbViewer
+          ref={glbRef}
+          src="/glb/santorini.glb"
+          transitionSrc="/glb/kyoto.glb"
+          transitionAt={0.765}
+          transitionDuration={0.04}
+          style={{
+            position: "absolute",
+            left: u(375),
+            top: u(720),
+            width: u(620),
+            height: u(1250),
+            pointerEvents: "none",
+            zIndex: 2,
+          }}
         />
 
         {/* SEE FLAVORS pill */}
         <button
           type="button"
-          onClick={(e) => open(0, e)}
+          onClick={() => openWithSpin(0)}
           className="absolute flex cursor-pointer appearance-none items-center justify-center overflow-hidden border-0 bg-[#fff0e5]"
           style={{ left: u(1125), top: u(48.25), padding: `${u(14)} ${u(24)}`, borderRadius: u(50.032) }}
         >

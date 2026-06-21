@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 
 /**
@@ -217,24 +217,18 @@ export default function FlavorModal({
   onClose,
   onNav,
 }: {
-  index: number | null;
+  index: number;
   origin: { x: number; y: number };
   onClose: () => void;
   onNav: (dir: number) => void;
 }) {
-  const open = index !== null;
-  // shown: drives the outer explosion — flips true once after mount, never resets on nav
-  const [shown, setShown] = useState(false);
-  // isInitialOpen: true only on the very first render, false on all subsequent nav re-renders
-  const isFirstOpenRef = useRef(true);
-  const isInitialOpen = isFirstOpenRef.current;
-  useEffect(() => {
-    setShown(true);
-    isFirstOpenRef.current = false;
-  }, []);
+  // Component mounts fresh on every open (conditional render in FlavorProvider),
+  // so useState(true) is always true on the first render = initial open pouch spin.
+  // Subsequent nav re-renders within the same session still get isInitialOpen=true
+  // which is intentional — each new open feels fresh.
+  const [isInitialOpen] = useState(true);
 
   useEffect(() => {
-    if (!open) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
       else if (e.key === "ArrowRight") onNav(1);
@@ -247,9 +241,8 @@ export default function FlavorModal({
       window.removeEventListener("keydown", onKey);
       document.body.style.overflow = prev;
     };
-  }, [open, onClose, onNav]);
+  }, [onClose, onNav]);
 
-  if (!open) return null;
   const f = FLAVORS[index];
 
   return (
@@ -259,9 +252,13 @@ export default function FlavorModal({
       aria-label={`${f.name} cocktail`}
       className="fixed inset-0 z-50 overflow-hidden"
       style={{ backgroundColor: f.bg, originX: origin.x, originY: origin.y }}
-      initial={false}
-      animate={{ scale: shown ? 1 : 0, rotate: shown ? 0 : -1080, opacity: shown ? 1 : 0 }}
-      transition={{ type: "spring", stiffness: 130, damping: 18 }}
+      initial={{ scale: 0, rotate: -1080, opacity: 0 }}
+      animate={{ scale: 1, rotate: 0, opacity: 1 }}
+      transition={{
+        scale:   { type: "tween", duration: 1.6, ease: [0.16, 1, 0.3, 1] },
+        rotate:  { type: "tween", duration: 1.6, ease: [0.16, 1, 0.3, 1] },
+        opacity: { type: "tween", duration: 0.4, ease: "easeOut" },
+      }}
     >
       {/* ───────── Desktop / tablet: 16:9 stage that fits inside the viewport ───────── */}
       <div className="hidden size-full md:flex md:items-center md:justify-center">

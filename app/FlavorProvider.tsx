@@ -4,7 +4,7 @@ import { createContext, useCallback, useContext, useState } from "react";
 import FlavorModal, { FLAVORS } from "./FlavorModal";
 
 type Origin = { x: number; y: number };
-type Ctx = { open: (index: number, e?: React.MouseEvent) => void };
+type Ctx = { open: (index: number, e?: React.MouseEvent | Origin) => void };
 const FlavorContext = createContext<Ctx>({ open: () => {} });
 
 /** Open a flavour detail overlay by index (0=Santorini … 3=Kyoto). */
@@ -14,12 +14,13 @@ export default function FlavorProvider({ children }: { children: React.ReactNode
   const [index, setIndex] = useState<number | null>(null);
   const [origin, setOrigin] = useState<Origin>({ x: 0.5, y: 0.5 });
 
-  const open = useCallback((i: number, e?: React.MouseEvent) => {
+  const open = useCallback((i: number, e?: React.MouseEvent | Origin) => {
     if (e) {
-      setOrigin({
-        x: e.clientX / window.innerWidth,
-        y: e.clientY / window.innerHeight,
-      });
+      if ("clientX" in e) {
+        setOrigin({ x: e.clientX / window.innerWidth, y: e.clientY / window.innerHeight });
+      } else {
+        setOrigin(e);
+      }
     }
     setIndex(i);
   }, []);
@@ -32,7 +33,9 @@ export default function FlavorProvider({ children }: { children: React.ReactNode
   return (
     <FlavorContext.Provider value={{ open }}>
       {children}
-      <FlavorModal index={index} origin={origin} onClose={onClose} onNav={onNav} />
+      {index !== null && (
+        <FlavorModal index={index} origin={origin} onClose={onClose} onNav={onNav} />
+      )}
     </FlavorContext.Provider>
   );
 }
