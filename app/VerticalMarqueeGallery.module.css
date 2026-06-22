@@ -1,0 +1,19 @@
+.container {
+  position: relative;
+  overflow: hidden;
+}
+
+/* Structural only — animation classes live in globals.css (vmg-animate-up / vmg-animate-down) */
+.track {
+  will-change: transform;
+}
+
+.paused {
+  animation-play-state: paused !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .container {
+    overflow-y: auto;
+  }
+}

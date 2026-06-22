@@ -9,6 +9,8 @@ gsap.registerPlugin(ScrollTrigger);
 
 export type GlbViewerHandle = {
   spin: () => void;
+  spin360: () => void;
+  resetTilt: () => void;
   getRect: () => DOMRect;
 };
 
@@ -22,6 +24,12 @@ type Props = {
   models: ModelEntry[];
   /** Fraction window over which each cross-fade completes. Default 0.04. */
   transitionDuration?: number;
+  /** Initial Z-tilt in radians. Default -π/2 (lying flat). Pass 0 for upright. */
+  initialTilt?: number;
+  /** When true: skip ScrollTrigger, centre model vertically, no scroll-driven X rotation. */
+  noScroll?: boolean;
+  /** One-shot: spin 360° after the model loads. Evaluated at mount, not reactive. */
+  spinOnMount?: boolean;
   className?: string;
   style?: React.CSSProperties;
 };
@@ -61,32 +69,35 @@ function cloneMaterials(
 const GlbViewer = forwardRef<GlbViewerHandle, Props>(function GlbViewer({
   models,
   transitionDuration = 0.04,
+  initialTilt,
+  noScroll,
+  spinOnMount,
   className,
   style,
 }, ref) {
   const mountRef = useRef<HTMLDivElement>(null);
   const spinOffsetRef = useRef({ value: 0 });
-  const spinTweenRef = useRef<ReturnType<typeof gsap.to> | null>(null);
   const tiltRef = useRef({ value: -Math.PI / 2 });
   const tiltTlRef = useRef<gsap.core.Timeline | null>(null);
   const fracRef = useRef(0);
 
   useImperativeHandle(ref, () => ({
     spin() {
-      spinTweenRef.current?.kill();
-      const TAU = Math.PI * 2;
-      const currentTotal = fracRef.current * TAU + spinOffsetRef.current.value;
-      const targetTotal = (Math.ceil(currentTotal / TAU) + 4) * TAU;
-      spinTweenRef.current = gsap.to(spinOffsetRef.current, {
-        value: targetTotal - fracRef.current * TAU,
-        duration: 2.2,
-        ease: "sine.out",
-      });
-
       tiltTlRef.current?.kill();
       tiltTlRef.current = gsap.timeline()
-        .to(tiltRef.current, { value: 0, duration: 1.0, ease: "sine.inOut" })
-        .to(tiltRef.current, { value: -Math.PI / 2, duration: 1.0, ease: "sine.inOut" }, "+=0.1");
+        .to(tiltRef.current, { value: 0, duration: 1.0, ease: "sine.inOut" });
+    },
+    spin360() {
+      gsap.to(spinOffsetRef.current, {
+        value: spinOffsetRef.current.value + Math.PI * 2,
+        duration: 0.7,
+        ease: "power2.inOut",
+      });
+    },
+    resetTilt() {
+      tiltTlRef.current?.kill();
+      tiltTlRef.current = gsap.timeline()
+        .to(tiltRef.current, { value: -Math.PI / 2, duration: 0.8, ease: "sine.inOut" });
     },
     getRect() {
       return mountRef.current?.getBoundingClientRect() ?? new DOMRect();
@@ -96,6 +107,8 @@ const GlbViewer = forwardRef<GlbViewerHandle, Props>(function GlbViewer({
   useEffect(() => {
     const mount = mountRef.current;
     if (!mount || models.length === 0) return;
+
+    tiltRef.current.value = initialTilt ?? -Math.PI / 2;
 
     let dead = false;
     let renderer: THREE_TYPES.WebGLRenderer | null = null;
@@ -137,6 +150,15 @@ const GlbViewer = forwardRef<GlbViewerHandle, Props>(function GlbViewer({
 
       if (dead) return;
 
+      // One-shot spin captured at mount time — intentionally not reactive
+      if (spinOnMount) {
+        gsap.to(spinOffsetRef.current, {
+          value: Math.PI * 2,
+          duration: 0.7,
+          ease: "power2.inOut",
+        });
+      }
+
       function fitGroup(group: THREE_TYPES.Group) {
         const box = new THREE.Box3().setFromObject(group);
         const center = box.getCenter(new THREE.Vector3());
@@ -163,16 +185,18 @@ const GlbViewer = forwardRef<GlbViewerHandle, Props>(function GlbViewer({
       let frustumH = 2 * CAM_Z * Math.tan((FOV * Math.PI) / 180 / 2);
       let frac = 0;
 
-      st = ScrollTrigger.create({
-        trigger: mount,
-        start: "top bottom",
-        end: "bottom top",
-        scrub: 1,
-        onUpdate() {
-          const rect = mount.getBoundingClientRect();
-          frac = Math.max(0, Math.min(1, (window.innerHeight * 0.5 - rect.top) / rect.height));
-        },
-      });
+      if (!noScroll) {
+        st = ScrollTrigger.create({
+          trigger: mount,
+          start: "top bottom",
+          end: "bottom top",
+          scrub: 1,
+          onUpdate() {
+            const rect = mount.getBoundingClientRect();
+            frac = Math.max(0, Math.min(1, (window.innerHeight * 0.5 - rect.top) / rect.height));
+          },
+        });
+      }
 
       ro = new ResizeObserver(() => {
         if (!renderer) return;
@@ -182,7 +206,7 @@ const GlbViewer = forwardRef<GlbViewerHandle, Props>(function GlbViewer({
         camera.updateProjectionMatrix();
         renderer.setSize(w, h);
         frustumH = 2 * CAM_Z * Math.tan((FOV * Math.PI) / 180 / 2);
-        ScrollTrigger.refresh();
+        if (!noScroll) ScrollTrigger.refresh();
       });
       ro.observe(mount);
 
@@ -191,9 +215,12 @@ const GlbViewer = forwardRef<GlbViewerHandle, Props>(function GlbViewer({
 
         fracRef.current = frac;
 
-        const rawWorldY = frustumH * (0.5 - frac);
+        // noScroll: centre model vertically (posFrac=0.5), no scroll-driven X spin (rotFrac=0)
+        const posFrac = noScroll ? 0.5 : frac;
+        const rotFrac = noScroll ? 0 : frac;
+        const rawWorldY = frustumH * (0.5 - posFrac);
         const worldY = Math.max(-1.9, Math.min(1.9, rawWorldY));
-        const rotation = frac * Math.PI * 2 + spinOffsetRef.current.value;
+        const rotation = rotFrac * Math.PI * 2 + spinOffsetRef.current.value;
 
         groups.forEach((g, i) => {
           // blendIn: 1 for first model; for others, ramps from 0→1 as frac crosses its transitionAt
@@ -229,9 +256,10 @@ const GlbViewer = forwardRef<GlbViewerHandle, Props>(function GlbViewer({
       renderer?.dispose();
       renderer?.domElement.remove();
     };
-    // models must be a stable reference (module-level constant) from the caller
+    // models/initialTilt/noScroll must be stable (module-level constants or literals) from the caller.
+    // spinOnMount is intentionally omitted — it's a one-shot flag captured at mount time.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [models, transitionDuration]);
+  }, [models, transitionDuration, initialTilt, noScroll]);
 
   return (
     <div

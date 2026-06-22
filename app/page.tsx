@@ -26,14 +26,15 @@ export default function Home() {
           playsInline
           className="absolute inset-0 h-full w-full object-cover"
         />
-        <Image
+        {/* <Image
           src="/ananda-logo.svg"
           alt="ANANDA Cocktails"
           width={283}
           height={192}
           priority
-          className="relative h-auto w-[74vw] max-w-[290px] md:w-[clamp(180px,22vw,283px)] md:max-w-none"
-        />
+          className="relative w-[74vw] max-w-[290px] md:w-[clamp(180px,22vw,283px)] md:max-w-none"
+          style={{ height: "auto" }}
+        /> */}
       </section>
 
       {/* Section 2 — Ditch the glass */}

@@ -1,6 +1,6 @@
 import AboutCopyBlock from "./AboutCopyBlock";
 import ScrollVideoCanvas from "./ScrollVideoCanvas";
-import CardPeel from "./CardPeel";
+import VerticalSlider from "./VerticalSlider";
 
 const u = (n: number) => `calc(var(--u) * ${n})`;
 
@@ -88,14 +88,24 @@ export default function AboutCollage() {
           </div>
         </div>
 
-        {/* Card peel collage — top left */}
-        <CardPeel
+        {/* Vertical slide gallery — top left */}
+        <VerticalSlider
+          images={[
+            { src: "/hero_3/1.png", alt: "ANANDA moment" },
+            { src: "/hero_3/2.png", alt: "ANANDA moment" },
+            { src: "/hero_3/3.png", alt: "ANANDA moment" },
+            { src: "/hero_3/4.png", alt: "ANANDA moment" },
+            { src: "/hero_3/5.png", alt: "ANANDA moment" },
+          ]}
+          interval={3200}
+          duration={0.9}
+          frame
           style={{
             position: "absolute",
-            left: u(-15.612),
+            left: 0,
             top: u(-108.123),
-            width: u(1074.037),
-            height: u(1232.237),
+            width: "50%",
+            height: "25%",
           }}
         />
 

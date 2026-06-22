@@ -24,3 +24,34 @@ body {
   color: var(--foreground);
   font-family: var(--font-display), sans-serif;
 }
+
+/* ── Vertical marquee gallery ── */
+@keyframes vmg-up {
+  from { transform: translateY(0); }
+  to   { transform: translateY(-50%); }
+}
+
+@keyframes vmg-down {
+  from { transform: translateY(-50%); }
+  to   { transform: translateY(0); }
+}
+
+.vmg-animate-up {
+  animation-name: vmg-up;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+
+.vmg-animate-down {
+  animation-name: vmg-down;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vmg-animate-up,
+  .vmg-animate-down {
+    animation: none !important;
+    transform: none !important;
+  }
+}

@@ -109,8 +109,10 @@ export default function Pathways() {
       x: (rect.left + rect.width / 2) / window.innerWidth,
       y: (rect.top + rect.height / 2) / window.innerHeight,
     };
-    // Let the spin build up (~3 turns done by 500 ms), then expand the modal from it
-    setTimeout(() => open(i, origin), 500);
+    setTimeout(() => open(i, origin,
+      () => glbRef.current?.resetTilt(),
+      () => glbRef.current?.spin360(),
+    ), 500);
   }, [open]);
 
   return (
@@ -239,7 +241,7 @@ export default function Pathways() {
             width: u(620),
             height: u(1250),
             pointerEvents: "none",
-            zIndex: 2,
+            zIndex: 3
           }}
         />
 

@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { motion } from "framer-motion";
+import { useEffect, useRef, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
+import GlbViewer, { type GlbViewerHandle, type ModelEntry } from "./GlbViewer";
 
 /**
  * Full-screen flavour detail overlay (Figma 198:4281 / 4607 / 5127 / 5571).
@@ -33,6 +34,14 @@ type Flavor = {
   ingredients: [string, string];
   fruits: Fruit[];
 };
+
+// One array per flavour — must be module-level so the reference is stable across renders
+const MODAL_GLB_MODELS: ModelEntry[][] = [
+  [{ src: "/glb/santorini.glb" }],
+  [{ src: "/glb/aloha.glb" }],
+  [{ src: "/glb/gaia.glb" }],
+  [{ src: "/glb/kyoto.glb" }],
+];
 
 const LEMON: Crop = { w: "134.65%", h: "166.26%", left: "-22.14%", top: "-38.75%" };
 const ANIS: Crop = { w: "198.31%", h: "263.23%", left: "-50.89%", top: "-95.48%" };
@@ -222,17 +231,23 @@ export default function FlavorModal({
   onClose: () => void;
   onNav: (dir: number) => void;
 }) {
-  // Component mounts fresh on every open (conditional render in FlavorProvider),
-  // so useState(true) is always true on the first render = initial open pouch spin.
-  // Subsequent nav re-renders within the same session still get isInitialOpen=true
-  // which is intentional — each new open feels fresh.
-  const [isInitialOpen] = useState(true);
+  // true once the initial open animation completes — enables nav scale transitions
+  const [outerReady, setOuterReady] = useState(false);
+  useEffect(() => { const id = setTimeout(() => setOuterReady(true), 900); return () => clearTimeout(id); }, []);
+
+  const desktopGlbRef = useRef<GlbViewerHandle>(null);
+  const mobileGlbRef  = useRef<GlbViewerHandle>(null);
 
   useEffect(() => {
+    const nav = (dir: number) => {
+      desktopGlbRef.current?.spin360();
+      mobileGlbRef.current?.spin360();
+      onNav(dir);
+    };
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
-      else if (e.key === "ArrowRight") onNav(1);
-      else if (e.key === "ArrowLeft") onNav(-1);
+      else if (e.key === "ArrowRight") nav(1);
+      else if (e.key === "ArrowLeft") nav(-1);
     };
     window.addEventListener("keydown", onKey);
     const prev = document.body.style.overflow;
@@ -251,37 +266,59 @@ export default function FlavorModal({
       aria-modal="true"
       aria-label={`${f.name} cocktail`}
       className="fixed inset-0 z-50 overflow-hidden"
-      style={{ backgroundColor: f.bg, originX: origin.x, originY: origin.y }}
-      initial={{ scale: 0, rotate: -1080, opacity: 0 }}
-      animate={{ scale: 1, rotate: 0, opacity: 1 }}
+      style={{ originX: origin.x, originY: origin.y }}
+      initial={{ scale: 0, opacity: 0 }}
+      animate={{ scale: 1, opacity: 1 }}
       transition={{
-        scale:   { type: "tween", duration: 1.6, ease: [0.16, 1, 0.3, 1] },
-        rotate:  { type: "tween", duration: 1.6, ease: [0.16, 1, 0.3, 1] },
-        opacity: { type: "tween", duration: 0.4, ease: "easeOut" },
+        scale:   { type: "tween", duration: 0.9, ease: [0.16, 1, 0.3, 1] },
+        opacity: { type: "tween", duration: 0.3, ease: "easeOut" },
       }}
     >
+      {/* Background layer lives outside AnimatePresence so it keeps the correct
+          color while exiting content is still on screen with the OLD flavor. */}
+      <motion.div
+        className="absolute inset-0"
+        style={{ backgroundColor: f.bg }}
+        animate={{ backgroundColor: f.bg }}
+        transition={{ type: "tween", duration: 0.4 }}
+      />
+
       {/* ───────── Desktop / tablet: 16:9 stage that fits inside the viewport ───────── */}
       <div className="hidden size-full md:flex md:items-center md:justify-center">
         <div
           className="relative overflow-hidden w-[min(100vw,calc(100vh*16/9))]"
-          style={{ aspectRatio: "16 / 9", containerType: "inline-size", ["--u" as string]: "calc(100cqw / 1920)", backgroundColor: f.bg }}
+          style={{ aspectRatio: "16 / 9", containerType: "inline-size", ["--u" as string]: "calc(100cqw / 1920)" }}
         >
-          <Scene f={f} />
+          {/* GLB: persistent — stays visible while scene/text transitions */}
+          <GlbViewer
+            ref={desktopGlbRef}
+            models={MODAL_GLB_MODELS[index]}
+            initialTilt={0}
+            noScroll
+            style={{
+              position: "absolute",
+              left: "50%",
+              top: "50%",
+              transform: "translate(-50%, -50%)",
+              width: u(600),
+              height: u(1440),
+              pointerEvents: "none",
+            }}
+          />
 
-          <div className="absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 flex-col items-center" style={{ gap: u(40) }}>
-            <div className="flex flex-col items-center" style={{ gap: u(40) }}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <motion.img
-                key={`${f.key}-pouch`}
-                src={f.pouch.src}
-                alt={`ANANDA ${f.name} pouch`}
-                className="pointer-events-none block w-auto max-w-none object-contain"
-                style={{ height: u(720) }}
-                initial={isInitialOpen ? { scale: 5, rotate: 1080, opacity: 0 } : { opacity: 0 }}
-                animate={isInitialOpen ? { scale: 1, rotate: 0, opacity: 1 } : { opacity: 1 }}
-                transition={isInitialOpen ? { type: "spring", stiffness: 160, damping: 20 } : { duration: 0.25 }}
-              />
-              <div key={`${f.key}-text`} className="flex flex-col items-center" style={{ gap: u(14), color: f.textColor }}>
+          {/* Scene + ingredients: animate on nav, scale from centre where GLB sits */}
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={f.key}
+              className="absolute inset-0"
+              style={{ originX: 0.5, originY: 0.5 }}
+              initial={outerReady ? { scale: 0, opacity: 0 } : false}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0, opacity: 0 }}
+              transition={{ type: "tween", duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
+            >
+              <Scene f={f} />
+              <div className="absolute inset-x-0 flex flex-col items-center" style={{ bottom: u(210), gap: u(14), color: f.textColor }}>
                 <p aria-label="Ingredients" className="whitespace-nowrap uppercase" style={{ fontFamily: "var(--font-mono-label)", fontSize: u(16), lineHeight: 0.87, letterSpacing: u(1.12) }}>
                   <Reveal text="Ingredients" delay={0} />
                 </p>
@@ -294,19 +331,20 @@ export default function FlavorModal({
                   </p>
                 </div>
               </div>
-            </div>
+            </motion.div>
+          </AnimatePresence>
 
-            <div className="flex items-center justify-between" style={{ width: u(1800) }}>
-              <button type="button" aria-label="Previous flavour" onClick={() => onNav(-1)} className="cursor-pointer">
-                <Chevron color={f.nameColor} flip />
-              </button>
-              <p className="text-center font-bold uppercase" style={{ fontFamily: "var(--font-display)", fontSize: u(160), lineHeight: 0.8, letterSpacing: u(-12.8), color: f.nameColor, width: u(760.75) }}>
-                {f.name}
-              </p>
-              <button type="button" aria-label="Next flavour" onClick={() => onNav(1)} className="cursor-pointer">
-                <Chevron color={f.nameColor} />
-              </button>
-            </div>
+          {/* Nav row: persistent — always visible */}
+          <div className="absolute inset-x-0 flex items-center justify-between" style={{ bottom: u(40), padding: `0 ${u(60)}` }}>
+            <button type="button" aria-label="Previous flavour" onClick={() => { desktopGlbRef.current?.spin360(); mobileGlbRef.current?.spin360(); onNav(-1); }} className="cursor-pointer">
+              <Chevron color={f.nameColor} flip />
+            </button>
+            <p className="text-center font-bold uppercase" style={{ fontFamily: "var(--font-display)", fontSize: u(160), lineHeight: 0.8, letterSpacing: u(-12.8), color: f.nameColor, width: u(760.75) }}>
+              {f.name}
+            </p>
+            <button type="button" aria-label="Next flavour" onClick={() => { desktopGlbRef.current?.spin360(); mobileGlbRef.current?.spin360(); onNav(1); }} className="cursor-pointer">
+              <Chevron color={f.nameColor} />
+            </button>
           </div>
 
           <button type="button" aria-label="Close" onClick={onClose} className="absolute cursor-pointer" style={{ left: u(1813.9), top: u(36), width: u(60), height: u(60) }}>
@@ -317,57 +355,69 @@ export default function FlavorModal({
 
       {/* ───────── Mobile: scene covers the screen, controls fit the viewport ───────── */}
       <div className="absolute inset-0 md:hidden">
-        {/* Cover scene (mandala + fruit), centred & cropped to fill the screen */}
-        <div
-          className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 overflow-hidden w-[max(100vw,calc(100vh*16/9))]"
-          style={{ aspectRatio: "16 / 9", containerType: "inline-size", ["--u" as string]: "calc(100cqw / 1920)" }}
-        >
-          <Scene f={f} />
-        </div>
+        {/* GLB: persistent */}
+        <GlbViewer
+          ref={mobileGlbRef}
+          models={MODAL_GLB_MODELS[index]}
+          initialTilt={0}
+          noScroll
+          style={{
+            position: "absolute",
+            left: "50%",
+            top: "50%",
+            transform: "translate(-50%, -50%)",
+            width: "42vh",
+            height: "84vh",
+            pointerEvents: "none",
+          }}
+        />
 
-        {/* Fitted content */}
-        <div className="absolute inset-0 flex flex-col items-center justify-center px-6" style={{ gap: "4vh" }}>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <motion.img
-            key={`${f.key}-pouch`}
-            src={f.pouch.src}
-            alt={`ANANDA ${f.name} pouch`}
-            className="pointer-events-none block w-auto max-w-none object-contain"
-            style={{ height: "42vh" }}
-            initial={isInitialOpen ? { scale: 5, rotate: 1080, opacity: 0 } : { opacity: 0 }}
-            animate={isInitialOpen ? { scale: 1, rotate: 0, opacity: 1 } : { opacity: 1 }}
-            transition={isInitialOpen ? { type: "spring", stiffness: 160, damping: 20 } : { duration: 0.25 }}
-          />
-          <div key={`${f.key}-text`} className="flex flex-col items-center text-center" style={{ gap: "0.7rem", color: f.textColor }}>
-            <p aria-label="Ingredients" className="whitespace-nowrap uppercase" style={{ fontFamily: "var(--font-mono-label)", fontSize: 11, lineHeight: 0.87, letterSpacing: "0.8px" }}>
-              <Reveal text="Ingredients" delay={0} />
-            </p>
-            <div style={{ fontFamily: "var(--font-body)", fontSize: 15, lineHeight: 1.5, maxWidth: "84vw" }}>
-              <p className="mb-0" aria-label={f.ingredients[0]}>
-                <Reveal text={f.ingredients[0]} delay={260} />
+        {/* Scene + text: animate on nav */}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={f.key}
+            className="absolute inset-0"
+            style={{ originX: 0.5, originY: 0.5 }}
+            initial={outerReady ? { scale: 0, opacity: 0 } : false}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0, opacity: 0 }}
+            transition={{ type: "tween", duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
+          >
+            <div
+              className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 overflow-hidden w-[max(100vw,calc(100vh*16/9))]"
+              style={{ aspectRatio: "16 / 9", containerType: "inline-size", ["--u" as string]: "calc(100cqw / 1920)" }}
+            >
+              <Scene f={f} />
+            </div>
+            <div className="absolute inset-x-0 bottom-0 flex flex-col items-center text-center px-6 pb-4" style={{ gap: "0.5rem", color: f.textColor }}>
+              <p aria-label="Ingredients" className="whitespace-nowrap uppercase" style={{ fontFamily: "var(--font-mono-label)", fontSize: 11, lineHeight: 0.87, letterSpacing: "0.8px" }}>
+                <Reveal text="Ingredients" delay={0} />
               </p>
-              <p aria-label={f.ingredients[1]}>
-                <Reveal text={f.ingredients[1]} delay={260 + f.ingredients[0].length * 28} />
+              <div style={{ fontFamily: "var(--font-body)", fontSize: 15, lineHeight: 1.5, maxWidth: "84vw" }}>
+                <p className="mb-0" aria-label={f.ingredients[0]}>
+                  <Reveal text={f.ingredients[0]} delay={260} />
+                </p>
+                <p aria-label={f.ingredients[1]}>
+                  <Reveal text={f.ingredients[1]} delay={260 + f.ingredients[0].length * 28} />
+                </p>
+              </div>
+              <p
+                className="text-center font-bold uppercase"
+                style={{ fontFamily: "var(--font-display)", fontSize: "clamp(2.5rem, 13vw, 5.5rem)", lineHeight: 0.8, letterSpacing: "-0.06em", color: f.nameColor }}
+              >
+                {f.name}
               </p>
             </div>
-          </div>
-          <p
-            className="text-center font-bold uppercase"
-            style={{ fontFamily: "var(--font-display)", fontSize: "clamp(2.5rem, 13vw, 5.5rem)", lineHeight: 0.8, letterSpacing: "-0.06em", color: f.nameColor }}
-          >
-            {f.name}
-          </p>
-        </div>
+          </motion.div>
+        </AnimatePresence>
 
-        {/* Edge arrows */}
-        <button type="button" aria-label="Previous flavour" onClick={() => onNav(-1)} className="absolute left-1 top-1/2 -translate-y-1/2 cursor-pointer p-3">
+        <button type="button" aria-label="Previous flavour" onClick={() => { desktopGlbRef.current?.spin360(); mobileGlbRef.current?.spin360(); onNav(-1); }} className="absolute left-1 top-1/2 -translate-y-1/2 cursor-pointer p-3">
           <Chevron color={f.nameColor} flip width="22px" height="43px" />
         </button>
-        <button type="button" aria-label="Next flavour" onClick={() => onNav(1)} className="absolute right-1 top-1/2 -translate-y-1/2 cursor-pointer p-3">
+        <button type="button" aria-label="Next flavour" onClick={() => { desktopGlbRef.current?.spin360(); mobileGlbRef.current?.spin360(); onNav(1); }} className="absolute right-1 top-1/2 -translate-y-1/2 cursor-pointer p-3">
           <Chevron color={f.nameColor} width="22px" height="43px" />
         </button>
 
-        {/* Close */}
         <button type="button" aria-label="Close" onClick={onClose} className="absolute right-4 top-4 size-10 cursor-pointer">
           <CloseIcon color={f.textColor} />
         </button>

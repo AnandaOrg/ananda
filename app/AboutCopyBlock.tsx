@@ -58,9 +58,10 @@ export default function AboutCopyBlock() {
             letterSpacing: u(0.7),
           }}
         >
-          What we're about
+          What we&apos;re about
         </p>
       </div>
+
       <div style={{ padding: `${u(10)} ${u(14)}` }}>
         <div
           style={{
