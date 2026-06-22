@@ -75,6 +75,14 @@ function Floating({ src, alt, rotate, inner, box, center, crop, shadow, sizes }:
   );
 }
 
+// Stable reference — must live outside the component to avoid useEffect re-runs
+const GLB_MODELS = [
+  { src: "/glb/santorini.glb" },
+  { src: "/glb/aloha.glb",    transitionAt: 0.247 },
+  { src: "/glb/gaia.glb",     transitionAt: 0.504 },
+  { src: "/glb/kyoto.glb",    transitionAt: 0.762 },
+];
+
 const BANDS = [
   { color: "#1f5fcd", top: 706.75 },
   { color: "#f8a20f", top: 1028.46 },
@@ -222,9 +230,7 @@ export default function Pathways() {
             u(1250) is the minimum height to reach Kyoto centre (u 1832) without clipping. */}
         <GlbViewer
           ref={glbRef}
-          src="/glb/santorini.glb"
-          transitionSrc="/glb/kyoto.glb"
-          transitionAt={0.765}
+          models={GLB_MODELS}
           transitionDuration={0.04}
           style={{
             position: "absolute",
