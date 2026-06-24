@@ -53,7 +53,7 @@ export default function DropList() {
             </p>
           </div>
           <div className="flex flex-col items-start justify-center" style={{ gap: ud(38.105), width: ud(492.185), marginBottom: ud(26) }}>
-            <p className="font-semibold uppercase text-[#fff0e5]" style={{ fontFamily: "var(--font-display)", fontSize: ud(48), lineHeight: 0.8, letterSpacing: ud(-3.36), paddingLeft: ud(37.54) }}>
+            <p className="font-semibold uppercase text-[#fff0e5]" style={{ fontFamily: "var(--font-display)", fontSize: ud(48), lineHeight: 0.8, letterSpacing: ud(-3.36) }}>
               Get on the list
             </p>
             <form className="relative w-full" onSubmit={noSubmit} style={{ height: ud(93.197) }}>

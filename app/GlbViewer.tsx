@@ -10,6 +10,8 @@ gsap.registerPlugin(ScrollTrigger);
 export type GlbViewerHandle = {
   spin: () => void;
   spin360: () => void;
+  /** Tilt the model to lie flat at +90° (+π/2 on Z). */
+  tiltTo90: () => void;
   resetTilt: () => void;
   getRect: () => DOMRect;
 };
@@ -28,8 +30,12 @@ type Props = {
   initialTilt?: number;
   /** When true: skip ScrollTrigger, centre model vertically, no scroll-driven X rotation. */
   noScroll?: boolean;
-  /** One-shot: spin 360° after the model loads. Evaluated at mount, not reactive. */
+  /** Spin 360° each time a model finishes loading (initial mount and every models swap). */
   spinOnMount?: boolean;
+  /** Index-select mode: load ALL `models` once, show `models[activeIndex]`, and
+   *  cross-fade + spin when it changes — no reload. `models` must be stable.
+   *  When set it overrides the scroll-driven transitionAt blending. */
+  activeIndex?: number;
   className?: string;
   style?: React.CSSProperties;
 };
@@ -68,10 +74,11 @@ function cloneMaterials(
 
 const GlbViewer = forwardRef<GlbViewerHandle, Props>(function GlbViewer({
   models,
-  transitionDuration = 0.04,
+  transitionDuration = 0,
   initialTilt,
   noScroll,
   spinOnMount,
+  activeIndex,
   className,
   style,
 }, ref) {
@@ -80,6 +87,8 @@ const GlbViewer = forwardRef<GlbViewerHandle, Props>(function GlbViewer({
   const tiltRef = useRef({ value: -Math.PI / 2 });
   const tiltTlRef = useRef<gsap.core.Timeline | null>(null);
   const fracRef = useRef(0);
+  // Which model the render loop should fade toward (index-select mode).
+  const activeRef = useRef(activeIndex ?? 0);
 
   useImperativeHandle(ref, () => ({
     spin() {
@@ -94,6 +103,11 @@ const GlbViewer = forwardRef<GlbViewerHandle, Props>(function GlbViewer({
         ease: "power2.inOut",
       });
     },
+    tiltTo90() {
+      tiltTlRef.current?.kill();
+      tiltTlRef.current = gsap.timeline()
+        .to(tiltRef.current, { value: Math.PI / 2, duration: 1.0, ease: "sine.inOut" });
+    },
     resetTilt() {
       tiltTlRef.current?.kill();
       tiltTlRef.current = gsap.timeline()
@@ -103,6 +117,21 @@ const GlbViewer = forwardRef<GlbViewerHandle, Props>(function GlbViewer({
       return mountRef.current?.getBoundingClientRect() ?? new DOMRect();
     },
   }));
+
+  // Index-select mode: when activeIndex changes (incl. first mount) point the
+  // render loop at the new model, reset its tilt to rest, and spin a full turn.
+  // The model is already loaded, so this never reloads — just a cross-fade.
+  useEffect(() => {
+    if (activeIndex === undefined) return;
+    activeRef.current = activeIndex;
+    tiltTlRef.current?.kill();
+    tiltRef.current.value = initialTilt ?? -Math.PI / 2;
+    gsap.to(spinOffsetRef.current, {
+      value: spinOffsetRef.current.value + Math.PI * 2,
+      duration: 0.7,
+      ease: "power2.inOut",
+    });
+  }, [activeIndex, initialTilt]);
 
   useEffect(() => {
     const mount = mountRef.current;
@@ -150,10 +179,12 @@ const GlbViewer = forwardRef<GlbViewerHandle, Props>(function GlbViewer({
 
       if (dead) return;
 
-      // One-shot spin captured at mount time — intentionally not reactive
+      // Spin a full turn every time a model loads (initial mount + each models
+      // swap). Relative (+2π) so it fires on every reload, not just the first —
+      // an absolute target would be a no-op once the offset already equals 2π.
       if (spinOnMount) {
         gsap.to(spinOffsetRef.current, {
-          value: Math.PI * 2,
+          value: spinOffsetRef.current.value + Math.PI * 2,
           duration: 0.7,
           ease: "power2.inOut",
         });
@@ -171,13 +202,38 @@ const GlbViewer = forwardRef<GlbViewerHandle, Props>(function GlbViewer({
       const groups = gltfs.map((g) => g.scene as THREE_TYPES.Group);
       groups.forEach(fitGroup);
 
-      // First model starts fully opaque; all others start transparent
-      const allMats = groups.map((g, i) => cloneMaterials(g, i === 0 ? 1 : 0));
+      // Index-select mode (modal): show models[activeIndex] and cross-fade on
+      // change. Otherwise scroll-blend mode (Pathways): model 0 starts opaque.
+      const useSelect = activeIndex !== undefined;
+      const startIndex = activeIndex ?? 0;
+
+      // The shown model starts fully opaque; all others start transparent
+      const allMats = groups.map((g, i) => cloneMaterials(g, i === startIndex ? 1 : 0));
+      // Per-model current opacity, eased toward its target each frame in select mode
+      const curOpacity = groups.map((_, i) => (i === startIndex ? 1 : 0));
 
       groups.forEach((g, i) => {
-        g.visible = i === 0;
+        g.visible = i === startIndex;
         scene.add(g);
       });
+
+      // Warm up the GPU for every model up front so no model hitches the frame
+      // it first appears. compileAsync() builds the shader programs; a single
+      // warm-up render() then forces the geometry buffers + textures to upload
+      // (compile alone doesn't push those — they'd otherwise upload lazily on
+      // the first draw of each model, which is exactly the one-time lag seen on
+      // the initial santorini→aloha→gaia→kyoto pass). Both passes need every
+      // group visible; models 1-3 have opacity 0 so the warm-up draw shows
+      // nothing new. Restore per-model visibility afterwards.
+      groups.forEach((g) => { g.visible = true; });
+      if (typeof renderer.compileAsync === "function") {
+        await renderer.compileAsync(scene, camera);
+      } else {
+        renderer.compile(scene, camera);
+      }
+      if (dead) return;
+      renderer.render(scene, camera);
+      groups.forEach((g, i) => { g.visible = i === startIndex; });
 
       // Transition points for models[1], models[2], … (no entry for models[0])
       const transitionPoints = models.slice(1).map((m) => m.transitionAt ?? 0);
@@ -220,24 +276,37 @@ const GlbViewer = forwardRef<GlbViewerHandle, Props>(function GlbViewer({
         const rotFrac = noScroll ? 0 : frac;
         const rawWorldY = frustumH * (0.5 - posFrac);
         const worldY = Math.max(-1.9, Math.min(1.9, rawWorldY));
-        const rotation = rotFrac * Math.PI * 2 + spinOffsetRef.current.value;
+        // Scroll drives the X tumble (top↔bottom); the spin offset drives a
+        // left↔right turntable on Y (the 360° on nav / spinOnMount / spin360).
+        const tumbleX = rotFrac * Math.PI * 2;
+        const spinY = spinOffsetRef.current.value;
 
         groups.forEach((g, i) => {
-          // blendIn: 1 for first model; for others, ramps from 0→1 as frac crosses its transitionAt
-          const blendIn =
-            i === 0
-              ? 1
-              : Math.max(0, Math.min(1, (frac - transitionPoints[i - 1]) / transitionDuration));
-          // blendOut: 0 for last model; for others, ramps from 0→1 as frac crosses the NEXT transitionAt
-          const blendOut =
-            i >= transitionPoints.length
-              ? 0
-              : Math.max(0, Math.min(1, (frac - transitionPoints[i]) / transitionDuration));
+          let opacity: number;
+          if (useSelect) {
+            // Ease toward 1 for the active model, 0 for the rest — a smooth
+            // cross-fade with no reload when activeRef changes.
+            const target = i === activeRef.current ? 1 : 0;
+            curOpacity[i] += (target - curOpacity[i]) * 0.14;
+            opacity = curOpacity[i];
+          } else {
+            // blendIn: 1 for first model; for others, ramps from 0→1 as frac crosses its transitionAt
+            const blendIn =
+              i === 0
+                ? 1
+                : Math.max(0, Math.min(1, (frac - transitionPoints[i - 1]) / transitionDuration));
+            // blendOut: 0 for last model; for others, ramps from 0→1 as frac crosses the NEXT transitionAt
+            const blendOut =
+              i >= transitionPoints.length
+                ? 0
+                : Math.max(0, Math.min(1, (frac - transitionPoints[i]) / transitionDuration));
 
-          const opacity = blendIn * (1 - blendOut);
+            opacity = blendIn * (1 - blendOut);
+          }
 
           g.position.y = worldY;
-          g.rotation.x = rotation;
+          g.rotation.x = tumbleX;
+          g.rotation.y = spinY;
           g.rotation.z = tiltRef.current.value;
           g.visible = opacity > 0.01;
           allMats[i].forEach((m) => { m.opacity = opacity; });

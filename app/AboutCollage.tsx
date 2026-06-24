@@ -55,6 +55,7 @@ export default function AboutCollage() {
               frameBase="/frames/kyoto/"
               frameCount={78}
               alt="Pouring a chilled ANANDA cocktail"
+              autoLoop
               style={{ width: u(779.28), height: u(897.12), overflow: "hidden" }}
             />
           </div>

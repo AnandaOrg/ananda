@@ -35,12 +35,14 @@ type Flavor = {
   fruits: Fruit[];
 };
 
-// One array per flavour — must be module-level so the reference is stable across renders
-const MODAL_GLB_MODELS: ModelEntry[][] = [
-  [{ src: "/glb/santorini.glb" }],
-  [{ src: "/glb/aloha.glb" }],
-  [{ src: "/glb/gaia.glb" }],
-  [{ src: "/glb/kyoto.glb" }],
+// All flavour models, ordered to match FLAVORS / the modal index. Module-level so
+// the reference is stable: the viewer loads them ALL once and cross-fades by
+// activeIndex on nav — no per-arrow reload.
+const MODAL_GLB_MODELS: ModelEntry[] = [
+  { src: "/glb/santorini.glb" },
+  { src: "/glb/aloha.glb" },
+  { src: "/glb/gaia.glb" },
+  { src: "/glb/kyoto.glb" },
 ];
 
 const LEMON: Crop = { w: "134.65%", h: "166.26%", left: "-22.14%", top: "-38.75%" };
@@ -238,16 +240,19 @@ export default function FlavorModal({
   const desktopGlbRef = useRef<GlbViewerHandle>(null);
   const mobileGlbRef  = useRef<GlbViewerHandle>(null);
 
+  // The GLB always renders above the modal's scene/text (high z-index set on the
+  // viewer itself, below). Clicking the stage lays the bottle flat at +90°.
+  const liftGlb = () => {
+    desktopGlbRef.current?.tiltTo90();
+    mobileGlbRef.current?.tiltTo90();
+  };
+
   useEffect(() => {
-    const nav = (dir: number) => {
-      desktopGlbRef.current?.spin360();
-      mobileGlbRef.current?.spin360();
-      onNav(dir);
-    };
+    // Spin is handled by the viewer's spinOnMount as the new model loads.
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
-      else if (e.key === "ArrowRight") nav(1);
-      else if (e.key === "ArrowLeft") nav(-1);
+      else if (e.key === "ArrowRight") onNav(1);
+      else if (e.key === "ArrowLeft") onNav(-1);
     };
     window.addEventListener("keydown", onKey);
     const prev = document.body.style.overflow;
@@ -286,13 +291,15 @@ export default function FlavorModal({
       {/* ───────── Desktop / tablet: 16:9 stage that fits inside the viewport ───────── */}
       <div className="hidden size-full md:flex md:items-center md:justify-center">
         <div
+          onClick={liftGlb}
           className="relative overflow-hidden w-[min(100vw,calc(100vh*16/9))]"
           style={{ aspectRatio: "16 / 9", containerType: "inline-size", ["--u" as string]: "calc(100cqw / 1920)" }}
         >
           {/* GLB: persistent — stays visible while scene/text transitions */}
           <GlbViewer
             ref={desktopGlbRef}
-            models={MODAL_GLB_MODELS[index]}
+            models={MODAL_GLB_MODELS}
+            activeIndex={index}
             initialTilt={0}
             noScroll
             style={{
@@ -303,6 +310,7 @@ export default function FlavorModal({
               width: u(600),
               height: u(1440),
               pointerEvents: "none",
+              zIndex: 40,
             }}
           />
 
@@ -336,29 +344,30 @@ export default function FlavorModal({
 
           {/* Nav row: persistent — always visible */}
           <div className="absolute inset-x-0 flex items-center justify-between" style={{ bottom: u(40), padding: `0 ${u(60)}` }}>
-            <button type="button" aria-label="Previous flavour" onClick={() => { desktopGlbRef.current?.spin360(); mobileGlbRef.current?.spin360(); onNav(-1); }} className="cursor-pointer">
+            <button type="button" aria-label="Previous flavour" onClick={(e) => { e.stopPropagation(); onNav(-1); }} className="cursor-pointer">
               <Chevron color={f.nameColor} flip />
             </button>
             <p className="text-center font-bold uppercase" style={{ fontFamily: "var(--font-display)", fontSize: u(160), lineHeight: 0.8, letterSpacing: u(-12.8), color: f.nameColor, width: u(760.75) }}>
               {f.name}
             </p>
-            <button type="button" aria-label="Next flavour" onClick={() => { desktopGlbRef.current?.spin360(); mobileGlbRef.current?.spin360(); onNav(1); }} className="cursor-pointer">
+            <button type="button" aria-label="Next flavour" onClick={(e) => { e.stopPropagation(); onNav(1); }} className="cursor-pointer">
               <Chevron color={f.nameColor} />
             </button>
           </div>
 
-          <button type="button" aria-label="Close" onClick={onClose} className="absolute cursor-pointer" style={{ left: u(1813.9), top: u(36), width: u(60), height: u(60) }}>
+          <button type="button" aria-label="Close" onClick={(e) => { e.stopPropagation(); onClose(); }} className="absolute cursor-pointer" style={{ left: u(1813.9), top: u(36), width: u(60), height: u(60) }}>
             <CloseIcon color={f.textColor} />
           </button>
         </div>
       </div>
 
       {/* ───────── Mobile: scene covers the screen, controls fit the viewport ───────── */}
-      <div className="absolute inset-0 md:hidden">
+      <div onClick={liftGlb} className="absolute inset-0 md:hidden">
         {/* GLB: persistent */}
         <GlbViewer
           ref={mobileGlbRef}
-          models={MODAL_GLB_MODELS[index]}
+          models={MODAL_GLB_MODELS}
+          activeIndex={index}
           initialTilt={0}
           noScroll
           style={{
@@ -369,6 +378,7 @@ export default function FlavorModal({
             width: "42vh",
             height: "84vh",
             pointerEvents: "none",
+            zIndex: 40,
           }}
         />
 
@@ -411,14 +421,14 @@ export default function FlavorModal({
           </motion.div>
         </AnimatePresence>
 
-        <button type="button" aria-label="Previous flavour" onClick={() => { desktopGlbRef.current?.spin360(); mobileGlbRef.current?.spin360(); onNav(-1); }} className="absolute left-1 top-1/2 -translate-y-1/2 cursor-pointer p-3">
+        <button type="button" aria-label="Previous flavour" onClick={(e) => { e.stopPropagation(); onNav(-1); }} className="absolute left-1 top-1/2 -translate-y-1/2 cursor-pointer p-3">
           <Chevron color={f.nameColor} flip width="22px" height="43px" />
         </button>
-        <button type="button" aria-label="Next flavour" onClick={() => { desktopGlbRef.current?.spin360(); mobileGlbRef.current?.spin360(); onNav(1); }} className="absolute right-1 top-1/2 -translate-y-1/2 cursor-pointer p-3">
+        <button type="button" aria-label="Next flavour" onClick={(e) => { e.stopPropagation(); onNav(1); }} className="absolute right-1 top-1/2 -translate-y-1/2 cursor-pointer p-3">
           <Chevron color={f.nameColor} width="22px" height="43px" />
         </button>
 
-        <button type="button" aria-label="Close" onClick={onClose} className="absolute right-4 top-4 size-10 cursor-pointer">
+        <button type="button" aria-label="Close" onClick={(e) => { e.stopPropagation(); onClose(); }} className="absolute right-4 top-4 size-10 cursor-pointer">
           <CloseIcon color={f.textColor} />
         </button>
       </div>

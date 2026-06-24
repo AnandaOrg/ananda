@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useRef, useCallback } from "react";
+import { useEffect, useRef } from "react";
 import gsap from "gsap";
 
 export interface SliderImage {
@@ -22,7 +22,7 @@ interface Props {
   images: SliderImage[];
   /** Milliseconds each slide stays visible. Default 3200. */
   interval?: number;
-  /** Slide transition duration in seconds. Default 0.9. */
+  /** Slide-in transition duration in seconds. Default 0.9. */
   duration?: number;
   /** Apply the /m-photo-card.svg curved frame mask. Default false. */
   frame?: boolean;
@@ -38,74 +38,78 @@ export default function VerticalSlider({
   className,
   style,
 }: Props) {
-  const activeRef = useRef(0);
-  const animatingRef = useRef(false);
   const slideRefs = useRef<(HTMLDivElement | null)[]>([]);
 
-  // Position all slides: index 0 visible (y=0), rest waiting below (y=100%)
-  useEffect(() => {
-    slideRefs.current.forEach((el, i) => {
-      if (!el) return;
-      gsap.set(el, { y: i === 0 ? "0%" : "100%" });
-    });
-  }, [images]);
-
-  const advance = useCallback(() => {
-    if (animatingRef.current || images.length < 2) return;
-    animatingRef.current = true;
-
-    const cur = activeRef.current;
-    const nxt = (cur + 1) % images.length;
-
-    const curEl = slideRefs.current[cur];
-    const nxtEl = slideRefs.current[nxt];
-    if (!curEl || !nxtEl) { animatingRef.current = false; return; }
-
-    // Snap next slide to starting position below the viewport
-    gsap.set(nxtEl, { y: "100%" });
-
-    gsap.timeline({
-      onComplete() {
-        // Park the old slide below so it's ready for next use
-        gsap.set(curEl, { y: "100%" });
-        activeRef.current = nxt;
-        animatingRef.current = false;
-      },
-    })
-      .to(curEl, { y: "-100%", duration, ease: "power2.inOut" }, 0)
-      .to(nxtEl, { y: "0%",    duration, ease: "power2.inOut" }, 0);
-  }, [images.length, duration]);
+  // Refs so the one-shot effect always reads current prop values
+  const intervalRef = useRef(interval);
+  const durationRef = useRef(duration);
+  useEffect(() => { intervalRef.current = interval; }, [interval]);
+  useEffect(() => { durationRef.current = duration; }, [duration]);
 
   useEffect(() => {
-    if (images.length < 2) return;
-    const id = setInterval(advance, interval);
-    return () => clearInterval(id);
-  }, [advance, interval]);
+    // Filter to actual elements — populated before effects run (React contract)
+    const els = slideRefs.current.filter((el): el is HTMLDivElement => el !== null);
+    if (els.length < 2) return;
+
+    // Slide 0 visible; all others parked below the container (clipped by overflow:hidden)
+    gsap.set(els[0], { y: "0%", zIndex: 1 });
+    els.slice(1).forEach(el => gsap.set(el, { y: "100%", zIndex: 0 }));
+
+    let cur = 0;
+    let dc: gsap.core.Tween | null = null;
+
+    function schedule() {
+      dc = gsap.delayedCall(intervalRef.current / 1000, step);
+    }
+
+    function step() {
+      const nxt = (cur + 1) % els.length;
+      const curEl = els[cur];
+      const nxtEl = els[nxt];
+
+      // Park incoming below, then slide it up
+      gsap.set(nxtEl, { y: "100%", zIndex: 2 });
+      gsap.to(nxtEl, {
+        y: "0%",
+        duration: durationRef.current,
+        ease: "power2.inOut",
+        onComplete() {
+          gsap.set(curEl, { zIndex: 0 });
+          gsap.set(nxtEl, { zIndex: 1 });
+          cur = nxt;
+          schedule();
+        },
+      });
+    }
+
+    schedule();
+
+    return () => {
+      dc?.kill();
+      gsap.killTweensOf(els);
+    };
+  }, []); // one-shot: refs are populated, interval/duration read via refs
 
   if (images.length === 0) return null;
 
   return (
-    <div
-      className={className}
-      style={{ position: "relative", overflow: "hidden", ...style }}
-    >
+    <div className={className} style={{ position: "relative", overflow: "hidden", ...style }}>
       {images.map((img, i) => (
         <div
           key={img.src}
           ref={el => { slideRefs.current[i] = el; }}
-          style={{
-            position: "absolute", inset: 0, willChange: "transform",
-            ...(frame ? FRAME_MASK : {}),
-          }}
+          style={{ position: "absolute", inset: 0 }}
         >
-          <Image
-            src={img.src}
-            alt={img.alt}
-            fill
-            sizes="75vw"
-            style={{ objectFit: "cover" }}
-            priority={i === 0}
-          />
+          <div style={{ position: "absolute", inset: 0, ...(frame ? FRAME_MASK : {}) }}>
+            <Image
+              src={img.src}
+              alt={img.alt}
+              fill
+              sizes="75vw"
+              style={{ objectFit: "cover" }}
+              priority={i === 0}
+            />
+          </div>
         </div>
       ))}
     </div>

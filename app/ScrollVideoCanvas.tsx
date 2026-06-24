@@ -10,6 +10,10 @@ type Props = {
   frameBase: string;
   frameCount: number;
   alt: string;
+  /** When true, plays frames in a continuous loop instead of scrubbing on scroll. */
+  autoLoop?: boolean;
+  /** Playback speed for autoLoop in frames-per-second. Default 24. */
+  fps?: number;
   className?: string;
   style?: CSSProperties;
 };
@@ -18,6 +22,8 @@ export default function ScrollVideoCanvas({
   frameBase,
   frameCount,
   alt,
+  autoLoop = false,
+  fps = 24,
   className,
   style,
 }: Props) {
@@ -39,7 +45,10 @@ export default function ScrollVideoCanvas({
 
     function sizeCanvas() {
       if (!canvas || !wrap) return;
-      const { width, height } = wrap.getBoundingClientRect();
+      // Use offsetWidth/offsetHeight (layout dims, pre-transform) not getBoundingClientRect,
+      // which would return transposed dimensions when a parent has a 90° rotation.
+      const width = wrap.offsetWidth;
+      const height = wrap.offsetHeight;
       canvas.width = Math.round(width * dpr);
       canvas.height = Math.round(height * dpr);
       canvas.style.width = `${width}px`;
@@ -81,26 +90,45 @@ export default function ScrollVideoCanvas({
     );
     io.observe(wrap);
 
-    // GSAP ScrollTrigger with scrub: 1 (1-second smoothing)
-    const tween = gsap.to(obj, {
-      frame: frameCount - 1,
-      ease: "none",
-      onUpdate: () => drawFrame(obj.frame),
-      scrollTrigger: {
-        trigger: wrap,
-        start: "top bottom",
-        end: "bottom top",
-        scrub: 1,
-      },
-    });
+    let rafId = 0;
+    let tween: gsap.core.Tween | null = null;
+
+    if (autoLoop) {
+      const msPerFrame = 1000 / fps;
+      let lastTime = 0;
+      let currentFrame = 0;
+
+      const loop = (now: number) => {
+        rafId = requestAnimationFrame(loop);
+        if (now - lastTime < msPerFrame) return;
+        lastTime = now;
+        currentFrame = (currentFrame + 1) % frameCount;
+        drawFrame(currentFrame);
+      };
+      rafId = requestAnimationFrame(loop);
+    } else {
+      // GSAP ScrollTrigger with scrub: 1 (1-second smoothing)
+      tween = gsap.to(obj, {
+        frame: frameCount - 1,
+        ease: "none",
+        onUpdate: () => drawFrame(obj.frame),
+        scrollTrigger: {
+          trigger: wrap,
+          start: "top bottom",
+          end: "bottom top",
+          scrub: 1,
+        },
+      });
+    }
 
     return () => {
-      tween.scrollTrigger?.kill();
-      tween.kill();
+      cancelAnimationFrame(rafId);
+      tween?.scrollTrigger?.kill();
+      tween?.kill();
       ro.disconnect();
       io.disconnect();
     };
-  }, [frameBase, frameCount]);
+  }, [frameBase, frameCount, autoLoop, fps]);
 
   return (
     <div ref={wrapRef} className={className} style={style} aria-label={alt} role="img">
