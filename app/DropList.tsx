@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import { mu, MU_VAR } from "./mobile/scale";
 
 /**
@@ -10,7 +12,89 @@ import { mu, MU_VAR } from "./mobile/scale";
 
 const ud = (n: number) => `calc(var(--ud) * ${n})`;
 const UD_VAR = { ["--ud" as string]: "calc(100cqw / 1440)" } as const;
-const noSubmit = (e: React.FormEvent) => e.preventDefault();
+
+const FADE = { duration: 0.35, ease: [0.16, 1, 0.3, 1] } as const;
+const ENTER = { opacity: 0, scale: 0.96 };
+const SHOWN = { opacity: 1, scale: 1 };
+
+type FormScale = {
+  /** Design-unit scaler for this breakpoint (mu or ud). */
+  s: (n: number) => string;
+  height: number;
+  fontSize: number;
+  padL: number;
+  padR: number;
+  radius: number;
+  btnRight: number;
+  btnSize: number;
+};
+
+/** Email field that, on submit, swaps to a "Successfully subscribed" confirmation
+ *  for 5s (animated), then restores the input. */
+function DropForm({ s, height, fontSize, padL, padR, radius, btnRight, btnSize }: FormScale) {
+  const [submitted, setSubmitted] = useState(false);
+
+  useEffect(() => {
+    if (!submitted) return;
+    const id = setTimeout(() => setSubmitted(false), 5000);
+    return () => clearTimeout(id);
+  }, [submitted]);
+
+  const onSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmitted(true);
+  };
+
+  return (
+    <div className="relative w-full" style={{ height: s(height) }}>
+      <AnimatePresence mode="wait" initial={false}>
+        {submitted ? (
+          <motion.div
+            key="success"
+            role="status"
+            aria-live="polite"
+            className="absolute inset-0 flex items-center justify-center bg-[#fff0e5] text-center font-semibold uppercase text-[#0a142f]"
+            style={{ fontFamily: "var(--font-display)", fontSize: s(fontSize), letterSpacing: s(-fontSize * 0.05), borderRadius: s(radius), padding: `0 ${s(padL)}` }}
+            initial={ENTER}
+            animate={SHOWN}
+            exit={ENTER}
+            transition={FADE}
+          >
+            Successfully subscribed
+          </motion.div>
+        ) : (
+          <motion.form
+            key="form"
+            onSubmit={onSubmit}
+            className="absolute inset-0 w-full"
+            initial={ENTER}
+            animate={SHOWN}
+            exit={ENTER}
+            transition={FADE}
+          >
+            <input
+              type="email"
+              required
+              placeholder="Your email"
+              aria-label="Your email"
+              className="absolute inset-0 w-full bg-[#fff0e5] text-[#0a142f] outline-none placeholder:text-[#eb4638]"
+              style={{ fontFamily: "var(--font-body)", fontSize: s(fontSize), paddingLeft: s(padL), paddingRight: s(padR), borderRadius: s(radius) }}
+            />
+            <button
+              type="submit"
+              aria-label="Subscribe"
+              className="absolute -translate-y-1/2"
+              style={{ right: s(btnRight), top: "50%", width: s(btnSize), height: s(btnSize) }}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/m-send.svg" alt="" className="size-full" />
+            </button>
+          </motion.form>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
 
 export default function DropList() {
   return (
@@ -29,15 +113,7 @@ export default function DropList() {
               <p className="font-semibold uppercase text-[#fff0e5]" style={{ fontFamily: "var(--font-display)", fontSize: mu(24), lineHeight: 0.8, letterSpacing: mu(-1.68), paddingLeft: mu(19.57) }}>
                 Get on the list
               </p>
-              <form className="relative w-full" onSubmit={noSubmit} style={{ height: mu(48.598) }}>
-                <input type="email" required placeholder="Your email" aria-label="Your email"
-                  className="absolute inset-0 w-full rounded-full bg-[#fff0e5] text-[#0a142f] outline-none placeholder:text-[#eb4638]"
-                  style={{ fontFamily: "var(--font-body)", fontSize: mu(14), paddingLeft: mu(19.57), paddingRight: mu(56), borderRadius: mu(24.299) }} />
-                <button type="submit" aria-label="Subscribe" className="absolute -translate-y-1/2" style={{ right: mu(8.1), top: "50%", width: mu(32.399), height: mu(32.399) }}>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src="/m-send.svg" alt="" className="size-full" />
-                </button>
-              </form>
+              <DropForm s={mu} height={48.598} fontSize={14} padL={19.57} padR={56} radius={24.299} btnRight={8.1} btnSize={32.399} />
             </div>
           </div>
         </div>
@@ -56,15 +132,7 @@ export default function DropList() {
             <p className="font-semibold uppercase text-[#fff0e5]" style={{ fontFamily: "var(--font-display)", fontSize: ud(48), lineHeight: 0.8, letterSpacing: ud(-3.36) }}>
               Get on the list
             </p>
-            <form className="relative w-full" onSubmit={noSubmit} style={{ height: ud(93.197) }}>
-              <input type="email" required placeholder="Your email" aria-label="Your email"
-                className="absolute inset-0 w-full bg-[#fff0e5] text-[#0a142f] outline-none placeholder:text-[#eb4638]"
-                style={{ fontFamily: "var(--font-body)", fontSize: ud(24), paddingLeft: ud(37.54), paddingRight: ud(100), borderRadius: ud(46.599) }} />
-              <button type="submit" aria-label="Subscribe" className="absolute -translate-y-1/2" style={{ right: ud(15.53), top: "50%", width: ud(62.132), height: ud(62.132) }}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/m-send.svg" alt="" className="size-full" />
-              </button>
-            </form>
+            <DropForm s={ud} height={93.197} fontSize={24} padL={37.54} padR={100} radius={46.599} btnRight={15.53} btnSize={62.132} />
           </div>
         </div>
       </div>
