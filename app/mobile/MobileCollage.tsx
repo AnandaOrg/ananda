@@ -1,6 +1,7 @@
 import Image from "next/image";
 import { mu, MU_VAR, maskStyle } from "./scale";
 import ScrollVideoCanvas from "../ScrollVideoCanvas";
+import MobilePouchScroll from "./MobilePouchScroll";
 
 /** Mobile section 3 — "What we're about" collage (Figma 184:1260, 390×1600). */
 
@@ -104,18 +105,8 @@ export default function MobileCollage() {
           <img src="/c-wave.svg" alt="" className="block size-full" />
         </div>
 
-        {/* Product pouch overlay */}
-        <div
-          className="absolute flex -translate-x-1/2 -translate-y-1/2 items-center justify-center"
-          style={{ left: `calc(50% - ${mu(8.64)})`, top: `calc(50% + ${mu(585.65)})`, width: mu(181.351), height: mu(221.932) }}
-        >
-          <div style={{ transform: "rotate(158.5deg)" }}>
-            <div className="relative overflow-hidden" style={{ width: mu(119.499), height: mu(191.458), boxShadow: `${mu(5.113)} ${mu(3.719)} ${mu(13.34)} 0 rgba(0,0,0,0.25)` }}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/c-pouch.png" alt="ANANDA cocktail pouch" className="absolute max-w-none" style={{ width: "177.86%", height: "111.18%", left: "-40.81%", top: "-7.3%" }} />
-            </div>
-          </div>
-        </div>
+        {/* Product pouch overlay — rotates a full turn on scroll */}
+        <MobilePouchScroll />
 
         {/* Copy block */}
         <div className="absolute flex flex-col items-start" style={{ left: mu(35.7), top: mu(469), width: mu(264), gap: mu(16) }}>

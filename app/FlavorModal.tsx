@@ -130,28 +130,7 @@ export const FLAVORS: Flavor[] = [
   },
 ];
 
-/** Letter-by-letter opacity "fill": each character starts faint and rises to full,
- *  staggered left-to-right. Remounts (re-animates) whenever its `key` changes. */
-function Reveal({ text, base = 0.18, step = 28, delay = 0 }: { text: string; base?: number; step?: number; delay?: number }) {
-  const [on, setOn] = useState(false);
-  useEffect(() => {
-    const id = requestAnimationFrame(() => setOn(true));
-    return () => cancelAnimationFrame(id);
-  }, []);
-  return (
-    <>
-      {[...text].map((c, i) => (
-        <span
-          key={i}
-          aria-hidden
-          style={{ opacity: on ? 1 : base, transition: "opacity 480ms ease-out", transitionDelay: `${delay + i * step}ms` }}
-        >
-          {c === " " ? " " : c}
-        </span>
-      ))}
-    </>
-  );
-}
+// (Letter-by-letter reveal removed — ingredient text now renders statically.)
 
 function FruitImg({ f }: { f: Fruit }) {
   const filter = f.blur ? { filter: `blur(${u(f.blur)})` } : undefined;
@@ -214,7 +193,7 @@ function Scene({ f }: { f: Flavor }) {
   return (
     <>
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={f.pattern} alt="" className="pointer-events-none absolute -translate-x-1/2" style={{ left: "50%", top: u(-1032), width: u(1700), height: u(1700) }} />
+      <img src={f.pattern} alt="" className="pointer-events-none absolute -translate-x-1/2" style={{ left: "50%", top: u(-1165.4), width: u(1920), height: u(1920) }} />
       {f.fruits.map((fr, i) => (
         <FruitImg key={i} f={fr} />
       ))}
@@ -283,16 +262,16 @@ export default function FlavorModal({
           color while exiting content is still on screen with the OLD flavor. */}
       <motion.div
         className="absolute inset-0"
-        style={{ backgroundColor: f.bg }}
+        initial={false}
         animate={{ backgroundColor: f.bg }}
-        transition={{ type: "tween", duration: 0.4 }}
+        transition={{ type: "tween", duration: 0.25, delay: 0.4 }}
       />
 
       {/* ───────── Desktop / tablet: 16:9 stage that fits inside the viewport ───────── */}
       <div className="hidden size-full md:flex md:items-center md:justify-center">
         <div
           onClick={liftGlb}
-          className="relative overflow-hidden w-[min(100vw,calc(100vh*16/9))]"
+          className="relative overflow-hidden w-full"
           style={{ aspectRatio: "16 / 9", containerType: "inline-size", ["--u" as string]: "calc(100cqw / 1920)" }}
         >
           {/* GLB: persistent — stays visible while scene/text transitions */}
@@ -305,9 +284,11 @@ export default function FlavorModal({
             style={{
               position: "absolute",
               left: "50%",
-              top: "50%",
+              top: `calc(50% - ${u(150)})`,
               transform: "translate(-50%, -50%)",
-              width: u(600),
+              // Wider than the bottle so the spin/tilt is never clipped by the
+              // canvas. Same camera FOV → identical on-screen size.
+              width: u(1200),
               height: u(1440),
               pointerEvents: "none",
               zIndex: 40,
@@ -319,23 +300,25 @@ export default function FlavorModal({
             <motion.div
               key={f.key}
               className="absolute inset-0"
-              style={{ originX: 0.5, originY: 0.5 }}
+              style={{ originX: 0.5, originY: 0.36 }}
               initial={outerReady ? { scale: 0, opacity: 0 } : false}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0, opacity: 0 }}
-              transition={{ type: "tween", duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
+              transition={{ type: "tween", duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
             >
+              {/* Flavour colour rides WITH the scene so it funnels into / bursts out of the bottle */}
+              <div className="absolute inset-0" style={{ backgroundColor: f.bg }} />
               <Scene f={f} />
               <div className="absolute inset-x-0 flex flex-col items-center" style={{ bottom: u(210), gap: u(14), color: f.textColor }}>
                 <p aria-label="Ingredients" className="whitespace-nowrap uppercase" style={{ fontFamily: "var(--font-mono-label)", fontSize: u(16), lineHeight: 0.87, letterSpacing: u(1.12) }}>
-                  <Reveal text="Ingredients" delay={0} />
+                  Ingredients
                 </p>
                 <div className="text-center" style={{ fontFamily: "var(--font-body)", fontSize: u(24), lineHeight: 1.6, letterSpacing: u(0.24), width: u(465.222) }}>
                   <p className="mb-0" aria-label={f.ingredients[0]}>
-                    <Reveal text={f.ingredients[0]} delay={260} />
+                    {f.ingredients[0]}
                   </p>
                   <p aria-label={f.ingredients[1]}>
-                    <Reveal text={f.ingredients[1]} delay={260 + f.ingredients[0].length * 28} />
+                    {f.ingredients[1]}
                   </p>
                 </div>
               </div>
@@ -373,9 +356,10 @@ export default function FlavorModal({
           style={{
             position: "absolute",
             left: "50%",
-            top: "50%",
+            top: "42%",
             transform: "translate(-50%, -50%)",
-            width: "42vh",
+            // Wider than the bottle so the spin/tilt is never clipped by the canvas.
+            width: "72vh",
             height: "84vh",
             pointerEvents: "none",
             zIndex: 40,
@@ -387,28 +371,30 @@ export default function FlavorModal({
           <motion.div
             key={f.key}
             className="absolute inset-0"
-            style={{ originX: 0.5, originY: 0.5 }}
+            style={{ originX: 0.5, originY: 0.42 }}
             initial={outerReady ? { scale: 0, opacity: 0 } : false}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0, opacity: 0 }}
-            transition={{ type: "tween", duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
+            transition={{ type: "tween", duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
           >
+            {/* Flavour colour rides WITH the scene so it funnels into / bursts out of the bottle */}
+            <div className="absolute inset-0" style={{ backgroundColor: f.bg }} />
             <div
-              className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 overflow-hidden w-[max(100vw,calc(100vh*16/9))]"
+              className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 overflow-hidden w-full"
               style={{ aspectRatio: "16 / 9", containerType: "inline-size", ["--u" as string]: "calc(100cqw / 1920)" }}
             >
               <Scene f={f} />
             </div>
             <div className="absolute inset-x-0 bottom-0 flex flex-col items-center text-center px-6 pb-4" style={{ gap: "0.5rem", color: f.textColor }}>
               <p aria-label="Ingredients" className="whitespace-nowrap uppercase" style={{ fontFamily: "var(--font-mono-label)", fontSize: 11, lineHeight: 0.87, letterSpacing: "0.8px" }}>
-                <Reveal text="Ingredients" delay={0} />
+                Ingredients
               </p>
               <div style={{ fontFamily: "var(--font-body)", fontSize: 15, lineHeight: 1.5, maxWidth: "84vw" }}>
                 <p className="mb-0" aria-label={f.ingredients[0]}>
-                  <Reveal text={f.ingredients[0]} delay={260} />
+                  {f.ingredients[0]}
                 </p>
                 <p aria-label={f.ingredients[1]}>
-                  <Reveal text={f.ingredients[1]} delay={260 + f.ingredients[0].length * 28} />
+                  {f.ingredients[1]}
                 </p>
               </div>
               <p

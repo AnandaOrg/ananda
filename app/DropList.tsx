@@ -110,7 +110,7 @@ export default function DropList() {
               </p>
             </div>
             <div className="flex flex-col items-start" style={{ gap: mu(19.87), width: mu(256.65) }}>
-              <p className="font-semibold uppercase text-[#fff0e5]" style={{ fontFamily: "var(--font-display)", fontSize: mu(24), lineHeight: 0.8, letterSpacing: mu(-1.68), paddingLeft: mu(19.57) }}>
+              <p className="font-semibold uppercase text-[#fff0e5]" style={{ fontFamily: "var(--font-display)", fontSize: mu(24), lineHeight: 0.8, letterSpacing: mu(-1.68)}}>
                 Get on the list
               </p>
               <DropForm s={mu} height={48.598} fontSize={14} padL={19.57} padR={56} radius={24.299} btnRight={8.1} btnSize={32.399} />

@@ -2,64 +2,92 @@
 
 import Image from "next/image";
 import { useEffect, useRef } from "react";
+import gsap from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
 import pourPhoto from "../public/ananda-pour.png";
+import VerticalSlider from "./VerticalSlider";
+
+gsap.registerPlugin(ScrollTrigger);
 
 const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
+const smooth = (t: number) => t * t * (3 - 2 * t);
 
+// Same imagery as the AboutCollage gallery, so the reveal hands off into it.
+const GALLERY = [
+  { src: "/hero_3/1.png", alt: "ANANDA moment" },
+  { src: "/hero_3/2.png", alt: "ANANDA moment" },
+  { src: "/hero_3/3.png", alt: "ANANDA moment" },
+  { src: "/hero_3/4.png", alt: "ANANDA moment" },
+  { src: "/hero_3/5.png", alt: "ANANDA moment" },
+];
+
+/**
+ * Section 2 — "Liquid Bliss. Mixed to Move." The section pins; as you scroll
+ * through the pinned range the pour image holds, then (≈40% in) rotates upright
+ * and zooms to fill, then the gallery irises open from the centre where the
+ * image sat — a shared-element reveal into the gallery. Desktop only.
+ */
 export default function DitchTheGlass() {
   const sectionRef = useRef<HTMLElement>(null);
   const diamondRef = useRef<HTMLSpanElement>(null);
   const imageWrapRef = useRef<HTMLSpanElement>(null);
+  const galleryRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const section = sectionRef.current;
     const diamond = diamondRef.current;
     const imageWrap = imageWrapRef.current;
-    if (!section || !diamond || !imageWrap) return;
-    let raf = 0;
+    const gallery = galleryRef.current;
+    if (!section || !diamond || !imageWrap || !gallery) return;
 
-    const update = () => {
-      raf = 0;
-      const rect = section.getBoundingClientRect();
-      const vh = window.innerHeight;
-      // track section center so animation runs while the diamond is actually visible
-      const centerY = rect.top + rect.height / 2;
-      const p = clamp(1 - centerY / vh, 0, 1);
+    const words = Array.from(section.querySelectorAll<HTMLElement>(".dtg-word"));
 
-      const scale = 1 + p * 5;
-      const rotate = 45 - p * 45;
+    const render = (prog: number) => {
+      // 1) hold the small diamond until ~40% in, then rotate upright + zoom to fill
+      const dz = smooth(clamp((prog - 0.4) / 0.3, 0, 1));
+      diamond.style.transform = `rotate(${45 - dz * 45}deg) scale(${1 + dz * 7})`;
+      imageWrap.style.transform = `rotate(${-(45 - dz * 45)}deg) scale(1.5)`;
 
-      diamond.style.transform = `rotate(${rotate}deg) scale(${scale})`;
-      imageWrap.style.transform = `rotate(${-rotate}deg) scale(1.5)`;
+      // 2) the heading words fade out as the image takes over (diamond stays)
+      const textFade = 1 - clamp((prog - 0.45) / 0.2, 0, 1);
+      words.forEach((w) => { w.style.opacity = String(textFade); });
 
-      // Fade out pour photo as section 3 enters view
-      const fade = p < 0.65 ? 1 : Math.max(0, 1 - (p - 0.65) / 0.35);
-      imageWrap.style.opacity = String(fade);
+      // 3) gallery irises open from the centre — the reveal hand-off
+      const gr = smooth(clamp((prog - 0.7) / 0.3, 0, 1));
+      gallery.style.clipPath = `circle(${gr * 78}% at 50% 50%)`;
+      gallery.style.opacity = gr > 0 ? "1" : "0";
+
+      // hide the zoomed pour image once the gallery has covered it
+      imageWrap.style.opacity = String(1 - clamp((prog - 0.82) / 0.12, 0, 1));
     };
 
-    const onScroll = () => {
-      if (!raf) raf = requestAnimationFrame(update);
-    };
+    const mm = gsap.matchMedia();
+    mm.add("(min-width: 768px)", () => {
+      const st = ScrollTrigger.create({
+        trigger: section,
+        start: "top top",
+        end: "+=140%",
+        pin: true,
+        scrub: true,
+        onUpdate: (self) => render(self.progress),
+        onRefresh: (self) => render(self.progress),
+      });
+      render(st.progress);
+      return () => st.kill();
+    });
 
-    update();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    window.addEventListener("resize", onScroll);
-    return () => {
-      window.removeEventListener("scroll", onScroll);
-      window.removeEventListener("resize", onScroll);
-      if (raf) cancelAnimationFrame(raf);
-    };
+    return () => mm.revert();
   }, []);
 
   return (
     <section
       ref={sectionRef}
-      className="hidden min-h-screen items-center justify-center overflow-hidden bg-[#fff0e5] px-6 py-24 md:flex"
+      className="relative hidden h-screen items-center justify-center overflow-hidden bg-[#fff0e5] px-6 md:flex"
     >
       <div className="flex flex-col items-center text-center text-[#eb4638]">
         <p
-          className="mb-[clamp(1.5rem,4vw,3.5rem)] text-[14px] uppercase leading-[0.87] tracking-[0.98px]"
-          style={{ fontFamily: "var(--font-mono-label)" }}
+          className="dtg-word mb-[clamp(1.5rem,4vw,3.5rem)] text-[14px] uppercase leading-[0.87] tracking-[0.98px]"
+          style={{ fontFamily: "var(--font-mono-label)", willChange: "opacity" }}
         >
           [01] Ditch the glass
         </p>
@@ -68,9 +96,9 @@ export default function DitchTheGlass() {
           className="text-[clamp(2.75rem,12.5vw,180px)] font-bold uppercase leading-[0.8] tracking-[-0.08em]"
           style={{ fontFamily: "var(--font-display)" }}
         >
-          <span className="block">Liquid Bliss.</span>
+          <span className="dtg-word block" style={{ willChange: "opacity" }}>Liquid Bliss.</span>
           <span className="flex items-center justify-center gap-[0.2em]">
-            <span>Mixed to</span>
+            <span className="dtg-word" style={{ willChange: "opacity" }}>Mixed to</span>
 
             <span
               ref={diamondRef}
@@ -96,9 +124,23 @@ export default function DitchTheGlass() {
               </span>
             </span>
 
-            <span>Move.</span>
+            <span className="dtg-word" style={{ willChange: "opacity" }}>Move.</span>
           </span>
         </h2>
+      </div>
+
+      {/* Gallery reveal layer — irises open from the centre as the hand-off */}
+      <div
+        ref={galleryRef}
+        className="pointer-events-none absolute inset-0"
+        style={{ clipPath: "circle(0% at 50% 50%)", opacity: 0, zIndex: 5, willChange: "clip-path, opacity" }}
+      >
+        <VerticalSlider
+          images={GALLERY}
+          interval={3200}
+          duration={0.9}
+          style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}
+        />
       </div>
     </section>
   );

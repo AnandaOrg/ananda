@@ -100,6 +100,9 @@ const FLAVORS = [
 export default function Pathways() {
   const { open } = useFlavor();
   const glbRef = useRef<GlbViewerHandle>(null);
+  // Fixed band-region reference — drives cross-fade/turntable progress and stays
+  // put while the GLB canvas itself translates to ride the bands.
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   const openWithSpin = useCallback((i: number) => {
     glbRef.current?.spin();
@@ -109,20 +112,26 @@ export default function Pathways() {
       x: (rect.left + rect.width / 2) / window.innerWidth,
       y: (rect.top + rect.height / 2) / window.innerHeight,
     };
+    // Beat 2: once it's at ~90° (the spin() tilt is ~1s), spin a full 360° turn —
+    // visible on its own.
+    setTimeout(() => glbRef.current?.spin360(), 1000);
+    // Beat 3: after the spin reads, let the modal burst out of the bottle (it
+    // scales up from this captured origin, so it covers the spin only afterwards).
     setTimeout(() => open(i, origin,
       () => glbRef.current?.resetTilt(),
       () => glbRef.current?.spin360(),
-    ), 500);
+    ), 1500);
   }, [open]);
 
   return (
     <section
-      className="relative w-full overflow-hidden bg-[#eb4638]"
-      style={{ containerType: "inline-size" }}
+      className="relative w-full bg-[#eb4638]"
+      style={{ containerType: "inline-size", ["--u" as string]: "calc(100cqw / 1440)" }}
     >
+      {/* Content layer — clipped to the section box (bands/text/fruit) */}
       <div
-        className="relative mx-auto"
-        style={{ ["--u" as string]: "calc(100cqw / 1440)", width: u(1440), height: u(2000) }}
+        className="relative mx-auto overflow-hidden"
+        style={{ width: u(1440), height: u(2000) }}
       >
         {/* Eyebrow label */}
         <div className="absolute" style={{ left: u(81.75), top: u(212.79), padding: `${u(10)} ${u(14)}` }}>
@@ -226,24 +235,8 @@ export default function Pathways() {
 
         {/* Kyoto GLB — replaced by 3-D viewer */}
 
-        {/* 3-D viewer — model tracks viewport centre through all 4 bands.
-            Canvas top u(720) → bottom u(1970); Gaia/Kyoto boundary is at 76 % of canvas.
-            transitionAt=0.765 fires just after that boundary; 0.04 window = crisp cut.
-            u(1250) is the minimum height to reach Kyoto centre (u 1832) without clipping. */}
-        <GlbViewer
-          ref={glbRef}
-          models={GLB_MODELS}
-          transitionDuration={0.04}
-          style={{
-            position: "absolute",
-            left: u(375),
-            top: u(720),
-            width: u(620),
-            height: u(1250),
-            pointerEvents: "none",
-            zIndex: 3
-          }}
-        />
+        {/* Fixed band-region reference for the scroll progress (invisible). */}
+        <div ref={scrollRef} aria-hidden className="pointer-events-none absolute" style={{ left: 0, top: u(720), width: u(1), height: u(1250), visibility: "hidden" }} />
 
         {/* SEE FLAVORS pill */}
         <button
@@ -263,6 +256,31 @@ export default function Pathways() {
             <img src="/s4-arrow.svg" alt="" style={{ width: u(15.644), height: u(30.807) }} />
           </div>
         </button>
+      </div>
+
+      {/* GLB overlay — NOT clipped by the content box, so it renders fully in
+          front in any rotation. The model stays centred in a square canvas (never
+          reaches the framebuffer edge); the canvas itself CSS-translates down to
+          ride the bands (Santorini → Kyoto). */}
+      <div
+        className="pointer-events-none absolute left-1/2 top-0 -translate-x-1/2"
+        style={{ width: u(1440), height: u(2000), zIndex: 50 }}
+      >
+        <GlbViewer
+          ref={glbRef}
+          models={GLB_MODELS}
+          transitionDuration={0.04}
+          scrollRef={scrollRef}
+          scrollTravel={u(965)}
+          style={{
+            position: "absolute",
+            left: u(60),
+            top: u(242),
+            width: u(1250),
+            height: u(1250),
+            pointerEvents: "none",
+          }}
+        />
       </div>
     </section>
   );

@@ -1,8 +1,10 @@
 "use client";
 
 import Image from "next/image";
+import { useCallback, useRef } from "react";
 import { mu, MU_VAR } from "./scale";
 import { useFlavor } from "../FlavorProvider";
+import GlbViewer, { type GlbViewerHandle } from "../GlbViewer";
 
 /** Mobile section 4 — "The Pathways to Bliss" (Figma 198:1787, 390×1176). */
 
@@ -52,14 +54,48 @@ const FLAVORS = [
   { label: "Kyoto", left: -12.13, top: 1012.01, width: 615.744, color: "#ff95ac" },
 ];
 
+// Same models / cross-fade points as desktop Pathways (module-level = stable ref).
+const GLB_MODELS = [
+  { src: "/glb/santorini.glb" },
+  { src: "/glb/aloha.glb", transitionAt: 0.247 },
+  { src: "/glb/gaia.glb", transitionAt: 0.504 },
+  { src: "/glb/kyoto.glb", transitionAt: 0.762 },
+];
+
 export default function MobilePathways() {
   const { open } = useFlavor();
+  const glbRef = useRef<GlbViewerHandle>(null);
+  // Fixed band-region reference — drives cross-fade/turntable progress; stays put
+  // while the GLB canvas translates to ride the bands.
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Mirror desktop Pathways: spin the bottle, then open the modal from the
+  // bottle's centre once the spin reads, wiring the modal's nav/close back to
+  // the GLB (reset tilt on close, 360° spin on nav).
+  const openWithSpin = useCallback((i: number) => {
+    glbRef.current?.spin();
+    const rect = glbRef.current?.getRect() ?? new DOMRect();
+    const origin = {
+      x: (rect.left + rect.width / 2) / window.innerWidth,
+      y: (rect.top + rect.height / 2) / window.innerHeight,
+    };
+    // Beat 2: once it's at ~90° (the spin() tilt is ~1s), spin a full 360° turn —
+    // visible on its own.
+    setTimeout(() => glbRef.current?.spin360(), 1000);
+    // Beat 3: after the spin reads, let the modal burst out of the bottle.
+    setTimeout(() => open(i, origin,
+      () => glbRef.current?.resetTilt(),
+      () => glbRef.current?.spin360(),
+    ), 1500);
+  }, [open]);
+
   return (
-    <section className="w-full overflow-hidden bg-[#eb4638] md:hidden" style={{ containerType: "inline-size" }}>
-      <div className="relative" style={{ ...MU_VAR, width: mu(390), height: mu(1176) }}>
+    <section className="w-full bg-[#eb4638] md:hidden" style={{ containerType: "inline-size", ...MU_VAR }}>
+      {/* Content layer — clipped (bands / names / fruit) */}
+      <div className="relative overflow-hidden" style={{ width: mu(390), height: mu(1176) }}>
         {/* Colour bands (click to open flavour) */}
         {BANDS.map((b, i) => (
-          <button key={b.color} type="button" aria-label={`Open ${FLAVORS[i].label}`} onClick={(e) => open(i, e)} className="absolute cursor-pointer appearance-none border-0 p-0" style={{ left: 0, top: mu(b.top), width: mu(390), height: mu(200), backgroundColor: b.color }} />
+          <button key={b.color} type="button" aria-label={`Open ${FLAVORS[i].label}`} onClick={() => openWithSpin(i)} className="absolute cursor-pointer appearance-none border-0 p-0" style={{ left: 0, top: mu(b.top), width: mu(390), height: mu(200), backgroundColor: b.color }} />
         ))}
 
         {/* Giant flavour names */}
@@ -67,7 +103,7 @@ export default function MobilePathways() {
           <button
             key={f.label}
             type="button"
-            onClick={(e) => open(i, e)}
+            onClick={() => openWithSpin(i)}
             className="absolute cursor-pointer appearance-none whitespace-nowrap border-0 bg-transparent p-0 text-left font-bold uppercase"
             style={{ left: mu(f.left), top: mu(f.top), width: mu(f.width), color: f.color, fontFamily: "var(--font-display)", fontSize: mu(200), lineHeight: 0.8, letterSpacing: mu(-16) }}
           >
@@ -85,7 +121,7 @@ export default function MobilePathways() {
               The Pathways to Bliss
             </p>
           </div>
-          <button type="button" onClick={(e) => open(0, e)} className="flex cursor-pointer appearance-none items-center justify-center overflow-hidden border-0 bg-[#fff0e5]" style={{ padding: `${mu(8)} ${mu(12)}`, borderRadius: mu(25.016) }}>
+          <button type="button" onClick={() => openWithSpin(0)} className="flex cursor-pointer appearance-none items-center justify-center overflow-hidden border-0 bg-[#fff0e5]" style={{ padding: `${mu(8)} ${mu(12)}`, borderRadius: mu(25.016) }}>
             <div className="flex items-center" style={{ gap: mu(7.505) }}>
               <span className="font-semibold uppercase text-[#eb4638]" style={{ fontFamily: "var(--font-display)", fontSize: mu(20), lineHeight: 0.8, letterSpacing: mu(-1.4), textBoxTrim: "trim-both", textBoxEdge: "cap alphabetic" } as React.CSSProperties}>
                 see flavors
@@ -104,10 +140,32 @@ export default function MobilePathways() {
         <Floating src="/s4-lemon.png" alt="Fresh lemon with leaves" rotate={-8.95} box={{ left: 221.52, top: 260.19, width: 173.549, height: 199.915 }} inner={{ width: 147.461, height: 179.146 }} crop={{ width: "134.65%", height: "166.26%", left: "-22.14%", top: "-38.75%" }} />
         {/* Elderflower */}
         <Floating src="/s4-flowers.png" alt="White elderflower blossom" rotate={15.25} box={{ left: 230.24, top: 699.44, width: 179.055, height: 192.905 }} inner={{ width: 141.609, height: 161.344 }} />
-        {/* Red Kyoto pouch */}
-        <Floating src="/s4-pouch-red.png" alt="ANANDA Kyoto cocktail pouch" rotate={-90} center={{ x: -2.53, y: 489.2, width: 300.514, height: 125.632 }} inner={{ width: 125.632, height: 300.514 }} crop={{ width: "278.27%", height: "116.33%", left: "-86.5%", top: "-9.26%" }} shadow />
-        {/* Blue Santorini pouch */}
-        <Floating src="/s4-pouch-blue.png" alt="ANANDA Santorini cocktail pouch" rotate={-90} center={{ x: -0.91, y: -101.7, width: 297.264, height: 114.628 }} inner={{ width: 114.628, height: 297.264 }} crop={{ width: "287.88%", height: "111.18%", left: "-94.71%", top: "-7.3%" }} shadow />
+        {/* Fixed band-region reference for the scroll progress (invisible). */}
+        <div ref={scrollRef} aria-hidden className="pointer-events-none absolute" style={{ left: 0, top: mu(360), width: mu(1), height: mu(816), visibility: "hidden" }} />
+      </div>
+
+      {/* GLB overlay — NOT clipped by the content box; renders in front. The
+          model stays centred in a square canvas (never reaches the framebuffer
+          edge); the canvas CSS-translates down to ride the bands. */}
+      <div
+        className="pointer-events-none absolute left-1/2 top-0 -translate-x-1/2"
+        style={{ width: mu(390), height: mu(1176), zIndex: 50 }}
+      >
+        <GlbViewer
+          ref={glbRef}
+          models={GLB_MODELS}
+          transitionDuration={0.04}
+          scrollRef={scrollRef}
+          scrollTravel={mu(596.46)}
+          style={{
+            position: "absolute",
+            left: `calc(50% - ${mu(408)})`,
+            top: mu(72),
+            width: mu(816),
+            height: mu(816),
+            pointerEvents: "none",
+          }}
+        />
       </div>
     </section>
   );

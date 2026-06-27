@@ -36,6 +36,18 @@ type Props = {
    *  cross-fade + spin when it changes — no reload. `models` must be stable.
    *  When set it overrides the scroll-driven transitionAt blending. */
   activeIndex?: number;
+  /** Camera distance on Z. Larger = more frustum headroom (model can travel
+   *  further vertically without clipping). Default 7. Grow the canvas height
+   *  proportionally to keep the on-screen size the same. */
+  camZ?: number;
+  /** Element whose scroll position drives the cross-fade/position progress.
+   *  Defaults to the canvas mount. Pass a fixed band-region element to keep the
+   *  flavour timing independent of the canvas geometry. */
+  scrollRef?: React.RefObject<HTMLElement | null>;
+  /** Scroll-mode only. CSS length the whole canvas translates down over the
+   *  full scroll (frac 0→1) to ride the bands. The model stays centred, so it
+   *  never leaves the framebuffer; the canvas moves instead. e.g. `u(965)`. */
+  scrollTravel?: string;
   className?: string;
   style?: React.CSSProperties;
 };
@@ -79,6 +91,9 @@ const GlbViewer = forwardRef<GlbViewerHandle, Props>(function GlbViewer({
   noScroll,
   spinOnMount,
   activeIndex,
+  camZ,
+  scrollRef,
+  scrollTravel,
   className,
   style,
 }, ref) {
@@ -144,8 +159,9 @@ const GlbViewer = forwardRef<GlbViewerHandle, Props>(function GlbViewer({
     let rafId = 0;
     let ro: ResizeObserver | null = null;
     let st: ReturnType<typeof ScrollTrigger.create> | null = null;
+    let startRo: ResizeObserver | null = null;
 
-    (async () => {
+    const init = async () => {
       const THREE = await import("three");
       const { GLTFLoader } = await import("three/examples/jsm/loaders/GLTFLoader.js");
 
@@ -161,7 +177,7 @@ const GlbViewer = forwardRef<GlbViewerHandle, Props>(function GlbViewer({
 
       const scene = new THREE.Scene();
 
-      const CAM_Z = 7;
+      const CAM_Z = camZ ?? 7;
       const FOV = 38;
       const camera = new THREE.PerspectiveCamera(FOV, mount.clientWidth / mount.clientHeight, 0.01, 1000);
       camera.position.set(0, 0, CAM_Z);
@@ -196,6 +212,10 @@ const GlbViewer = forwardRef<GlbViewerHandle, Props>(function GlbViewer({
         const size = box.getSize(new THREE.Vector3());
         group.position.sub(center);
         group.scale.setScalar(2.0 / Math.max(size.x, size.y, size.z));
+        // 'XZY' order applies Y last, so the Y-turntable spins around true
+        // world-vertical (after the Z tilt orients the bottle) — a clean
+        // turntable rather than a wobble.
+        group.rotation.order = "XZY";
         group.rotation.z = -Math.PI / 2;
       }
 
@@ -238,17 +258,20 @@ const GlbViewer = forwardRef<GlbViewerHandle, Props>(function GlbViewer({
       // Transition points for models[1], models[2], … (no entry for models[0])
       const transitionPoints = models.slice(1).map((m) => m.transitionAt ?? 0);
 
-      let frustumH = 2 * CAM_Z * Math.tan((FOV * Math.PI) / 180 / 2);
       let frac = 0;
 
       if (!noScroll) {
+        // Drive scroll progress from a fixed reference (the band region) when
+        // provided, so the cross-fade timing stays locked to the bands no matter
+        // how the canvas itself is sized/positioned for the bottle's placement.
+        const scrollEl = scrollRef?.current ?? mount;
         st = ScrollTrigger.create({
-          trigger: mount,
+          trigger: scrollEl,
           start: "top bottom",
           end: "bottom top",
           scrub: 1,
           onUpdate() {
-            const rect = mount.getBoundingClientRect();
+            const rect = scrollEl.getBoundingClientRect();
             frac = Math.max(0, Math.min(1, (window.innerHeight * 0.5 - rect.top) / rect.height));
           },
         });
@@ -261,7 +284,6 @@ const GlbViewer = forwardRef<GlbViewerHandle, Props>(function GlbViewer({
         camera.aspect = w / h;
         camera.updateProjectionMatrix();
         renderer.setSize(w, h);
-        frustumH = 2 * CAM_Z * Math.tan((FOV * Math.PI) / 180 / 2);
         if (!noScroll) ScrollTrigger.refresh();
       });
       ro.observe(mount);
@@ -271,15 +293,18 @@ const GlbViewer = forwardRef<GlbViewerHandle, Props>(function GlbViewer({
 
         fracRef.current = frac;
 
-        // noScroll: centre model vertically (posFrac=0.5), no scroll-driven X spin (rotFrac=0)
-        const posFrac = noScroll ? 0.5 : frac;
+        // The model stays vertically CENTRED in the canvas (never reaches the
+        // framebuffer edge → no clipping). Band tracking is done by translating
+        // the whole canvas in CSS (below). Scroll drives a TURNTABLE on Y (model
+        // stays upright); the spin offset (nav / spinOnMount / spin360) adds to it.
         const rotFrac = noScroll ? 0 : frac;
-        const rawWorldY = frustumH * (0.5 - posFrac);
-        const worldY = Math.max(-1.9, Math.min(1.9, rawWorldY));
-        // Scroll drives the X tumble (top↔bottom); the spin offset drives a
-        // left↔right turntable on Y (the 360° on nav / spinOnMount / spin360).
-        const tumbleX = rotFrac * Math.PI * 2;
+        const turntableY = rotFrac * Math.PI * 2;
         const spinY = spinOffsetRef.current.value;
+
+        // Ride the bands by moving the canvas, not the model.
+        if (!noScroll && scrollTravel) {
+          mount.style.transform = `translateY(calc(${scrollTravel} * ${frac}))`;
+        }
 
         groups.forEach((g, i) => {
           let opacity: number;
@@ -304,9 +329,9 @@ const GlbViewer = forwardRef<GlbViewerHandle, Props>(function GlbViewer({
             opacity = blendIn * (1 - blendOut);
           }
 
-          g.position.y = worldY;
-          g.rotation.x = tumbleX;
-          g.rotation.y = spinY;
+          g.position.y = 0;
+          g.rotation.x = 0;
+          g.rotation.y = spinY + turntableY;
           g.rotation.z = tiltRef.current.value;
           g.visible = opacity > 0.01;
           allMats[i].forEach((m) => { m.opacity = opacity; });
@@ -315,20 +340,37 @@ const GlbViewer = forwardRef<GlbViewerHandle, Props>(function GlbViewer({
         renderer!.render(scene, camera);
       };
       tick();
-    })();
+    };
+
+    // Don't allocate a WebGL context or parse the (large) GLBs while the mount
+    // is hidden (display:none → 0×0). Both the desktop and mobile Pathways/modal
+    // viewers live in the DOM at once; this lets only the visible one load.
+    const tryStart = () => {
+      if (dead) return;
+      if (mount.clientWidth > 0 && mount.clientHeight > 0) {
+        startRo?.disconnect();
+        startRo = null;
+        init();
+      } else if (!startRo) {
+        startRo = new ResizeObserver(() => tryStart());
+        startRo.observe(mount);
+      }
+    };
+    tryStart();
 
     return () => {
       dead = true;
       cancelAnimationFrame(rafId);
       st?.kill();
       ro?.disconnect();
+      startRo?.disconnect();
       renderer?.dispose();
       renderer?.domElement.remove();
     };
     // models/initialTilt/noScroll must be stable (module-level constants or literals) from the caller.
     // spinOnMount is intentionally omitted — it's a one-shot flag captured at mount time.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [models, transitionDuration, initialTilt, noScroll]);
+  }, [models, transitionDuration, initialTilt, noScroll, camZ, scrollRef, scrollTravel]);
 
   return (
     <div

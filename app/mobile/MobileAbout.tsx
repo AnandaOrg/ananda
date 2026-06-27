@@ -1,5 +1,5 @@
 import { mu, MU_VAR } from "./scale";
-import RevealStatement, { STATEMENT_FLAT } from "../RevealStatement";
+import RevealStatement, { STATEMENT_PARAS } from "../RevealStatement";
 
 /** Mobile section — "ANANDA is the supreme joy…" statement + mandala (Figma 184:2755). */
 export default function MobileAbout() {
@@ -9,7 +9,7 @@ export default function MobileAbout() {
         <div style={{ ...MU_VAR, padding: `${mu(60)} ${mu(24)}` }}>
           <div className="flex flex-col items-center" style={{ gap: mu(80) }}>
             <RevealStatement
-              paras={STATEMENT_FLAT}
+              paras={STATEMENT_PARAS}
               smallFontSize={mu(15.48)}
               className="font-bold"
               style={{ fontFamily: "var(--font-display)", color: "#eb4638", letterSpacing: mu(-0.96), fontSize: mu(24), lineHeight: 1.15 }}
