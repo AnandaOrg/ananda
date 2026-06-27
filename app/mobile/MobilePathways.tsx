@@ -73,20 +73,22 @@ export default function MobilePathways() {
   // bottle's centre once the spin reads, wiring the modal's nav/close back to
   // the GLB (reset tilt on close, 360° spin on nav).
   const openWithSpin = useCallback((i: number) => {
+    // Beat 1: tilt to 90° AND start spinning at the same time.
     glbRef.current?.spin();
+    glbRef.current?.spin360();
     const rect = glbRef.current?.getRect() ?? new DOMRect();
     const origin = {
       x: (rect.left + rect.width / 2) / window.innerWidth,
       y: (rect.top + rect.height / 2) / window.innerHeight,
     };
-    // Beat 2: once it's at ~90° (the spin() tilt is ~1s), spin a full 360° turn —
-    // visible on its own.
-    setTimeout(() => glbRef.current?.spin360(), 1000);
-    // Beat 3: after the spin reads, let the modal burst out of the bottle.
+    // Keep it spinning through the tilt so it's still spinning when it hits 90°.
+    setTimeout(() => glbRef.current?.spin360(), 650);
+    // Beat 2: at ~90° the still-spinning bottle becomes the modal — the modal
+    // scales out of the captured position, its own bottle continuing the spin.
     setTimeout(() => open(i, origin,
       () => glbRef.current?.resetTilt(),
       () => glbRef.current?.spin360(),
-    ), 1500);
+    ), 1000);
   }, [open]);
 
   return (

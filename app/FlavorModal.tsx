@@ -12,6 +12,11 @@ import GlbViewer, { type GlbViewerHandle, type ModelEntry } from "./GlbViewer";
 
 const u = (n: number) => `calc(var(--u) * ${n})`;
 
+// Single source of truth for the prev/next transition length. The GLB spin +
+// colour cross-fade (navDuration), the background, and the scene all use this so
+// they change in lockstep.
+const NAV_DURATION = 1.7;
+
 type Crop = { w: string; h: string; left: string; top: string };
 type Fruit = {
   src: string;
@@ -258,13 +263,13 @@ export default function FlavorModal({
         opacity: { type: "tween", duration: 0.3, ease: "easeOut" },
       }}
     >
-      {/* Background layer lives outside AnimatePresence so it keeps the correct
-          color while exiting content is still on screen with the OLD flavor. */}
+      {/* Background — cross-fades the flavour colour across the full ~0.7s spin,
+          in step with the bottle's colour and the scene cross-fade. */}
       <motion.div
         className="absolute inset-0"
         initial={false}
         animate={{ backgroundColor: f.bg }}
-        transition={{ type: "tween", duration: 0.25, delay: 0.4 }}
+        transition={{ type: "tween", duration: NAV_DURATION, ease: "easeInOut" }}
       />
 
       {/* ───────── Desktop / tablet: 16:9 stage that fits inside the viewport ───────── */}
@@ -279,6 +284,7 @@ export default function FlavorModal({
             ref={desktopGlbRef}
             models={MODAL_GLB_MODELS}
             activeIndex={index}
+            navDuration={NAV_DURATION}
             initialTilt={0}
             noScroll
             style={{
@@ -295,19 +301,17 @@ export default function FlavorModal({
             }}
           />
 
-          {/* Scene + ingredients: animate on nav, scale from centre where GLB sits */}
-          <AnimatePresence mode="wait">
+          {/* Scene + ingredients: cross-fade old→new over the ~0.7s spin, in sync
+              with the bottle + background colours (no scale, no exit-then-enter). */}
+          <AnimatePresence>
             <motion.div
               key={f.key}
               className="absolute inset-0"
-              style={{ originX: 0.5, originY: 0.36 }}
-              initial={outerReady ? { scale: 0, opacity: 0 } : false}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0, opacity: 0 }}
-              transition={{ type: "tween", duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+              initial={outerReady ? { opacity: 0 } : false}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ type: "tween", duration: NAV_DURATION, ease: "easeInOut" }}
             >
-              {/* Flavour colour rides WITH the scene so it funnels into / bursts out of the bottle */}
-              <div className="absolute inset-0" style={{ backgroundColor: f.bg }} />
               <Scene f={f} />
               <div className="absolute inset-x-0 flex flex-col items-center" style={{ bottom: u(210), gap: u(14), color: f.textColor }}>
                 <p aria-label="Ingredients" className="whitespace-nowrap uppercase" style={{ fontFamily: "var(--font-mono-label)", fontSize: u(16), lineHeight: 0.87, letterSpacing: u(1.12) }}>
@@ -330,9 +334,23 @@ export default function FlavorModal({
             <button type="button" aria-label="Previous flavour" onClick={(e) => { e.stopPropagation(); onNav(-1); }} className="cursor-pointer">
               <Chevron color={f.nameColor} flip />
             </button>
-            <p className="text-center font-bold uppercase" style={{ fontFamily: "var(--font-display)", fontSize: u(160), lineHeight: 0.8, letterSpacing: u(-12.8), color: f.nameColor, width: u(760.75) }}>
-              {f.name}
-            </p>
+            {/* Name cross-fades on nav like the rest (grid stacks the old/new in
+                one cell so the arrows stay put). */}
+            <div className="grid" style={{ width: u(760.75) }}>
+              <AnimatePresence>
+                <motion.p
+                  key={f.key}
+                  className="text-center font-bold uppercase"
+                  style={{ gridArea: "1 / 1", fontFamily: "var(--font-display)", fontSize: u(160), lineHeight: 0.8, letterSpacing: u(-12.8), color: f.nameColor }}
+                  initial={outerReady ? { opacity: 0 } : false}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ type: "tween", duration: NAV_DURATION, ease: "easeInOut" }}
+                >
+                  {f.name}
+                </motion.p>
+              </AnimatePresence>
+            </div>
             <button type="button" aria-label="Next flavour" onClick={(e) => { e.stopPropagation(); onNav(1); }} className="cursor-pointer">
               <Chevron color={f.nameColor} />
             </button>
@@ -351,6 +369,7 @@ export default function FlavorModal({
           ref={mobileGlbRef}
           models={MODAL_GLB_MODELS}
           activeIndex={index}
+          navDuration={NAV_DURATION}
           initialTilt={0}
           noScroll
           style={{
@@ -366,19 +385,17 @@ export default function FlavorModal({
           }}
         />
 
-        {/* Scene + text: animate on nav */}
-        <AnimatePresence mode="wait">
+        {/* Scene + text: clean cross-fade over the ~0.7s spin, synced with the
+            bottle + background colours. */}
+        <AnimatePresence>
           <motion.div
             key={f.key}
             className="absolute inset-0"
-            style={{ originX: 0.5, originY: 0.42 }}
-            initial={outerReady ? { scale: 0, opacity: 0 } : false}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0, opacity: 0 }}
-            transition={{ type: "tween", duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+            initial={outerReady ? { opacity: 0 } : false}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ type: "tween", duration: NAV_DURATION, ease: "easeInOut" }}
           >
-            {/* Flavour colour rides WITH the scene so it funnels into / bursts out of the bottle */}
-            <div className="absolute inset-0" style={{ backgroundColor: f.bg }} />
             <div
               className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 overflow-hidden w-full"
               style={{ aspectRatio: "16 / 9", containerType: "inline-size", ["--u" as string]: "calc(100cqw / 1920)" }}

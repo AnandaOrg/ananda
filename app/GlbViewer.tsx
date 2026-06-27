@@ -13,6 +13,8 @@ export type GlbViewerHandle = {
   /** Tilt the model to lie flat at +90° (+π/2 on Z). */
   tiltTo90: () => void;
   resetTilt: () => void;
+  /** Set the Z-tilt immediately (no tween) — for scroll-scrubbed control. */
+  setTilt: (v: number) => void;
   getRect: () => DOMRect;
 };
 
@@ -48,6 +50,10 @@ type Props = {
    *  full scroll (frac 0→1) to ride the bands. The model stays centred, so it
    *  never leaves the framebuffer; the canvas moves instead. e.g. `u(965)`. */
   scrollTravel?: string;
+  /** Index-select mode: seconds for the spin + colour cross-fade on activeIndex
+   *  change. Match the caller's modal transition so the bottle and the
+   *  background/scene change in lockstep. Default 0.7. */
+  navDuration?: number;
   className?: string;
   style?: React.CSSProperties;
 };
@@ -94,6 +100,7 @@ const GlbViewer = forwardRef<GlbViewerHandle, Props>(function GlbViewer({
   camZ,
   scrollRef,
   scrollTravel,
+  navDuration,
   className,
   style,
 }, ref) {
@@ -102,8 +109,11 @@ const GlbViewer = forwardRef<GlbViewerHandle, Props>(function GlbViewer({
   const tiltRef = useRef({ value: -Math.PI / 2 });
   const tiltTlRef = useRef<gsap.core.Timeline | null>(null);
   const fracRef = useRef(0);
-  // Which model the render loop should fade toward (index-select mode).
+  // Index-select mode cross-fade: which model is active, which one we're fading
+  // from, and the 0→1 blend progress (tweened on nav so it matches the modal).
   const activeRef = useRef(activeIndex ?? 0);
+  const prevActiveRef = useRef(activeIndex ?? 0);
+  const blendRef = useRef({ value: 1 });
 
   useImperativeHandle(ref, () => ({
     spin() {
@@ -128,6 +138,10 @@ const GlbViewer = forwardRef<GlbViewerHandle, Props>(function GlbViewer({
       tiltTlRef.current = gsap.timeline()
         .to(tiltRef.current, { value: -Math.PI / 2, duration: 0.8, ease: "sine.inOut" });
     },
+    setTilt(v: number) {
+      tiltTlRef.current?.kill();
+      tiltRef.current.value = v;
+    },
     getRect() {
       return mountRef.current?.getBoundingClientRect() ?? new DOMRect();
     },
@@ -138,15 +152,28 @@ const GlbViewer = forwardRef<GlbViewerHandle, Props>(function GlbViewer({
   // The model is already loaded, so this never reloads — just a cross-fade.
   useEffect(() => {
     if (activeIndex === undefined) return;
-    activeRef.current = activeIndex;
+    const prev = activeRef.current;
     tiltTlRef.current?.kill();
     tiltRef.current.value = initialTilt ?? -Math.PI / 2;
+    const dur = navDuration ?? 0.7;
+    if (prev !== activeIndex) {
+      // Nav: cross-fade prev→new with the SAME duration + easing as the modal's
+      // background/scene, so the bottle colour changes in lockstep (not early).
+      prevActiveRef.current = prev;
+      activeRef.current = activeIndex;
+      blendRef.current.value = 0;
+      gsap.to(blendRef.current, { value: 1, duration: dur, ease: "power1.inOut" });
+    } else {
+      // First mount: already showing the right model — no cross-fade.
+      activeRef.current = activeIndex;
+      blendRef.current.value = 1;
+    }
     gsap.to(spinOffsetRef.current, {
       value: spinOffsetRef.current.value + Math.PI * 2,
-      duration: 0.7,
+      duration: dur,
       ease: "power2.inOut",
     });
-  }, [activeIndex, initialTilt]);
+  }, [activeIndex, initialTilt, navDuration]);
 
   useEffect(() => {
     const mount = mountRef.current;
@@ -229,8 +256,6 @@ const GlbViewer = forwardRef<GlbViewerHandle, Props>(function GlbViewer({
 
       // The shown model starts fully opaque; all others start transparent
       const allMats = groups.map((g, i) => cloneMaterials(g, i === startIndex ? 1 : 0));
-      // Per-model current opacity, eased toward its target each frame in select mode
-      const curOpacity = groups.map((_, i) => (i === startIndex ? 1 : 0));
 
       groups.forEach((g, i) => {
         g.visible = i === startIndex;
@@ -259,6 +284,7 @@ const GlbViewer = forwardRef<GlbViewerHandle, Props>(function GlbViewer({
       const transitionPoints = models.slice(1).map((m) => m.transitionAt ?? 0);
 
       let frac = 0;
+      let lastTransformFrac = -1; // only rewrite the canvas transform when scroll actually moves
 
       if (!noScroll) {
         // Drive scroll progress from a fixed reference (the band region) when
@@ -301,19 +327,23 @@ const GlbViewer = forwardRef<GlbViewerHandle, Props>(function GlbViewer({
         const turntableY = rotFrac * Math.PI * 2;
         const spinY = spinOffsetRef.current.value;
 
-        // Ride the bands by moving the canvas, not the model.
-        if (!noScroll && scrollTravel) {
+        // Ride the bands by moving the canvas, not the model. Only rewrite the
+        // transform when the scroll position actually changes — writing the
+        // container-query calc() every frame forces a continuous style recalc
+        // that janks the rotate/spin (which run while frac is constant).
+        if (!noScroll && scrollTravel && frac !== lastTransformFrac) {
+          lastTransformFrac = frac;
           mount.style.transform = `translateY(calc(${scrollTravel} * ${frac}))`;
         }
 
         groups.forEach((g, i) => {
           let opacity: number;
           if (useSelect) {
-            // Ease toward 1 for the active model, 0 for the rest — a smooth
-            // cross-fade with no reload when activeRef changes.
-            const target = i === activeRef.current ? 1 : 0;
-            curOpacity[i] += (target - curOpacity[i]) * 0.14;
-            opacity = curOpacity[i];
+            // Cross-fade driven by the blend tween: new model fades in, the one
+            // we left fades out, everything else stays hidden. Same eased curve
+            // and duration as the modal's bg/scene → they change together.
+            const b = blendRef.current.value;
+            opacity = i === activeRef.current ? b : (i === prevActiveRef.current ? 1 - b : 0);
           } else {
             // blendIn: 1 for first model; for others, ramps from 0→1 as frac crosses its transitionAt
             const blendIn =

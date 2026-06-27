@@ -1,6 +1,7 @@
 import AboutCopyBlock from "./AboutCopyBlock";
 import ScrollVideoCanvas from "./ScrollVideoCanvas";
 import VerticalSlider from "./VerticalSlider";
+import KyotoLiftoff from "./KyotoLiftoff";
 
 const u = (n: number) => `calc(var(--u) * ${n})`;
 
@@ -45,21 +46,9 @@ export default function AboutCollage() {
           }}
         />
 
-        {/* Pouch scene — scroll-scrubbed video */}
-        <div
-          className="absolute flex items-center justify-center"
-          style={{ left: u(297.52), top: u(1878.54), width: u(789.24), height: u(905.94) }}
-        >
-          <div style={{ transform: "rotate(-0.64deg)" }}>
-            <ScrollVideoCanvas
-              frameBase="/frames/kyoto/"
-              frameCount={78}
-              alt="Pouring a chilled ANANDA cocktail"
-              autoLoop
-              style={{ width: u(779.28), height: u(897.12), overflow: "hidden" }}
-            />
-          </div>
-        </div>
+        {/* Pouch scene — looping pour video; the 3-D pouch lifts off it and
+            rotates upright as you scroll past (see KyotoLiftoff). */}
+        <KyotoLiftoff />
 
         {/* Red wave */}
         <div

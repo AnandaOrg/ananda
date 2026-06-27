@@ -105,22 +105,24 @@ export default function Pathways() {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const openWithSpin = useCallback((i: number) => {
+    // Beat 1: tilt to 90° AND start spinning at the same time.
     glbRef.current?.spin();
+    glbRef.current?.spin360();
     // Capture GLB centre now (before any scroll shift during the delay)
     const rect = glbRef.current?.getRect() ?? new DOMRect();
     const origin = {
       x: (rect.left + rect.width / 2) / window.innerWidth,
       y: (rect.top + rect.height / 2) / window.innerHeight,
     };
-    // Beat 2: once it's at ~90° (the spin() tilt is ~1s), spin a full 360° turn —
-    // visible on its own.
-    setTimeout(() => glbRef.current?.spin360(), 1000);
-    // Beat 3: after the spin reads, let the modal burst out of the bottle (it
-    // scales up from this captured origin, so it covers the spin only afterwards).
+    // Keep it spinning through the tilt so it's still spinning when it hits 90°.
+    setTimeout(() => glbRef.current?.spin360(), 650);
+    // Beat 2: at ~90° (tilt ~1s), the still-spinning bottle becomes the modal —
+    // the modal scales out of the bottle's captured position and its own bottle
+    // keeps spinning, so the spinning element hands off into the modal.
     setTimeout(() => open(i, origin,
       () => glbRef.current?.resetTilt(),
       () => glbRef.current?.spin360(),
-    ), 1500);
+    ), 1000);
   }, [open]);
 
   return (
