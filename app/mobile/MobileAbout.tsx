@@ -5,7 +5,7 @@ import RevealStatement, { STATEMENT_PARAS } from "../RevealStatement";
 export default function MobileAbout() {
   return (
     <section className="flex w-full justify-center bg-[#fff0e5] md:hidden">
-      <div className="w-full max-w-[430px]" style={{ containerType: "inline-size" }}>
+      <div className="w-full" style={{ containerType: "inline-size" }}>
         <div style={{ ...MU_VAR, padding: `${mu(60)} ${mu(24)}` }}>
           <div className="flex flex-col items-center" style={{ gap: mu(80) }}>
             <RevealStatement

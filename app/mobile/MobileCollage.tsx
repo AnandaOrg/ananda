@@ -1,37 +1,85 @@
-import Image from "next/image";
-import { mu, MU_VAR, maskStyle } from "./scale";
+"use client";
+
+import { useEffect, useRef, useState } from "react";
 import ScrollVideoCanvas from "../ScrollVideoCanvas";
-import MobilePouchScroll from "./MobilePouchScroll";
+import VerticalSlider from "../VerticalSlider";
+import KyotoLiftoff from "../KyotoLiftoff";
 
-/** Mobile section 3 — "What we're about" collage (Figma 184:1260, 390×1600). */
+/**
+ * Mobile section 3 — "What we're about" collage. Per the full-desktop-port
+ * decision this reproduces the desktop `AboutCollage` composition element-for-
+ * element — pineapple scroll-scrub, strawberries scroll-scrub, the 3-D
+ * `KyotoLiftoff` pouch, the auto-sliding gallery, the wave and the copy slide-in
+ * — on the SAME `--u = 100cqw/1440` canvas, so every animation is identical to
+ * desktop and the whole thing simply scales to the 390px phone width. Only the
+ * copy type is bumped to a legible mobile size. Mobile only (md:hidden).
+ */
 
-type MaskedProps = {
-  photo: string;
-  alt: string;
-  mask: string;
-  maskSize: [number, number];
-  maskPos: [number, number];
-  box: { left: number; top: number; width: number; height: number };
-  inner?: { width: number; height: number; rotate: number };
-};
+const u = (n: number) => `calc(var(--u) * ${n})`;
 
-function Masked({ photo, alt, mask, maskSize, maskPos, box, inner }: MaskedProps) {
-  const place = { left: mu(box.left), top: mu(box.top), width: mu(box.width), height: mu(box.height) };
-  const img = <Image src={photo} alt={alt} fill sizes="60vw" className="object-cover" />;
-  const ms = maskStyle(mask, maskSize[0], maskSize[1], maskPos[0], maskPos[1]);
+function maskStyle(src: string, [mw, mh]: [number, number], [mx, my]: [number, number]) {
+  const image = `url(${src})`;
+  return {
+    maskImage: image,
+    WebkitMaskImage: image,
+    maskRepeat: "no-repeat",
+    WebkitMaskRepeat: "no-repeat",
+    maskSize: `${u(mw)} ${u(mh)}`,
+    WebkitMaskSize: `${u(mw)} ${u(mh)}`,
+    maskPosition: `${u(mx)} ${u(my)}`,
+    WebkitMaskPosition: `${u(mx)} ${u(my)}`,
+  } as const;
+}
 
-  if (!inner) {
-    return (
-      <div className="absolute overflow-hidden" style={{ ...place, ...ms }}>
-        {img}
-      </div>
-    );
-  }
+/** Copy block — same 0.9s cubic-bezier slide-in as desktop AboutCollage, text bumped for mobile legibility. */
+function MobileCopy() {
+  const ref = useRef<HTMLDivElement>(null);
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    let raf = 0;
+    let triggered = false;
+    const check = () => {
+      raf = 0;
+      if (triggered) return;
+      if (el.getBoundingClientRect().top < window.innerHeight * 0.85) {
+        triggered = true;
+        setVisible(true);
+      }
+    };
+    const onScroll = () => { if (!raf) raf = requestAnimationFrame(check); };
+    check();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => { window.removeEventListener("scroll", onScroll); if (raf) cancelAnimationFrame(raf); };
+  }, []);
+
   return (
-    <div className="absolute flex items-center justify-center" style={place}>
-      <div style={{ transform: `rotate(${inner.rotate}deg)` }}>
-        <div className="relative overflow-hidden" style={{ width: mu(inner.width), height: mu(inner.height), ...ms }}>
-          {img}
+    <div
+      ref={ref}
+      className="absolute flex flex-col text-[#eb4638]"
+      style={{
+        left: u(60),
+        top: u(92.16),
+        width: u(560),
+        opacity: visible ? 1 : 0,
+        transform: visible ? "translateX(0px)" : `translateX(${u(-220)})`,
+        transition: "opacity 0.9s cubic-bezier(0.22, 1, 0.36, 1), transform 0.9s cubic-bezier(0.22, 1, 0.36, 1)",
+      }}
+    >
+      <div style={{ padding: `${u(10)} ${u(14)}` }}>
+        <p
+          className="whitespace-nowrap uppercase"
+          style={{ fontFamily: "var(--font-mono-label)", fontSize: u(34), lineHeight: 0.87, letterSpacing: u(2.4) }}
+        >
+          What we&apos;re about
+        </p>
+      </div>
+      <div style={{ padding: `${u(10)} ${u(14)}` }}>
+        <div style={{ fontFamily: "var(--font-body)", fontSize: u(52), lineHeight: 1.4, letterSpacing: u(0.5) }}>
+          <p className="mb-0">Premium, bar-strength cocktails mixed for the makers, the movers, and the midnight sun.</p>
+          <p>No glass, no pretense. Just pure, uninhibited joy - ready whenever and wherever you are.</p>
         </div>
       </div>
     </div>
@@ -40,8 +88,14 @@ function Masked({ photo, alt, mask, maskSize, maskPos, box, inner }: MaskedProps
 
 export default function MobileCollage() {
   return (
-    <section className="w-full overflow-hidden bg-[#fff0e5] md:hidden" style={{ containerType: "inline-size" }}>
-      <div className="relative" style={{ ...MU_VAR, width: mu(390), height: mu(1600) }}>
+    <section
+      className="relative w-full overflow-hidden bg-[#fff0e5] text-[#eb4638] md:hidden"
+      style={{ containerType: "inline-size" }}
+    >
+      <div
+        className="relative mx-auto"
+        style={{ ["--u" as string]: "calc(100cqw / 1440)", width: u(1440), height: u(3000) }}
+      >
         {/* Pineapple — GSAP scroll-scrubbed */}
         <ScrollVideoCanvas
           frameBase="/frames/ananas/"
@@ -49,75 +103,63 @@ export default function MobileCollage() {
           alt="Pineapple slices against a blue sky"
           style={{
             position: "absolute",
-            left: mu(263.8),
-            top: mu(652.78),
-            width: mu(166.943),
-            height: mu(333.885),
-            ...maskStyle("/m-pineapple.svg", 160.061, 320.121, 2.436, 6.01),
+            left: u(930.8),
+            top: u(1008.67),
+            width: u(396.208),
+            height: u(792.416),
+            ...maskStyle("/m-pineapple.svg", [379.875, 759.75], [5.779, 14.263]),
           }}
         />
 
-        {/* Picnic */}
-        <Masked
-          photo="/c-picnic.png"
-          alt="Friends sharing ANANDA cocktails on the grass"
-          mask="/m-diamond.svg"
-          maskSize={[286.092, 299.788]}
-          maskPos={[31.332, 59.313]}
-          box={{ left: 7.51, top: 33.92, width: 388.367, height: 445.572 }}
-        />
-
-        {/* Blue pouch scene */}
-        <div
-          className="absolute flex items-center justify-center"
-          style={{ left: mu(53), top: mu(723), width: mu(201), height: mu(730) }}
-        >
-          <div style={{ transform: "rotate(-0.64deg)" }}>
-            <div
-              className="relative overflow-hidden"
-              style={{ width: mu(196), height: mu(720) }}
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src="/c-bluepouch.png"
-                alt="Pouring a chilled ANANDA cocktail"
-                className="absolute max-w-none object-cover"
-                style={{ width: "97.57%", height: "96.85%", left: "2.63%", top: "-3.48%" }}
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Hand & lemon (rotated -0.64) */}
-        <Masked
-          photo="/c-tophand.png"
-          alt="A hand squeezing fresh citrus"
-          mask="/m-diamond.svg"
-          maskSize={[308.291, 310.545]}
-          maskPos={[8.693, 15.6]}
-          box={{ left: 34.89, top: 1038.2, width: 315.09, height: 360.397 }}
-          inner={{ width: 311.102, height: 356.926, rotate: -0.64 }}
-        />
+        {/* Pouch scene — looping pour video; the 3-D pouch lifts off it and
+            rotates upright as you scroll past (see KyotoLiftoff). */}
+        <KyotoLiftoff />
 
         {/* Red wave */}
-        <div className="absolute" style={{ left: mu(-28.14), top: mu(1468.86), width: mu(594.406), height: mu(131.141) }}>
+        <div
+          className="absolute"
+          style={{ left: u(-9.75), top: u(2687.06), width: u(1464.584), height: u(323.123) }}
+        >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/c-wave.svg" alt="" className="block size-full" />
         </div>
 
-        {/* Product pouch overlay — rotates a full turn on scroll */}
-        <MobilePouchScroll />
-
-        {/* Copy block */}
-        <div className="absolute flex flex-col items-start" style={{ left: mu(35.7), top: mu(469), width: mu(264), gap: mu(16) }}>
-          <p className="whitespace-nowrap uppercase text-[#eb4638]" style={{ fontFamily: "var(--font-mono-label)", fontSize: mu(12), lineHeight: 0.87, letterSpacing: mu(0.84) }}>
-            What we’re about
-          </p>
-          <div style={{ fontFamily: "var(--font-body)", fontSize: mu(18), lineHeight: 1.2, letterSpacing: mu(0.18), color: "#eb4638", width: mu(263.732) }}>
-            <p className="mb-0">Premium, bar-strength cocktails mixed for the makers, the movers, and the midnight sun.</p>
-            <p>No glass, no pretense. Just pure, uninhibited joy - ready whenever and wherever you are.</p>
+        {/* Strawberries — scroll-scrubbed video */}
+        <div
+          className="absolute flex items-center justify-center"
+          style={{ left: u(-21.5), top: u(1072.53), width: u(750.69), height: u(604.722) }}
+        >
+          <div style={{ transform: "rotate(-90deg)" }}>
+            <ScrollVideoCanvas
+              frameBase="/frames/kyoto-strawberries/"
+              frameCount={120}
+              alt="An ANANDA pouch nestled in fresh strawberries"
+              style={{
+                width: u(604.722),
+                height: u(750.69),
+                ...maskStyle("/m-14.svg", [746.535, 592.314], [0.979, 5.315]),
+              }}
+            />
           </div>
         </div>
+
+        {/* Vertical slide gallery — top left */}
+        <VerticalSlider
+          images={[
+            { src: "/hero_3/1.png", alt: "ANANDA moment" },
+            { src: "/hero_3/2.png", alt: "ANANDA moment" },
+            { src: "/hero_3/3.png", alt: "ANANDA moment" },
+            { src: "/hero_3/4.png", alt: "ANANDA moment" },
+            { src: "/hero_3/5.png", alt: "ANANDA moment" },
+          ]}
+          interval={3200}
+          duration={0.9}
+          frame
+          style={{ position: "absolute", left: 0, top: u(-108.123), width: "50%", height: "25%" }}
+        />
+
+        {/* Copy block — top right, slides in on scroll */}
+        <MobileCopy />
       </div>
     </section>
   );

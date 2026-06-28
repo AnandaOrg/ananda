@@ -29,20 +29,45 @@ type FormScale = {
   btnSize: number;
 };
 
-/** Email field that, on submit, swaps to a "Successfully subscribed" confirmation
- *  for 5s (animated), then restores the input. */
+type Status = "idle" | "loading" | "success" | "error";
+
+/** Email field that, on submit, POSTs to /api/subscribe (MailerLite) and swaps to
+ *  a "Successfully subscribed" confirmation for 5s (animated), then restores the
+ *  input. Surfaces an inline error message on failure. */
 function DropForm({ s, height, fontSize, padL, padR, radius, btnRight, btnSize }: FormScale) {
-  const [submitted, setSubmitted] = useState(false);
+  const [status, setStatus] = useState<Status>("idle");
+  const [error, setError] = useState("");
+  const submitted = status === "success";
 
   useEffect(() => {
     if (!submitted) return;
-    const id = setTimeout(() => setSubmitted(false), 5000);
+    const id = setTimeout(() => setStatus("idle"), 5000);
     return () => clearTimeout(id);
   }, [submitted]);
 
-  const onSubmit = (e: React.FormEvent) => {
+  const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setSubmitted(true);
+    if (status === "loading") return;
+
+    const email = new FormData(e.currentTarget).get("email");
+    setStatus("loading");
+    setError("");
+
+    try {
+      const res = await fetch("/api/subscribe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        throw new Error(data?.error ?? "Something went wrong. Please try again.");
+      }
+      setStatus("success");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
+      setStatus("error");
+    }
   };
 
   return (
@@ -74,16 +99,19 @@ function DropForm({ s, height, fontSize, padL, padR, radius, btnRight, btnSize }
           >
             <input
               type="email"
+              name="email"
               required
               placeholder="Your email"
               aria-label="Your email"
+              aria-invalid={status === "error"}
               className="absolute inset-0 w-full bg-[#fff0e5] text-[#0a142f] outline-none placeholder:text-[#eb4638]"
               style={{ fontFamily: "var(--font-body)", fontSize: s(fontSize), paddingLeft: s(padL), paddingRight: s(padR), borderRadius: s(radius) }}
             />
             <button
               type="submit"
               aria-label="Subscribe"
-              className="absolute -translate-y-1/2"
+              disabled={status === "loading"}
+              className="absolute -translate-y-1/2 disabled:opacity-50"
               style={{ right: s(btnRight), top: "50%", width: s(btnSize), height: s(btnSize) }}
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -92,6 +120,15 @@ function DropForm({ s, height, fontSize, padL, padR, radius, btnRight, btnSize }
           </motion.form>
         )}
       </AnimatePresence>
+      {status === "error" && error ? (
+        <p
+          role="alert"
+          className="absolute left-0 font-semibold uppercase text-[#fff0e5]"
+          style={{ top: "100%", fontFamily: "var(--font-display)", fontSize: s(fontSize * 0.6), paddingTop: s(8), paddingLeft: s(padL) }}
+        >
+          {error}
+        </p>
+      ) : null}
     </div>
   );
 }
@@ -101,7 +138,7 @@ export default function DropList() {
     <section className="w-full bg-[#eb4638]" style={{ containerType: "inline-size" }}>
       {/* Mobile */}
       <div className="flex justify-center md:hidden">
-        <div className="w-full max-w-[430px]" style={{ containerType: "inline-size" }}>
+        <div className="w-full" style={{ containerType: "inline-size" }}>
           <div className="flex flex-col items-start" style={{ ...MU_VAR, padding: `${mu(60)} ${mu(24)}`, gap: mu(40) }}>
             <div className="flex flex-col items-start uppercase text-[#fff0e5]" style={{ gap: mu(16) }}>
               <p style={{ fontFamily: "var(--font-mono-label)", fontSize: mu(12), lineHeight: 0.87, letterSpacing: mu(0.84) }}>[05] Want in?</p>

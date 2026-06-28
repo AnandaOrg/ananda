@@ -92,7 +92,7 @@ export default function MobilePathways() {
   }, [open]);
 
   return (
-    <section className="w-full bg-[#eb4638] md:hidden" style={{ containerType: "inline-size", ...MU_VAR }}>
+    <section className="relative w-full overflow-hidden bg-[#eb4638] md:hidden" style={{ containerType: "inline-size", ...MU_VAR }}>
       {/* Content layer — clipped (bands / names / fruit) */}
       <div className="relative overflow-hidden" style={{ width: mu(390), height: mu(1176) }}>
         {/* Colour bands (click to open flavour) */}

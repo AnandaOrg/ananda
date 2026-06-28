@@ -30,7 +30,7 @@ export default function Footer() {
     <footer className="w-full bg-[#eb4638]" style={{ containerType: "inline-size" }}>
       {/* Mobile */}
       <div className="flex justify-center md:hidden">
-        <div className="w-full max-w-[430px]" style={{ containerType: "inline-size" }}>
+        <div className="w-full" style={{ containerType: "inline-size" }}>
           <div className="flex flex-col" style={{ ...MU_VAR, padding: `${mu(60)} ${mu(24)}`, gap: mu(40) }}>
             <div className="h-px w-full bg-[#fff0e5]" />
             <div className="flex flex-col items-center" style={{ gap: mu(32) }}>

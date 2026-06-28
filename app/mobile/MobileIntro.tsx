@@ -2,92 +2,160 @@
 
 import Image from "next/image";
 import { useEffect, useRef } from "react";
-import { mu, MU_VAR, maskStyle } from "./scale";
+import gsap from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+import VerticalSlider from "../VerticalSlider";
+import { mu, MU_VAR } from "./scale";
+
+gsap.registerPlugin(ScrollTrigger);
 
 const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
+const smooth = (t: number) => t * t * (3 - 2 * t);
 
-/** Mobile section 2 — "Ditch the glass" / LIQUID BLISS (Figma 184:1157). */
+// Same imagery as the collage gallery, so the reveal hands off into it.
+const GALLERY = [
+  { src: "/hero_3/1.png", alt: "ANANDA moment" },
+  { src: "/hero_3/2.png", alt: "ANANDA moment" },
+  { src: "/hero_3/3.png", alt: "ANANDA moment" },
+  { src: "/hero_3/4.png", alt: "ANANDA moment" },
+  { src: "/hero_3/5.png", alt: "ANANDA moment" },
+];
+
+/**
+ * Mobile section 2 — "Liquid Bliss. Mixed to Move." (Figma 184:1157). Mirrors the
+ * desktop `DitchTheGlass` choreography exactly — same pinned scrub range, same
+ * render() math, same gallery iris hand-off — only the geometry is scaled to the
+ * 390px frame via `mu()`. Mobile only.
+ */
 export default function MobileIntro() {
   const sectionRef = useRef<HTMLElement>(null);
-  const diamondRef = useRef<HTMLDivElement>(null);
+  const diamondRef = useRef<HTMLSpanElement>(null);
+  const imageWrapRef = useRef<HTMLSpanElement>(null);
+  const galleryRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const section = sectionRef.current;
     const diamond = diamondRef.current;
-    if (!section || !diamond) return;
-    let raf = 0;
+    const imageWrap = imageWrapRef.current;
+    const gallery = galleryRef.current;
+    if (!section || !diamond || !imageWrap || !gallery) return;
 
-    const update = () => {
-      raf = 0;
-      const rect = section.getBoundingClientRect();
-      const vh = window.innerHeight;
-      const centerY = rect.top + rect.height / 2;
-      const p = clamp(1 - centerY / vh, 0, 1);
+    const words = Array.from(section.querySelectorAll<HTMLElement>(".dtg-word"));
 
-      const scale = 1 + p * 5;
-      const rotate = 45 - p * 45;
+    const render = (prog: number) => {
+      // 1) hold the small diamond until ~40% in, then rotate upright + zoom to fill
+      const dz = smooth(clamp((prog - 0.4) / 0.3, 0, 1));
+      diamond.style.transform = `rotate(${45 - dz * 45}deg) scale(${1 + dz * 7})`;
+      imageWrap.style.transform = `rotate(${-(45 - dz * 45)}deg) scale(1.5)`;
 
-      diamond.style.transform = `rotate(${rotate}deg) scale(${scale})`;
+      // 2) the heading words fade out as the image takes over (diamond stays)
+      const textFade = 1 - clamp((prog - 0.45) / 0.2, 0, 1);
+      words.forEach((w) => { w.style.opacity = String(textFade); });
+
+      // 3) gallery irises open from the centre — the reveal hand-off
+      const gr = smooth(clamp((prog - 0.7) / 0.3, 0, 1));
+      gallery.style.clipPath = `circle(${gr * 78}% at 50% 50%)`;
+      gallery.style.opacity = gr > 0 ? "1" : "0";
+
+      // hide the zoomed pour image once the gallery has covered it
+      imageWrap.style.opacity = String(1 - clamp((prog - 0.82) / 0.12, 0, 1));
     };
 
-    const onScroll = () => {
-      if (!raf) raf = requestAnimationFrame(update);
-    };
+    const mm = gsap.matchMedia();
+    mm.add("(max-width: 767px)", () => {
+      const st = ScrollTrigger.create({
+        trigger: section,
+        start: "top top",
+        end: "+=140%",
+        pin: true,
+        scrub: true,
+        onUpdate: (self) => render(self.progress),
+        onRefresh: (self) => render(self.progress),
+      });
+      render(st.progress);
+      return () => st.kill();
+    });
 
-    update();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    window.addEventListener("resize", onScroll);
-    return () => {
-      window.removeEventListener("scroll", onScroll);
-      window.removeEventListener("resize", onScroll);
-      if (raf) cancelAnimationFrame(raf);
-    };
+    return () => mm.revert();
   }, []);
 
   return (
-    <section ref={sectionRef} className="flex w-full justify-center bg-[#fff0e5] md:hidden">
-      <div className="w-full max-w-[430px]" style={{ containerType: "inline-size" }}>
-        <div
-          className="flex items-center justify-center"
-          style={{ ...MU_VAR, padding: `${mu(80)} ${mu(60)}` }}
+    <section
+      ref={sectionRef}
+      className="relative flex h-[100svh] items-center justify-center overflow-hidden bg-[#fff0e5] md:hidden"
+      style={{ ...MU_VAR }}
+    >
+      <div
+        className="flex flex-col items-center text-center text-[#eb4638]"
+        style={{ gap: mu(24), padding: `0 ${mu(60)}` }}
+      >
+        <p
+          className="dtg-word whitespace-nowrap uppercase"
+          style={{
+            fontFamily: "var(--font-mono-label)",
+            fontSize: mu(12),
+            lineHeight: 0.87,
+            letterSpacing: mu(0.84),
+            willChange: "opacity",
+          }}
         >
-          <div className="flex flex-col items-center" style={{ gap: mu(24) }}>
-            <div style={{ padding: `${mu(6.728)} ${mu(9.419)}` }}>
-              <p
-                className="whitespace-nowrap uppercase text-[#eb4638]"
-                style={{ fontFamily: "var(--font-mono-label)", fontSize: mu(12), lineHeight: 0.87, letterSpacing: mu(0.84) }}
-              >
-                [01] Ditch the glass
-              </p>
-            </div>
+          [01] Ditch the glass
+        </p>
 
-            {/* Headline + inline diamond */}
-            <div className="relative" style={{ width: mu(276.699) }}>
-              <p
-                className="font-bold uppercase text-[#eb4638]"
-                style={{ fontFamily: "var(--font-display)", fontSize: mu(106), lineHeight: 0.8, letterSpacing: mu(-8.48), whiteSpace: "pre-wrap" }}
+        <h2
+          className="font-bold uppercase"
+          style={{
+            fontFamily: "var(--font-display)",
+            fontSize: mu(106),
+            lineHeight: 0.8,
+            letterSpacing: "-0.08em",
+          }}
+        >
+          <span className="dtg-word block" style={{ willChange: "opacity" }}>Liquid Bliss.</span>
+          <span className="flex items-center justify-center" style={{ gap: "0.2em" }}>
+            <span className="dtg-word" style={{ willChange: "opacity" }}>Mixed to</span>
+
+            <span
+              ref={diamondRef}
+              className="relative inline-block size-[1.2em] shrink-0 overflow-hidden"
+              style={{ willChange: "transform", transform: "rotate(45deg) scale(1)" }}
+            >
+              <span
+                ref={imageWrapRef}
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                  willChange: "transform",
+                  transform: "rotate(-45deg) scale(1.5)",
+                }}
               >
-                {"LIQUID BLISS.\nMIXED TO        MOVE."}
-              </p>
-              <div
-                className="absolute flex items-center justify-center"
-                style={{ left: mu(101.74 - 29.84), top: mu(218.32 - 26.63), width: mu(213.794), height: mu(213.794) }}
-              >
-                <div
-                  ref={diamondRef}
-                  style={{ transform: "rotate(45deg)", willChange: "transform" }}
-                >
-                  <div
-                    className="relative overflow-hidden"
-                    style={{ width: mu(140.805), height: mu(161.545), ...maskStyle("/m-diamond.svg", 154.104, 147.531, 29.843, 26.627) }}
-                  >
-                    <Image src="/ananda-pour.png" alt="Pouring an ANANDA cocktail" fill sizes="60vw" className="object-cover" />
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+                <Image
+                  src="/ananda-pour.png"
+                  alt="Pouring an ANANDA cocktail"
+                  fill
+                  sizes="60vw"
+                  className="object-cover"
+                />
+              </span>
+            </span>
+
+            <span className="dtg-word" style={{ willChange: "opacity" }}>Move.</span>
+          </span>
+        </h2>
+      </div>
+
+      {/* Gallery reveal layer — irises open from the centre as the hand-off */}
+      <div
+        ref={galleryRef}
+        className="pointer-events-none absolute inset-0"
+        style={{ clipPath: "circle(0% at 50% 50%)", opacity: 0, zIndex: 5, willChange: "clip-path, opacity" }}
+      >
+        <VerticalSlider
+          images={GALLERY}
+          interval={3200}
+          duration={0.9}
+          style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}
+        />
       </div>
     </section>
   );
