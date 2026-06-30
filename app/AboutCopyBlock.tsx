@@ -4,7 +4,18 @@ import { useEffect, useRef, useState } from "react";
 
 const u = (n: number) => `calc(var(--u) * ${n})`;
 
-export default function AboutCopyBlock() {
+/**
+ * "What we're about" eyebrow + copy. Layout-neutral: the parent column places it;
+ * this component only owns the type tokens and the one-shot slide-in reveal that
+ * fires as the section enters the viewport.
+ */
+export default function AboutCopyBlock({
+  className,
+  style,
+}: {
+  className?: string;
+  style?: React.CSSProperties;
+}) {
   const ref = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(false);
 
@@ -28,6 +39,7 @@ export default function AboutCopyBlock() {
       if (!raf) raf = requestAnimationFrame(check);
     };
 
+    check();
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => {
       window.removeEventListener("scroll", onScroll);
@@ -38,14 +50,12 @@ export default function AboutCopyBlock() {
   return (
     <div
       ref={ref}
-      className="absolute flex flex-col"
+      className={`flex flex-col${className ? ` ${className}` : ""}`}
       style={{
-        left: u(965),
-        top: u(92.16),
-        width: u(401),
         opacity: visible ? 1 : 0,
         transform: visible ? "translateX(0px)" : "translateX(-80px)",
         transition: "opacity 0.9s cubic-bezier(0.22, 1, 0.36, 1), transform 0.9s cubic-bezier(0.22, 1, 0.36, 1)",
+        ...style,
       }}
     >
       <div style={{ padding: `${u(10)} ${u(14)}` }}>

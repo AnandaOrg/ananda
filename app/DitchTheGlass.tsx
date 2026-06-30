@@ -5,75 +5,112 @@ import { useEffect, useRef } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import pourPhoto from "../public/ananda-pour.png";
-import VerticalSlider from "./VerticalSlider";
+import { ABOUT_CARD } from "./configs";
 
 gsap.registerPlugin(ScrollTrigger);
 
 const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
 const smooth = (t: number) => t * t * (3 - 2 * t);
+const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 
-// Same imagery as the AboutCollage gallery, so the reveal hands off into it.
-const GALLERY = [
-  { src: "/hero_3/1.png", alt: "ANANDA moment" },
-  { src: "/hero_3/2.png", alt: "ANANDA moment" },
-  { src: "/hero_3/3.png", alt: "ANANDA moment" },
-  { src: "/hero_3/4.png", alt: "ANANDA moment" },
-  { src: "/hero_3/5.png", alt: "ANANDA moment" },
-];
+type Box = { left: number; top: number; w: number; h: number };
+const lerpBox = (a: Box, b: Box, t: number): Box => ({
+  left: lerp(a.left, b.left, t),
+  top: lerp(a.top, b.top, t),
+  w: lerp(a.w, b.w, t),
+  h: lerp(a.h, b.h, t),
+});
+const vToPx = (v: string, w: number, h: number) =>
+  v.endsWith("vw") ? (parseFloat(v) / 100) * w : (parseFloat(v) / 100) * h;
 
 /**
- * Section 2 — "Liquid Bliss. Mixed to Move." The section pins; as you scroll
- * through the pinned range the pour image holds, then (≈40% in) rotates upright
- * and zooms to fill, then the gallery irises open from the centre where the
- * image sat — a shared-element reveal into the gallery. Desktop only.
+ * Section 2 — "Liquid Bliss. Mixed to Move." A pinned stage: the pour image holds
+ * inline as a diamond in the heading, grows upright and centred, then travels to
+ * the gallery's card slot (the same box AboutCollage pins into) and fades out as
+ * the pin releases — handing off to the AboutCollage gallery (Section 3) that
+ * scrolls in next. Desktop only. (Mobile uses MobileIntro / MobileCollage.)
  */
 export default function DitchTheGlass() {
   const sectionRef = useRef<HTMLElement>(null);
-  const diamondRef = useRef<HTMLSpanElement>(null);
-  const imageWrapRef = useRef<HTMLSpanElement>(null);
-  const galleryRef = useRef<HTMLDivElement>(null);
+  const placeholderRef = useRef<HTMLSpanElement>(null);
+  const travelRef = useRef<HTMLDivElement>(null);
+  const innerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const section = sectionRef.current;
-    const diamond = diamondRef.current;
-    const imageWrap = imageWrapRef.current;
-    const gallery = galleryRef.current;
-    if (!section || !diamond || !imageWrap || !gallery) return;
+    const placeholder = placeholderRef.current;
+    const travel = travelRef.current;
+    const inner = innerRef.current;
+    if (!section || !placeholder || !travel || !inner) return;
 
     const words = Array.from(section.querySelectorAll<HTMLElement>(".dtg-word"));
 
-    const render = (prog: number) => {
-      // 1) hold the small diamond until ~40% in, then rotate upright + zoom to fill
-      const dz = smooth(clamp((prog - 0.4) / 0.3, 0, 1));
-      diamond.style.transform = `rotate(${45 - dz * 45}deg) scale(${1 + dz * 7})`;
-      imageWrap.style.transform = `rotate(${-(45 - dz * 45)}deg) scale(1.5)`;
+    let K0: Box = { left: 0, top: 0, w: 0, h: 0 }; // diamond, inline in the heading
+    let K1: Box = { left: 0, top: 0, w: 0, h: 0 }; // grown upright square, centred
+    let K2: Box = { left: 0, top: 0, w: 0, h: 0 }; // gallery card slot (AboutCollage)
 
-      // 2) the heading words fade out as the image takes over (diamond stays)
-      const textFade = 1 - clamp((prog - 0.45) / 0.2, 0, 1);
+    const measure = () => {
+      const s = section.getBoundingClientRect();
+      const p = placeholder.getBoundingClientRect();
+      K0 = { left: p.left - s.left, top: p.top - s.top, w: p.width, h: p.height };
+      const side = s.height * 0.8;
+      K1 = { left: (s.width - side) / 2, top: (s.height - side) / 2, w: side, h: side };
+      K2 = {
+        left: vToPx(ABOUT_CARD.left, s.width, s.height),
+        top: vToPx(ABOUT_CARD.top, s.width, s.height),
+        w: vToPx(ABOUT_CARD.width, s.width, s.height),
+        h: vToPx(ABOUT_CARD.height, s.width, s.height),
+      };
+    };
+
+    const render = (prog: number) => {
+      const gP = smooth(clamp((prog - 0.10) / 0.35, 0, 1)); // grow:   0.10 → 0.45
+      const tP = smooth(clamp((prog - 0.45) / 0.37, 0, 1)); // travel: 0.45 → 0.82
+
+      const box = lerpBox(lerpBox(K0, K1, gP), K2, tP);
+      travel.style.left = `${box.left}px`;
+      travel.style.top = `${box.top}px`;
+      travel.style.width = `${box.w}px`;
+      travel.style.height = `${box.h}px`;
+
+      const rot = 45 * (1 - gP);
+      travel.style.transform = `rotate(${rot}deg)`;
+      inner.style.transform = `rotate(${-rot}deg) scale(${lerp(1.5, 1, gP)})`;
+      // adopt the curved photo-card frame as it heads for the slot
+      travel.style.maskImage = tP > 0 ? "url(/m-photo-card.svg)" : "none";
+      travel.style.setProperty("-webkit-mask-image", tP > 0 ? "url(/m-photo-card.svg)" : "none");
+
+      // heading fades out as the image grows
+      const textFade = 1 - clamp((prog - 0.18) / 0.18, 0, 1);
       words.forEach((w) => { w.style.opacity = String(textFade); });
 
-      // 3) gallery irises open from the centre — the reveal hand-off
-      const gr = smooth(clamp((prog - 0.7) / 0.3, 0, 1));
-      gallery.style.clipPath = `circle(${gr * 78}% at 50% 50%)`;
-      gallery.style.opacity = gr > 0 ? "1" : "0";
-
-      // hide the zoomed pour image once the gallery has covered it
-      imageWrap.style.opacity = String(1 - clamp((prog - 0.82) / 0.12, 0, 1));
+      // the diamond fades out at the end — handing off to AboutCollage below
+      const handoff = clamp((prog - 0.82) / 0.18, 0, 1);
+      travel.style.opacity = String(1 - handoff);
     };
 
     const mm = gsap.matchMedia();
-    mm.add("(min-width: 768px)", () => {
+    mm.add("(min-width: 768px) and (prefers-reduced-motion: no-preference)", () => {
       const st = ScrollTrigger.create({
         trigger: section,
         start: "top top",
-        end: "+=140%",
+        end: "+=180%",
         pin: true,
         scrub: true,
         onUpdate: (self) => render(self.progress),
-        onRefresh: (self) => render(self.progress),
+        onRefresh: (self) => { measure(); render(self.progress); },
       });
+      measure();
       render(st.progress);
       return () => st.kill();
+    });
+
+    // Reduced motion: no pin/scroll-hijack — show the heading with the diamond
+    // resting inline; AboutCollage shows statically below.
+    mm.add("(min-width: 768px) and (prefers-reduced-motion: reduce)", () => {
+      measure();
+      render(0);
+      return () => {};
     });
 
     return () => mm.revert();
@@ -82,9 +119,9 @@ export default function DitchTheGlass() {
   return (
     <section
       ref={sectionRef}
-      className="relative hidden h-screen items-center justify-center overflow-hidden bg-[#fff0e5] px-6 md:flex"
+      className="relative flex h-screen items-center justify-center overflow-hidden bg-[#fff0e5] px-6 text-[#eb4638]"
     >
-      <div className="flex flex-col items-center text-center text-[#eb4638]">
+      <div className="flex flex-col items-center text-center">
         <p
           className="dtg-word mb-[clamp(1.5rem,4vw,3.5rem)] text-[14px] uppercase leading-[0.87] tracking-[0.98px]"
           style={{ fontFamily: "var(--font-mono-label)", willChange: "opacity" }}
@@ -99,48 +136,30 @@ export default function DitchTheGlass() {
           <span className="dtg-word block" style={{ willChange: "opacity" }}>Liquid Bliss.</span>
           <span className="flex items-center justify-center gap-[0.2em]">
             <span className="dtg-word" style={{ willChange: "opacity" }}>Mixed to</span>
-
-            <span
-              ref={diamondRef}
-              className="relative inline-block size-[1.2em] shrink-0 overflow-hidden"
-              style={{ willChange: "transform", transform: "rotate(45deg) scale(1)" }}
-            >
-              <span
-                ref={imageWrapRef}
-                style={{
-                  position: "absolute",
-                  inset: 0,
-                  willChange: "transform",
-                  transform: "rotate(-45deg) scale(1.5)",
-                }}
-              >
-                <Image
-                  src={pourPhoto}
-                  alt="Pouring an ANANDA cocktail"
-                  fill
-                  sizes="(max-width: 768px) 40vw, 320px"
-                  className="object-cover"
-                />
-              </span>
-            </span>
-
+            {/* Reserves the inline gap; the traveling image overlays it at rest. */}
+            <span ref={placeholderRef} className="inline-block size-[1.2em] shrink-0" aria-hidden />
             <span className="dtg-word" style={{ willChange: "opacity" }}>Move.</span>
           </span>
         </h2>
       </div>
 
-      {/* Gallery reveal layer — irises open from the centre as the hand-off */}
+      {/* Traveling pour image — diamond → grown → gallery card slot, then fades. */}
       <div
-        ref={galleryRef}
-        className="pointer-events-none absolute inset-0"
-        style={{ clipPath: "circle(0% at 50% 50%)", opacity: 0, zIndex: 5, willChange: "clip-path, opacity" }}
+        ref={travelRef}
+        data-dtg="travel"
+        className="pointer-events-none absolute overflow-hidden"
+        style={{
+          zIndex: 5,
+          willChange: "left, top, width, height, transform, opacity",
+          maskSize: "100% 100%",
+          WebkitMaskSize: "100% 100%",
+          maskRepeat: "no-repeat",
+          WebkitMaskRepeat: "no-repeat",
+        }}
       >
-        <VerticalSlider
-          images={GALLERY}
-          interval={3200}
-          duration={0.9}
-          style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}
-        />
+        <div ref={innerRef} className="absolute inset-0" style={{ willChange: "transform" }}>
+          <Image src={pourPhoto} alt="Pouring an ANANDA cocktail" fill sizes="50vw" className="object-cover" />
+        </div>
       </div>
     </section>
   );

@@ -1,6 +1,6 @@
 import Image from "next/image";
-import AboutCollage from "./AboutCollage";
 import DitchTheGlass from "./DitchTheGlass";
+import AboutCollage from "./AboutCollage";
 import Pathways from "./Pathways";
 import Ritual from "./Ritual";
 import DropList from "./DropList";
@@ -37,11 +37,16 @@ export default function Home() {
         />
       </section>
 
-      {/* Section 2 — Ditch the glass */}
-      <DitchTheGlass />
+      {/* Section 2 — "Ditch the glass": heading + the pour diamond grows and
+          travels, then fades, handing off to the gallery below (desktop).
+          Wrapped in a block container so its ScrollTrigger pin sits in normal
+          block flow — pinning misbehaves for a direct flex child of <body>. */}
+      <div className="hidden md:block">
+        <DitchTheGlass />
+      </div>
       <MobileIntro />
 
-      {/* Section 3 — What we're about */}
+      {/* Section 3 — "What we're about": pinned gallery (desktop). */}
       <div className="hidden md:block">
         <AboutCollage />
       </div>

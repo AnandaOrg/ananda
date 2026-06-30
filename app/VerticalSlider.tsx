@@ -20,12 +20,19 @@ const FRAME_MASK: React.CSSProperties = {
 
 interface Props {
   images: SliderImage[];
-  /** Milliseconds each slide stays visible. Default 3200. */
+  /** Milliseconds each slide stays visible. Default 3200. Ignored when `index` is set. */
   interval?: number;
   /** Slide-in transition duration in seconds. Default 0.9. */
   duration?: number;
   /** Apply the /m-photo-card.svg curved frame mask. Default false. */
   frame?: boolean;
+  /**
+   * Controlled mode. When provided, the timer autoplay is disabled and the slider
+   * animates to this index — incoming rises over the current slide on increase,
+   * the current slide drops to reveal the previous one on decrease (so scroll-up
+   * reverses cleanly). Omit for self-driven autoplay.
+   */
+  index?: number;
   className?: string;
   style?: React.CSSProperties;
 }
@@ -35,10 +42,12 @@ export default function VerticalSlider({
   interval = 3200,
   duration = 0.9,
   frame = false,
+  index,
   className,
   style,
 }: Props) {
   const slideRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const controlled = index !== undefined;
 
   // Refs so the one-shot effect always reads current prop values
   const intervalRef = useRef(interval);
@@ -46,16 +55,24 @@ export default function VerticalSlider({
   useEffect(() => { intervalRef.current = interval; }, [interval]);
   useEffect(() => { durationRef.current = duration; }, [duration]);
 
+  // Tracks the visible slide across renders for controlled stepping.
+  const curRef = useRef(0);
+
+  // Initial stacking: slid, the rest parked below (clipped by overflow:hidden).
   useEffect(() => {
-    // Filter to actual elements — populated before effects run (React contract)
+    const els = slideRefs.current.filter((el): el is HTMLDivElement => el !== null);
+    if (els.length < 1) return;
+    gsap.set(els[0], { y: "0%", zIndex: 1 });
+    els.slice(1).forEach(el => gsap.set(el, { y: "100%", zIndex: 0 }));
+    curRef.current = 0;
+  }, []);
+
+  // Autoplay — only when uncontrolled.
+  useEffect(() => {
+    if (controlled) return;
     const els = slideRefs.current.filter((el): el is HTMLDivElement => el !== null);
     if (els.length < 2) return;
 
-    // Slide 0 visible; all others parked below the container (clipped by overflow:hidden)
-    gsap.set(els[0], { y: "0%", zIndex: 1 });
-    els.slice(1).forEach(el => gsap.set(el, { y: "100%", zIndex: 0 }));
-
-    let cur = 0;
     let dc: gsap.core.Tween | null = null;
 
     function schedule() {
@@ -63,6 +80,7 @@ export default function VerticalSlider({
     }
 
     function step() {
+      const cur = curRef.current;
       const nxt = (cur + 1) % els.length;
       const curEl = els[cur];
       const nxtEl = els[nxt];
@@ -76,7 +94,7 @@ export default function VerticalSlider({
         onComplete() {
           gsap.set(curEl, { zIndex: 0 });
           gsap.set(nxtEl, { zIndex: 1 });
-          cur = nxt;
+          curRef.current = nxt;
           schedule();
         },
       });
@@ -88,7 +106,46 @@ export default function VerticalSlider({
       dc?.kill();
       gsap.killTweensOf(els);
     };
-  }, []); // one-shot: refs are populated, interval/duration read via refs
+  }, [controlled]);
+
+  // Controlled stepping — animate to `index`, reversible.
+  useEffect(() => {
+    if (!controlled) return;
+    const els = slideRefs.current.filter((el): el is HTMLDivElement => el !== null);
+    const next = Math.max(0, Math.min(els.length - 1, index ?? 0));
+    const cur = curRef.current;
+    if (next === cur || !els[next] || !els[cur]) return;
+
+    const curEl = els[cur];
+    const nxtEl = els[next];
+
+    if (next > cur) {
+      // Forward: incoming rises over the current slide.
+      gsap.set(nxtEl, { y: "100%", zIndex: 2 });
+      gsap.to(nxtEl, {
+        y: "0%",
+        duration: durationRef.current,
+        ease: "power2.inOut",
+        onComplete() {
+          gsap.set(curEl, { y: "100%", zIndex: 0 });
+          gsap.set(nxtEl, { zIndex: 1 });
+        },
+      });
+    } else {
+      // Reverse: target sits beneath, current drops away to reveal it.
+      gsap.set(nxtEl, { y: "0%", zIndex: 1 });
+      gsap.set(curEl, { zIndex: 2 });
+      gsap.to(curEl, {
+        y: "100%",
+        duration: durationRef.current,
+        ease: "power2.inOut",
+        onComplete() {
+          gsap.set(curEl, { zIndex: 0 });
+        },
+      });
+    }
+    curRef.current = next;
+  }, [index, controlled]);
 
   if (images.length === 0) return null;
 
