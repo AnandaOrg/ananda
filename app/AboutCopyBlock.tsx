@@ -12,14 +12,22 @@ const u = (n: number) => `calc(var(--u) * ${n})`;
 export default function AboutCopyBlock({
   className,
   style,
+  revealed = false,
 }: {
   className?: string;
   style?: React.CSSProperties;
+  /**
+   * Skip the scroll-triggered reveal and render fully visible immediately. Used
+   * when an upstream section (DitchTheGlass) already faded this copy in during
+   * its travel, so the hand-off is seamless and the text doesn't re-animate.
+   */
+  revealed?: boolean;
 }) {
   const ref = useRef<HTMLDivElement>(null);
-  const [visible, setVisible] = useState(false);
+  const [visible, setVisible] = useState(revealed);
 
   useEffect(() => {
+    if (revealed) return;
     const el = ref.current;
     if (!el) return;
     let raf = 0;
@@ -45,7 +53,7 @@ export default function AboutCopyBlock({
       window.removeEventListener("scroll", onScroll);
       if (raf) cancelAnimationFrame(raf);
     };
-  }, []);
+  }, [revealed]);
 
   return (
     <div

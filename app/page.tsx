@@ -37,16 +37,18 @@ export default function Home() {
         />
       </section>
 
-      {/* Section 2 — "Ditch the glass": heading + the pour diamond grows and
-          travels, then fades, handing off to the gallery below (desktop).
-          Wrapped in a block container so its ScrollTrigger pin sits in normal
-          block flow — pinning misbehaves for a direct flex child of <body>. */}
+      {/* Sections 2 + 3 — "Ditch the glass" → "What we're about" as ONE pinned
+          stage (desktop): the diamond grows/travels, the copy fades in, then the
+          gallery steps through its photos. Wrapped in a block container so its
+          ScrollTrigger pin sits in normal block flow — pinning misbehaves for a
+          direct flex child of <body>. Mobile keeps its own twins. */}
       <div className="hidden md:block">
         <DitchTheGlass />
       </div>
       <MobileIntro />
 
-      {/* Section 3 — "What we're about": pinned gallery (desktop). */}
+      {/* Section 3 (collage) — pineapple + strawberries videos, the kyoto pour →
+          3-D pouch liftoff, and the red wave (desktop). */}
       <div className="hidden md:block">
         <AboutCollage />
       </div>

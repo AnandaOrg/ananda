@@ -1,17 +1,30 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import pourPhoto from "../public/ananda-pour.png";
+import AboutCopyBlock from "./AboutCopyBlock";
+import VerticalSlider from "./VerticalSlider";
 import { ABOUT_CARD } from "./configs";
 
 gsap.registerPlugin(ScrollTrigger);
 
+const u = (n: number) => `calc(var(--u) * ${n})`;
 const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
 const smooth = (t: number) => t * t * (3 - 2 * t);
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
+
+// Photo #0 is the pour image — the diamond grows and lands as this exact slide,
+// so the hand-off from the traveling image into the gallery is invisible. Then
+// continued scrolling steps through the remaining hero_3 photos.
+const PHOTOS = [
+  { src: "/hero_3/2.png", alt: "ANANDA moment" },
+  { src: "/hero_3/3.png", alt: "ANANDA moment" },
+  { src: "/hero_3/4.png", alt: "ANANDA moment" },
+  { src: "/hero_3/5.png", alt: "ANANDA moment" },
+];
 
 type Box = { left: number; top: number; w: number; h: number };
 const lerpBox = (a: Box, b: Box, t: number): Box => ({
@@ -24,30 +37,39 @@ const vToPx = (v: string, w: number, h: number) =>
   v.endsWith("vw") ? (parseFloat(v) / 100) * w : (parseFloat(v) / 100) * h;
 
 /**
- * Section 2 — "Liquid Bliss. Mixed to Move." A pinned stage: the pour image holds
- * inline as a diamond in the heading, grows upright and centred, then travels to
- * the gallery's card slot (the same box AboutCollage pins into) and fades out as
- * the pin releases — handing off to the AboutCollage gallery (Section 3) that
- * scrolls in next. Desktop only. (Mobile uses MobileIntro / MobileCollage.)
+ * Sections 2 + 3 as ONE pinned stage (desktop). The pour image holds inline as a
+ * diamond in the heading, grows upright and centred, then travels to the gallery
+ * card slot — while the "What we're about" copy fades in on the right. It lands
+ * and cross-fades into the gallery's first photo (the same pour image, so the
+ * hand-off is invisible); continued scrolling steps the gallery through the
+ * remaining photos, THEN the pin releases into Pathways. One pin = nothing ever
+ * "scrolls in". Desktop only. (Mobile uses MobileIntro / MobileCollage.)
  */
 export default function DitchTheGlass() {
   const sectionRef = useRef<HTMLElement>(null);
   const placeholderRef = useRef<HTMLSpanElement>(null);
   const travelRef = useRef<HTMLDivElement>(null);
   const innerRef = useRef<HTMLDivElement>(null);
+  const galleryRef = useRef<HTMLDivElement>(null);
+  const copyRef = useRef<HTMLDivElement>(null);
+
+  const [index, setIndex] = useState(0);
+  const indexRef = useRef(0);
 
   useEffect(() => {
     const section = sectionRef.current;
     const placeholder = placeholderRef.current;
     const travel = travelRef.current;
     const inner = innerRef.current;
-    if (!section || !placeholder || !travel || !inner) return;
+    const gallery = galleryRef.current;
+    const copy = copyRef.current;
+    if (!section || !placeholder || !travel || !inner || !gallery || !copy) return;
 
     const words = Array.from(section.querySelectorAll<HTMLElement>(".dtg-word"));
 
     let K0: Box = { left: 0, top: 0, w: 0, h: 0 }; // diamond, inline in the heading
     let K1: Box = { left: 0, top: 0, w: 0, h: 0 }; // grown upright square, centred
-    let K2: Box = { left: 0, top: 0, w: 0, h: 0 }; // gallery card slot (AboutCollage)
+    let K2: Box = { left: 0, top: 0, w: 0, h: 0 }; // gallery card slot
 
     const measure = () => {
       const s = section.getBoundingClientRect();
@@ -64,8 +86,8 @@ export default function DitchTheGlass() {
     };
 
     const render = (prog: number) => {
-      const gP = smooth(clamp((prog - 0.10) / 0.35, 0, 1)); // grow:   0.10 → 0.45
-      const tP = smooth(clamp((prog - 0.45) / 0.37, 0, 1)); // travel: 0.45 → 0.82
+      const gP = smooth(clamp((prog - 0.03) / 0.13, 0, 1)); // grow:   0.03 → 0.16
+      const tP = smooth(clamp((prog - 0.16) / 0.16, 0, 1)); // travel: 0.16 → 0.32
 
       const box = lerpBox(lerpBox(K0, K1, gP), K2, tP);
       travel.style.left = `${box.left}px`;
@@ -81,12 +103,26 @@ export default function DitchTheGlass() {
       travel.style.setProperty("-webkit-mask-image", tP > 0 ? "url(/m-photo-card.svg)" : "none");
 
       // heading fades out as the image grows
-      const textFade = 1 - clamp((prog - 0.18) / 0.18, 0, 1);
+      const textFade = 1 - clamp((prog - 0.08) / 0.12, 0, 1);
       words.forEach((w) => { w.style.opacity = String(textFade); });
 
-      // the diamond fades out at the end — handing off to AboutCollage below
-      const handoff = clamp((prog - 0.82) / 0.18, 0, 1);
+      // the copy fades + slides in on the right WHILE the image travels left
+      const cP = smooth(clamp((prog - 0.20) / 0.14, 0, 1));
+      copy.style.opacity = String(cP);
+      copy.style.transform = `translateX(${lerp(-80, 0, cP)}px)`;
+
+      // hand-off: the diamond fades out as the gallery fades in at the same slot.
+      // Both show the pour image (PHOTOS[0]), so the swap is invisible.
+      const handoff = clamp((prog - 0.32) / 0.06, 0, 1);
       travel.style.opacity = String(1 - handoff);
+      gallery.style.opacity = String(handoff);
+
+      // step the gallery through its photos over the rest of the pin
+      const step = clamp(Math.floor(((prog - 0.38) / 0.62) * PHOTOS.length), 0, PHOTOS.length - 1);
+      if (step !== indexRef.current) {
+        indexRef.current = step;
+        setIndex(step);
+      }
     };
 
     const mm = gsap.matchMedia();
@@ -94,7 +130,7 @@ export default function DitchTheGlass() {
       const st = ScrollTrigger.create({
         trigger: section,
         start: "top top",
-        end: "+=180%",
+        end: "+=400%",
         pin: true,
         scrub: true,
         onUpdate: (self) => render(self.progress),
@@ -105,11 +141,14 @@ export default function DitchTheGlass() {
       return () => st.kill();
     });
 
-    // Reduced motion: no pin/scroll-hijack — show the heading with the diamond
-    // resting inline; AboutCollage shows statically below.
+    // Reduced motion: no pin/scroll-hijack — show the landed "about" layout
+    // statically (gallery first photo + copy), with the heading/diamond hidden.
     mm.add("(min-width: 768px) and (prefers-reduced-motion: reduce)", () => {
-      measure();
-      render(0);
+      words.forEach((w) => { w.style.opacity = "0"; });
+      travel.style.opacity = "0";
+      gallery.style.opacity = "1";
+      copy.style.opacity = "1";
+      copy.style.transform = "none";
       return () => {};
     });
 
@@ -120,6 +159,7 @@ export default function DitchTheGlass() {
     <section
       ref={sectionRef}
       className="relative flex h-screen items-center justify-center overflow-hidden bg-[#fff0e5] px-6 text-[#eb4638]"
+      style={{ containerType: "inline-size", ["--u" as string]: "calc(100cqw / 1440)" }}
     >
       <div className="flex flex-col items-center text-center">
         <p
@@ -141,6 +181,29 @@ export default function DitchTheGlass() {
             <span className="dtg-word" style={{ willChange: "opacity" }}>Move.</span>
           </span>
         </h2>
+      </div>
+
+      {/* Gallery — pinned at the card slot; first photo is the pour image, so the
+          traveling diamond lands straight onto it. Steps through the rest. */}
+      <div ref={galleryRef} data-dtg="gallery" className="absolute" style={{ ...ABOUT_CARD, opacity: 0, zIndex: 4 }}>
+        <VerticalSlider images={PHOTOS} index={index} frame style={{ width: "100%", height: "100%" }} />
+      </div>
+
+      {/* Copy — upper right; fades + slides in as the image travels to the slot. */}
+      <div
+        ref={copyRef}
+        style={{
+          position: "absolute",
+          left: u(965),
+          top: u(92.16),
+          width: u(401),
+          zIndex: 4,
+          opacity: 0,
+          transform: "translateX(-80px)",
+          willChange: "opacity, transform",
+        }}
+      >
+        <AboutCopyBlock revealed />
       </div>
 
       {/* Traveling pour image — diamond → grown → gallery card slot, then fades. */}

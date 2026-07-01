@@ -34,7 +34,15 @@ const TO = 0.12;
 const POUCH_X = "50%";
 const POUCH_Y = "67%";
 
-export default function KyotoLiftoff() {
+export default function KyotoLiftoff({
+  posLeft = 297.52,
+  posTop = 1878.54,
+}: {
+  /** Left position within the host collage canvas, in design px (× --u). */
+  posLeft?: number;
+  /** Top position within the host collage canvas, in design px (× --u). */
+  posTop?: number;
+} = {}) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const videoWrapRef = useRef<HTMLDivElement>(null);
   const liftRef = useRef<HTMLDivElement>(null);
@@ -79,7 +87,7 @@ export default function KyotoLiftoff() {
   }, []);
 
   return (
-    <div ref={wrapRef} className="absolute" style={{ left: u(297.52), top: u(1878.54), width: u(789.24), height: u(905.94) }}>
+    <div ref={wrapRef} className="absolute" style={{ left: u(posLeft), top: u(posTop), width: u(789.24), height: u(905.94) }}>
       {/* Looping pour video — fades out as the 3-D pouch takes over */}
       <div ref={videoWrapRef} className="absolute inset-0 flex items-center justify-center" style={{ willChange: "opacity" }}>
         <div style={{ transform: "rotate(-0.64deg)" }}>
