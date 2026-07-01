@@ -76,18 +76,10 @@ export default function AboutCollage() {
           </div>
         </div>
 
-        {/* Pouch scene — looping pour video; the 3-D pouch lifts off it and
-            rotates upright as you scroll past. */}
+        {/* Pouch scene — looping pour video; the pouch lifts off it and tips
+            over as you scroll past. Also owns the red wave, which splashes out
+            of the spout in sync with the pouch. */}
         <KyotoLiftoff posTop={1878.54 - SHIFT} />
-
-        {/* Red wave */}
-        <div
-          className="absolute"
-          style={{ left: u(-9.75), top: u(2687.06 - SHIFT), width: u(1464.584), height: u(323.123) }}
-        >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/c-wave.svg" alt="" className="block size-full" />
-        </div>
       </div>
     </section>
   );

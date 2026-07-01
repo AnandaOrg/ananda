@@ -43,9 +43,11 @@ export default function MobileIntro() {
     const words = Array.from(section.querySelectorAll<HTMLElement>(".dtg-word"));
 
     const render = (prog: number) => {
-      // 1) hold the small diamond until ~40% in, then rotate upright + zoom to fill
+      // 1) hold the small diamond until ~40% in, then rotate upright + zoom to
+      // fill (×18 so the grown square still covers a 100svh viewport from the
+      // smaller 42mu heading diamond).
       const dz = smooth(clamp((prog - 0.4) / 0.3, 0, 1));
-      diamond.style.transform = `rotate(${45 - dz * 45}deg) scale(${1 + dz * 7})`;
+      diamond.style.transform = `rotate(${45 - dz * 45}deg) scale(${1 + dz * 17})`;
       imageWrap.style.transform = `rotate(${-(45 - dz * 45)}deg) scale(1.5)`;
 
       // 2) the heading words fade out as the image takes over (diamond stays)
@@ -87,7 +89,7 @@ export default function MobileIntro() {
     >
       <div
         className="flex flex-col items-center text-center text-[#eb4638]"
-        style={{ gap: mu(24), padding: `0 ${mu(60)}` }}
+        style={{ gap: mu(24), padding: `0 ${mu(16)}` }}
       >
         <p
           className="dtg-word whitespace-nowrap uppercase"
@@ -106,7 +108,9 @@ export default function MobileIntro() {
           className="font-bold uppercase"
           style={{
             fontFamily: "var(--font-display)",
-            fontSize: mu(106),
+            // Sized so "Mixed to ◇ Move." (the wider row) fits the 390 frame
+            // on ONE line — mu(106) overflowed both edges.
+            fontSize: mu(42),
             lineHeight: 0.8,
             letterSpacing: "-0.08em",
           }}

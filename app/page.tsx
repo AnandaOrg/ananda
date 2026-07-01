@@ -7,6 +7,7 @@ import DropList from "./DropList";
 import Footer from "./Footer";
 import MobileIntro from "./mobile/MobileIntro";
 import MobileCollage from "./mobile/MobileCollage";
+import MobileKyoto from "./mobile/MobileKyoto";
 import MobilePathways from "./mobile/MobilePathways";
 import MobileAbout from "./mobile/MobileAbout";
 import MobileRitual from "./mobile/MobileRitual";
@@ -45,14 +46,22 @@ export default function Home() {
       <div className="hidden md:block">
         <DitchTheGlass />
       </div>
-      <MobileIntro />
+      {/* Same block-container rationale as DitchTheGlass: MobileIntro pins, and
+          pinning misbehaves for a direct flex child of <body>. */}
+      <div className="md:hidden">
+        <MobileIntro />
+      </div>
 
       {/* Section 3 (collage) — pineapple + strawberries videos, the kyoto pour →
           3-D pouch liftoff, and the red wave (desktop). */}
       <div className="hidden md:block">
         <AboutCollage />
       </div>
-      <MobileCollage />
+      {/* Block container: MobileCollage pins (usePinnedReveal). */}
+      <div className="md:hidden">
+        <MobileCollage />
+      </div>
+      <MobileKyoto />
 
       {/* Section 4 — The Pathways to Bliss */}
       <div className="hidden md:block">
