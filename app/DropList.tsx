@@ -31,12 +31,13 @@ type FormScale = {
 
 type Status = "idle" | "loading" | "success" | "error";
 
+const ERROR_TEXT = "Something went wrong. Please try again.";
+
 /** Email field that, on submit, POSTs to /api/subscribe (MailerLite) and swaps to
  *  a "Successfully subscribed" confirmation for 5s (animated), then restores the
- *  input. Surfaces an inline error message on failure. */
+ *  input. On failure the field is kept, cleared, and shows an error placeholder. */
 function DropForm({ s, height, fontSize, padL, padR, radius, btnRight, btnSize }: FormScale) {
   const [status, setStatus] = useState<Status>("idle");
-  const [error, setError] = useState("");
   const submitted = status === "success";
 
   useEffect(() => {
@@ -49,9 +50,9 @@ function DropForm({ s, height, fontSize, padL, padR, radius, btnRight, btnSize }
     e.preventDefault();
     if (status === "loading") return;
 
-    const email = new FormData(e.currentTarget).get("email");
+    const form = e.currentTarget;
+    const email = new FormData(form).get("email");
     setStatus("loading");
-    setError("");
 
     try {
       const res = await fetch("/api/subscribe", {
@@ -59,13 +60,10 @@ function DropForm({ s, height, fontSize, padL, padR, radius, btnRight, btnSize }
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email }),
       });
-      if (!res.ok) {
-        const data = await res.json().catch(() => null);
-        throw new Error(data?.error ?? "Something went wrong. Please try again.");
-      }
+      if (!res.ok) throw new Error();
       setStatus("success");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
+    } catch {
+      form.reset();
       setStatus("error");
     }
   };
@@ -85,7 +83,7 @@ function DropForm({ s, height, fontSize, padL, padR, radius, btnRight, btnSize }
             exit={ENTER}
             transition={FADE}
           >
-            Successfully subscribed
+            We&apos;ve received your information and we&apos;ll be in touch shortly
           </motion.div>
         ) : (
           <motion.form
@@ -101,9 +99,12 @@ function DropForm({ s, height, fontSize, padL, padR, radius, btnRight, btnSize }
               type="email"
               name="email"
               required
-              placeholder="Your email"
+              placeholder={status === "error" ? ERROR_TEXT : "Your email"}
               aria-label="Your email"
               aria-invalid={status === "error"}
+              onInput={() => {
+                if (status === "error") setStatus("idle");
+              }}
               className="absolute inset-0 w-full bg-[#fff0e5] text-[#0a142f] outline-none placeholder:text-[#eb4638]"
               style={{ fontFamily: "var(--font-body)", fontSize: s(fontSize), paddingLeft: s(padL), paddingRight: s(padR), borderRadius: s(radius) }}
             />
@@ -120,13 +121,9 @@ function DropForm({ s, height, fontSize, padL, padR, radius, btnRight, btnSize }
           </motion.form>
         )}
       </AnimatePresence>
-      {status === "error" && error ? (
-        <p
-          role="alert"
-          className="absolute left-0 font-semibold uppercase text-[#fff0e5]"
-          style={{ top: "100%", fontFamily: "var(--font-display)", fontSize: s(fontSize * 0.6), paddingTop: s(8), paddingLeft: s(padL) }}
-        >
-          {error}
+      {status === "error" ? (
+        <p role="alert" className="sr-only">
+          {ERROR_TEXT}
         </p>
       ) : null}
     </div>
