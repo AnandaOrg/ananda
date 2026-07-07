@@ -7,6 +7,7 @@ import DropList from "./DropList";
 import Footer from "./Footer";
 import MobileIntro from "./mobile/MobileIntro";
 import MobileCollage from "./mobile/MobileCollage";
+import MobileCollageMedia from "./mobile/MobileCollageMedia";
 import MobileKyoto from "./mobile/MobileKyoto";
 import MobilePathways from "./mobile/MobilePathways";
 import MobileAbout from "./mobile/MobileAbout";
@@ -31,7 +32,7 @@ export default function Home() {
           src="/ananda-logo.svg"
           alt="ANANDA Cocktails"
           width={283}
-          height={192}
+          height={228}
           priority
           className="relative w-[74vw] max-w-[290px] md:w-[clamp(180px,22vw,283px)] md:max-w-none"
           style={{ height: "auto" }}
@@ -61,6 +62,7 @@ export default function Home() {
       <div className="md:hidden">
         <MobileCollage />
       </div>
+      <MobileCollageMedia />
       <MobileKyoto />
 
       {/* Section 4 — The Pathways to Bliss */}

@@ -9,13 +9,13 @@ import { mu, MU_VAR } from "./scale";
 gsap.registerPlugin(ScrollTrigger);
 
 /**
- * Mobile section — "The RITUAL" (Figma 184:2999). Mirrors the desktop
- * `RitualCards` exactly: the three step-cards sit fanned in a stack (front sharp,
- * the other two faded behind), enter with a staggered rotate/scale/fade
- * (0.85s power3.out, ScrollTrigger start "top 85%", once), then auto-shuffle —
- * the front card drops to the back and the next rises every cycle (0.9s
- * power2.inOut, 3s hold). Only the fan geometry is compressed to the 390px frame.
- * Respects prefers-reduced-motion: stack drops in static, no shuffle.
+ * Mobile section — "The RITUAL". Unlike the desktop `RitualCards` fan, the
+ * mobile design shows a single static card. The card enters once on scroll
+ * (0.85s power3.out fade/scale, ScrollTrigger start "top 85%", once), then the
+ * step contents cycle through it every 3s with the same effects as desktop:
+ * the incoming photo slides in top-to-bottom (conveyor style) and the
+ * title/label/caption wipe in left → right (clip-path).
+ * Respects prefers-reduced-motion: card drops in static, no cycling.
  */
 
 const STEPS = [
@@ -26,110 +26,88 @@ const STEPS = [
 
 const CARD = { w: 342.303, h: 491.887 }; // single card (390-frame units)
 
-// The three stacked positions a card can occupy, ordered front → back. Offsets
-// are compressed for mobile so the fan fits 390px; `fromRotation` is the entrance
-// flourish only (cards rest upright). Mirrors the desktop SLOTS structure.
-const SLOTS = [
-  { x: 0, y: 0, opacity: 1, z: 3, fromRotation: -5 },   // front
-  { x: 14, y: 40, opacity: 0.2, z: 2, fromRotation: 10 }, // middle
-  { x: 28, y: 80, opacity: 0.2, z: 1, fromRotation: -14 }, // back
-];
+const N = STEPS.length;
+const HOLD = 3; // seconds the contents rest before the next cycle
+const PHOTO_DUR = 0.7; // photo top-to-bottom slide duration
+const TEXT_DUR = 0.6; // text left-to-right reveal duration
+const TEXT_DELAY = 0.15; // reveal starts just after the photo begins moving
 
-const STACK_W = CARD.w + SLOTS[SLOTS.length - 1].x; // widest fan extent
-const STACK_H = CARD.h + SLOTS[SLOTS.length - 1].y;
-
-const N = STEPS.length; // === SLOTS.length === 3
-const HOLD = 3; // seconds a card rests in front before the next shuffle
-const DUR = 0.9; // shuffle duration
-
-// Each shuffle advances `tick`; the front card (slot 0) drops to the back.
-const slotOf = (cardIdx: number, tick: number) => ((cardIdx - tick) % N + N) % N;
+const CLIP_HIDDEN = "inset(0% 100% 0% 0%)"; // fully clipped from the right
+const CLIP_SHOWN = "inset(0% 0% 0% 0%)";
 
 export default function MobileRitual() {
-  const stackRef = useRef<HTMLDivElement | null>(null);
-  const cardRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const cardRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    const stack = stackRef.current;
-    const cards = cardRefs.current.filter((el): el is HTMLDivElement => el !== null);
-    if (!stack || cards.length < N) return;
+    const card = cardRef.current;
+    if (!card) return;
 
-    // Figma px → device px. The stack spans STACK_W design units.
-    const uPx = () => stack.offsetWidth / STACK_W;
+    const photos = Array.from(card.querySelectorAll<HTMLElement>("[data-photo]"));
+    const textsOf = (k: number) => Array.from(card.querySelectorAll<HTMLElement>(`[data-text-step="${k}"]`));
 
-    const placeXY = (el: HTMLDivElement, slotIdx: number, animate: boolean) => {
-      const s = SLOTS[slotIdx];
-      const px = uPx();
-      const vars = { x: s.x * px, y: s.y * px, opacity: s.opacity };
-      if (animate) gsap.to(el, { ...vars, duration: DUR, ease: "power2.inOut" });
-      else gsap.set(el, vars);
-    };
+    // Seed content: start on step 0; the other layers wait hidden (photos
+    // parked above the clip window, texts fully clipped).
+    photos.forEach((ph, k) => gsap.set(ph, { yPercent: k === 0 ? 0 : -100 }));
+    for (let k = 0; k < N; k++) gsap.set(textsOf(k), { clipPath: k === 0 ? CLIP_SHOWN : CLIP_HIDDEN });
 
     const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 
     let tick = 0;
     let dc: gsap.core.Tween | null = null;
 
-    const onResize = () => cards.forEach((el, i) => placeXY(el, slotOf(i, tick), false));
-    const ro = new ResizeObserver(onResize);
-
-    function shuffle() {
+    function cycle() {
+      const oldK = tick;
       tick = (tick + 1) % N;
-      cards.forEach((el, i) => placeXY(el, slotOf(i, tick), true));
-      // Swap paint order at the midpoint so the incoming card has cleared the
-      // others before it rises.
-      gsap.delayedCall(DUR / 2, () => {
-        cards.forEach((el, i) => gsap.set(el, { zIndex: SLOTS[slotOf(i, tick)].z }));
+      const newK = tick;
+      // Conveyor slide: the incoming photo enters from the top while the
+      // outgoing one exits through the bottom at the same speed.
+      gsap.fromTo(photos[newK], { yPercent: -100 }, { yPercent: 0, duration: PHOTO_DUR, ease: "power2.inOut" });
+      gsap.to(photos[oldK], {
+        yPercent: 100,
+        duration: PHOTO_DUR,
+        ease: "power2.inOut",
+        onComplete: () => gsap.set(photos[oldK], { yPercent: -100 }),
       });
-      dc = gsap.delayedCall(DUR + HOLD, shuffle);
+      // Texts: the old step vanishes, the new one wipes in left → right.
+      gsap.set(textsOf(oldK), { clipPath: CLIP_HIDDEN });
+      gsap.fromTo(
+        textsOf(newK),
+        { clipPath: CLIP_HIDDEN },
+        { clipPath: CLIP_SHOWN, duration: TEXT_DUR, ease: "power2.out", delay: TEXT_DELAY }
+      );
+      dc = gsap.delayedCall(PHOTO_DUR + HOLD, cycle);
     }
 
     if (reduce) {
-      cards.forEach((el, i) => {
-        gsap.set(el, { rotation: 0, scale: 1, zIndex: SLOTS[i].z });
-        placeXY(el, i, false);
-      });
-      ro.observe(stack);
-      return () => ro.disconnect();
+      // No entrance, no cycle: drop the card straight into place.
+      gsap.set(card, { opacity: 1 });
+      return () => gsap.killTweensOf([card, ...photos]);
     }
 
-    // Seed each card at its slot, hidden, ready for the entrance.
-    cards.forEach((el, i) => {
-      placeXY(el, i, false);
-      gsap.set(el, { opacity: 0, zIndex: SLOTS[i].z });
-    });
-
     const st = ScrollTrigger.create({
-      trigger: stack,
+      trigger: card,
       start: "top 85%",
       once: true,
       onEnter() {
-        cards.forEach((el, i) => {
-          const slot = SLOTS[i];
-          gsap.fromTo(
-            el,
-            { rotation: slot.fromRotation, scale: 0.94, opacity: 0 },
-            {
-              rotation: 0,
-              scale: 1,
-              opacity: slot.opacity,
-              duration: 0.85,
-              ease: "power3.out",
-              delay: i * 0.14,
-              ...(i === N - 1 ? { onComplete: () => { dc = gsap.delayedCall(HOLD, shuffle); } } : {}),
-            }
-          );
-        });
+        gsap.fromTo(
+          card,
+          { scale: 0.94, opacity: 0 },
+          {
+            scale: 1,
+            opacity: 1,
+            duration: 0.85,
+            ease: "power3.out",
+            onComplete: () => { dc = gsap.delayedCall(HOLD, cycle); },
+          }
+        );
       },
     });
-
-    ro.observe(stack);
 
     return () => {
       st.kill();
       dc?.kill();
-      ro.disconnect();
-      gsap.killTweensOf(cards);
+      gsap.killTweensOf([card, ...photos]);
+      for (let k = 0; k < N; k++) gsap.killTweensOf(textsOf(k));
     };
   }, []);
 
@@ -153,43 +131,74 @@ export default function MobileRitual() {
             </p>
           </div>
 
-          {/* Card stack — three step-cards fanned behind each other, shuffling */}
-          <div ref={stackRef} className="relative" style={{ width: mu(STACK_W), height: mu(STACK_H) }}>
-            {STEPS.map((s, i) => (
-              <div
-                key={s.src}
-                ref={(el) => { cardRefs.current[i] = el; }}
-                className="absolute"
-                style={{ left: 0, top: 0, width: mu(CARD.w), height: mu(CARD.h), opacity: 0 }}
-              >
-                {/* Card silhouette */}
-                <div className="absolute inset-0" style={{ transform: "rotate(180deg)" }}>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src="/s5-card2.svg" alt="" className="block size-full" />
-                </div>
+          {/* Single static card — the step contents cycle through it */}
+          <div ref={cardRef} className="relative" style={{ width: mu(CARD.w), height: mu(CARD.h), opacity: 0 }}>
+            {/* Card silhouette */}
+            <div className="absolute inset-0" style={{ transform: "rotate(180deg)" }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/s5-card2.svg" alt="" className="block size-full" />
+            </div>
 
-                {/* Card content */}
-                <div
-                  className="absolute flex flex-col items-start"
-                  style={{ left: mu(38.72), top: mu(37.62), width: mu(260.411), gap: mu(11.22) }}
-                >
-                  <div className="flex w-full items-end justify-between uppercase text-[#fff0e5]">
-                    <p className="font-bold" style={{ fontFamily: "var(--font-display)", fontSize: mu(39.949), lineHeight: 0.8, letterSpacing: mu(-3.196) }}>
+            {/* Card content */}
+            <div
+              className="absolute flex flex-col items-start"
+              style={{ left: mu(38.72), top: mu(37.62), width: mu(260.411), gap: mu(11.22) }}
+            >
+              <div className="flex w-full items-end justify-between uppercase text-[#fff0e5]">
+                {/* Title — layered per step, revealed left → right */}
+                <div className="grid">
+                  {STEPS.map((s, k) => (
+                    <p
+                      key={s.title}
+                      data-text-step={k}
+                      className="font-bold"
+                      style={{ gridArea: "1 / 1", fontFamily: "var(--font-display)", fontSize: mu(39.949), lineHeight: 0.8, letterSpacing: mu(-3.196), clipPath: k === 0 ? CLIP_SHOWN : CLIP_HIDDEN }}
+                    >
                       {s.title}
                     </p>
-                    <p className="whitespace-nowrap" style={{ fontFamily: "var(--font-mono-label)", fontSize: mu(12.484), lineHeight: 0.87, letterSpacing: mu(0.8739) }}>
+                  ))}
+                </div>
+                {/* Step label — layered per step, revealed left → right */}
+                <div className="grid" style={{ justifyItems: "end" }}>
+                  {STEPS.map((s, k) => (
+                    <p
+                      key={s.step}
+                      data-text-step={k}
+                      className="whitespace-nowrap"
+                      style={{ gridArea: "1 / 1", fontFamily: "var(--font-mono-label)", fontSize: mu(12.484), lineHeight: 0.87, letterSpacing: mu(0.8739), clipPath: k === 0 ? CLIP_SHOWN : CLIP_HIDDEN }}
+                    >
                       {s.step}
                     </p>
-                  </div>
-                  <div className="relative overflow-hidden" style={{ width: mu(260), height: mu(322.759) }}>
-                    <Image src={s.src} alt={s.alt} fill sizes="60vw" className="object-cover" />
-                  </div>
-                  <p style={{ fontFamily: "var(--font-body)", fontSize: mu(12), lineHeight: 1.6, letterSpacing: mu(0.12), color: "#fff0e5", width: mu(215.05) }}>
-                    {s.body}
-                  </p>
+                  ))}
                 </div>
               </div>
-            ))}
+
+              {/* Photo window — all step photos stacked; the active one slides top-to-bottom on each cycle */}
+              <div className="relative overflow-hidden" style={{ width: mu(260), height: mu(322.759) }}>
+                {/* No inline transform on the layers — the GSAP seed owns
+                    yPercent before the card becomes visible (an inline
+                    translateY would compound with it and strand the photo
+                    off-window). */}
+                {STEPS.map((s) => (
+                  <div key={s.src} data-photo className="absolute inset-0">
+                    <Image src={s.src} alt={s.alt} fill sizes="60vw" className="object-cover" />
+                  </div>
+                ))}
+              </div>
+
+              {/* Body — layered per step, revealed left → right */}
+              <div className="grid" style={{ width: mu(215.05) }}>
+                {STEPS.map((s, k) => (
+                  <p
+                    key={s.src}
+                    data-text-step={k}
+                    style={{ gridArea: "1 / 1", fontFamily: "var(--font-body)", fontSize: mu(12), lineHeight: 1.6, letterSpacing: mu(0.12), color: "#fff0e5", clipPath: k === 0 ? CLIP_SHOWN : CLIP_HIDDEN }}
+                  >
+                    {s.body}
+                  </p>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       </div>

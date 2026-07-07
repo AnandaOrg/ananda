@@ -27,24 +27,37 @@ type FormScale = {
   radius: number;
   btnRight: number;
   btnSize: number;
+  /** "Get on the list" heading (swaps to "Amazing!" / "Oops…" with the state). */
+  headingSize: number;
+  headingLs: number;
+  /** Success / error message font size (22 on the 1440 design frame). */
+  msgSize: number;
 };
 
 type Status = "idle" | "loading" | "success" | "error";
 
 const ERROR_TEXT = "Something went wrong. Please try again.";
+const REVERT_MS = 3000; // how long success / error states stay before the input returns
 
-/** Email field that, on submit, POSTs to /api/subscribe (MailerLite) and swaps to
- *  a "Successfully subscribed" confirmation for 5s (animated), then restores the
- *  input. On failure the field is kept, cleared, and shows an error placeholder. */
-function DropForm({ s, height, fontSize, padL, padR, radius, btnRight, btnSize }: FormScale) {
+const HEADINGS: Record<Status, string> = {
+  idle: "Get on the list",
+  loading: "Get on the list",
+  success: "Amazing!",
+  error: "Oops…",
+};
+
+/** Heading + email field. On submit, POSTs to /api/subscribe (MailerLite). Success
+ *  swaps the heading to "Amazing!" and the field to a plain confirmation message;
+ *  failure swaps the heading to "Oops…" and the field to a warning pill. Either
+ *  state holds for 3s, then the heading and empty input return. */
+function DropForm({ s, height, fontSize, padL, padR, radius, btnRight, btnSize, headingSize, headingLs, msgSize }: FormScale) {
   const [status, setStatus] = useState<Status>("idle");
-  const submitted = status === "success";
 
   useEffect(() => {
-    if (!submitted) return;
-    const id = setTimeout(() => setStatus("idle"), 5000);
+    if (status !== "success" && status !== "error") return;
+    const id = setTimeout(() => setStatus("idle"), REVERT_MS);
     return () => clearTimeout(id);
-  }, [submitted]);
+  }, [status]);
 
   const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -69,64 +82,89 @@ function DropForm({ s, height, fontSize, padL, padR, radius, btnRight, btnSize }
   };
 
   return (
-    <div className="relative w-full" style={{ height: s(height) }}>
-      <AnimatePresence mode="wait" initial={false}>
-        {submitted ? (
-          <motion.div
-            key="success"
-            role="status"
-            aria-live="polite"
-            className="absolute inset-0 flex items-center justify-center bg-[#fff0e5] text-center font-semibold uppercase text-[#0a142f]"
-            style={{ fontFamily: "var(--font-display)", fontSize: s(fontSize), letterSpacing: s(-fontSize * 0.05), borderRadius: s(radius), padding: `0 ${s(padL)}` }}
-            initial={ENTER}
-            animate={SHOWN}
-            exit={ENTER}
+    <>
+      {/* Heading — crossfades between "Get on the list" / "Amazing!" / "Oops…" */}
+      <div className="relative w-full" style={{ height: s(headingSize * 0.8) }}>
+        <AnimatePresence initial={false}>
+          <motion.p
+            key={HEADINGS[status]}
+            className="absolute left-0 top-0 whitespace-nowrap font-semibold uppercase text-[#fff0e5]"
+            style={{ fontFamily: "var(--font-display)", fontSize: s(headingSize), lineHeight: 0.8, letterSpacing: s(headingLs) }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
             transition={FADE}
           >
-            We&apos;ve received your information and we&apos;ll be in touch shortly
-          </motion.div>
-        ) : (
-          <motion.form
-            key="form"
-            onSubmit={onSubmit}
-            className="absolute inset-0 w-full"
-            initial={ENTER}
-            animate={SHOWN}
-            exit={ENTER}
-            transition={FADE}
-          >
-            <input
-              type="email"
-              name="email"
-              required
-              placeholder={status === "error" ? ERROR_TEXT : "Your email"}
-              aria-label="Your email"
-              aria-invalid={status === "error"}
-              onInput={() => {
-                if (status === "error") setStatus("idle");
-              }}
-              className="absolute inset-0 w-full bg-[#fff0e5] text-[#0a142f] outline-none placeholder:text-[#eb4638]"
-              style={{ fontFamily: "var(--font-body)", fontSize: s(fontSize), paddingLeft: s(padL), paddingRight: s(padR), borderRadius: s(radius) }}
-            />
-            <button
-              type="submit"
-              aria-label="Subscribe"
-              disabled={status === "loading"}
-              className="absolute -translate-y-1/2 disabled:opacity-50"
-              style={{ right: s(btnRight), top: "50%", width: s(btnSize), height: s(btnSize) }}
+            {HEADINGS[status]}
+          </motion.p>
+        </AnimatePresence>
+      </div>
+
+      <div className="relative w-full" style={{ height: s(height) }}>
+        <AnimatePresence mode="wait" initial={false}>
+          {status === "success" ? (
+            <motion.div
+              key="success"
+              role="status"
+              aria-live="polite"
+              className="absolute inset-0 text-[#fff0e5]"
+              style={{ fontFamily: "var(--font-body)", fontSize: s(msgSize), lineHeight: 1.4 }}
+              initial={ENTER}
+              animate={SHOWN}
+              exit={ENTER}
+              transition={FADE}
+            >
+              We&apos;ve received your information and we&apos;ll be in touch shortly.
+            </motion.div>
+          ) : status === "error" ? (
+            <motion.div
+              key="error"
+              role="alert"
+              className="absolute inset-x-0 top-0 flex items-center bg-[#fff0e5] text-[#eb4638]"
+              style={{ height: s(height), borderRadius: s(radius), padding: `0 ${s(msgSize * 0.9)}`, gap: s(msgSize * 0.55) }}
+              initial={ENTER}
+              animate={SHOWN}
+              exit={ENTER}
+              transition={FADE}
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/m-send.svg" alt="" className="size-full" />
-            </button>
-          </motion.form>
-        )}
-      </AnimatePresence>
-      {status === "error" ? (
-        <p role="alert" className="sr-only">
-          {ERROR_TEXT}
-        </p>
-      ) : null}
-    </div>
+              <img src="/m-warning.svg" alt="" style={{ width: s(msgSize * 1.4), height: s(msgSize * 1.4) }} />
+              <p style={{ fontFamily: "var(--font-body)", fontSize: s(msgSize) }}>{ERROR_TEXT}</p>
+            </motion.div>
+          ) : (
+            <motion.form
+              key="form"
+              onSubmit={onSubmit}
+              className="absolute inset-0 w-full"
+              initial={ENTER}
+              animate={SHOWN}
+              exit={ENTER}
+              transition={FADE}
+            >
+              <input
+                type="email"
+                name="email"
+                required
+                placeholder="Your email"
+                aria-label="Your email"
+                className="absolute inset-0 w-full bg-[#fff0e5] text-[#0a142f] outline-none placeholder:text-[#eb4638]"
+                style={{ fontFamily: "var(--font-body)", fontSize: s(fontSize), paddingLeft: s(padL), paddingRight: s(padR), borderRadius: s(radius) }}
+              />
+              <button
+                type="submit"
+                aria-label="Subscribe"
+                disabled={status === "loading"}
+                className="absolute -translate-y-1/2 disabled:opacity-50"
+                style={{ right: s(btnRight), top: "50%", width: s(btnSize), height: s(btnSize) }}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/m-send.svg" alt="" className="size-full" />
+              </button>
+            </motion.form>
+          )}
+        </AnimatePresence>
+      </div>
+    </>
   );
 }
 
@@ -144,10 +182,7 @@ export default function DropList() {
               </p>
             </div>
             <div className="flex flex-col items-start" style={{ gap: mu(19.87), width: mu(256.65) }}>
-              <p className="font-semibold uppercase text-[#fff0e5]" style={{ fontFamily: "var(--font-display)", fontSize: mu(24), lineHeight: 0.8, letterSpacing: mu(-1.68)}}>
-                Get on the list
-              </p>
-              <DropForm s={mu} height={48.598} fontSize={14} padL={19.57} padR={56} radius={24.299} btnRight={8.1} btnSize={32.399} />
+              <DropForm s={mu} height={48.598} fontSize={14} padL={19.57} padR={56} radius={24.299} btnRight={8.1} btnSize={32.399} headingSize={24} headingLs={-1.68} msgSize={13} />
             </div>
           </div>
         </div>
@@ -163,10 +198,7 @@ export default function DropList() {
             </p>
           </div>
           <div className="flex flex-col items-start justify-center" style={{ gap: ud(38.105), width: ud(492.185), marginBottom: ud(26) }}>
-            <p className="font-semibold uppercase text-[#fff0e5]" style={{ fontFamily: "var(--font-display)", fontSize: ud(48), lineHeight: 0.8, letterSpacing: ud(-3.36) }}>
-              Get on the list
-            </p>
-            <DropForm s={ud} height={93.197} fontSize={24} padL={37.54} padR={100} radius={46.599} btnRight={15.53} btnSize={62.132} />
+            <DropForm s={ud} height={93.197} fontSize={24} padL={37.54} padR={100} radius={46.599} btnRight={15.53} btnSize={62.132} headingSize={48} headingLs={-3.36} msgSize={22} />
           </div>
         </div>
       </div>

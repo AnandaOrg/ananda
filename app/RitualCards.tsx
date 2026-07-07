@@ -11,8 +11,8 @@ const u = (n: number) => `calc(var(--u) * ${n})`;
 const CREAM = "#fff0e5";
 
 // Card outer dimensions (Figma) and the fixed internal layout of every card.
-// Because a card is now a rigid unit (border + photo + text) that travels
-// between slots as one piece, these offsets are identical for all cards.
+// The three card frames never move — only the step contents cycle through
+// them — so these offsets are identical for all cards.
 const CARD = { w: 480, h: 720 };
 // Positions/fonts are in the same canvas-u space as CARD, re-fitted to the
 // 480×720 frame (scaled from the original 620.422×863.666 design).
@@ -47,22 +47,29 @@ const STEPS = [
   },
 ];
 
-// The three stacked positions a card can occupy, ordered front → back.
-// `z` controls paint order; faded slots sit behind the opaque front card.
-// `fromRotation` is only the entrance flourish — cards rest upright (0°).
+// The three fixed frame positions, ordered front → left → right: a horizontal
+// hand-of-cards fan, centered on the 1440 canvas. The side frames sit behind
+// the front frame at 0.76 scale, tilted ∓20°; all fully opaque. Frames stay
+// put — `x`/`y` are CSS left/top on the canvas (same card size for every
+// frame, so equal `y` keeps the three centers on one line).
 const SLOTS = [
-  { left: 271.64, top: 1539.42, opacity: 1, z: 3, fromRotation: -5 }, // front
-  { left: 500.94, top: 1673.63, opacity: 0.2, z: 2, fromRotation: 10 }, // middle
-  { left: 738.19, top: 1778.84, opacity: 0.2, z: 1, fromRotation: -14 }, // back
+  { x: 480, y: 1661, rotation: 0, scale: 1, z: 3 }, // front / center
+  { x: 128, y: 1661, rotation: -20, scale: 0.76, z: 2 }, // left
+  { x: 832, y: 1661, rotation: 20, scale: 0.76, z: 1 }, // right
 ];
 
 const N = STEPS.length; // === SLOTS.length === 3
-const HOLD = 3; // seconds a card rests in front before the next shuffle
-const DUR = 0.9; // shuffle duration
+const HOLD = 3; // seconds the contents rest before the next cycle
+const PHOTO_DUR = 0.7; // photo top-to-bottom slide duration
+const TEXT_DUR = 0.6; // text left-to-right reveal duration
+const TEXT_DELAY = 0.15; // reveal starts just after the photo begins moving
 
-// Each shuffle advances `tick`; the front card (slot 0) drops to the back.
-// card i occupies slot ((i - tick) mod N): first→third, second→first, …
-const slotOf = (cardIdx: number, tick: number) => ((cardIdx - tick) % N + N) % N;
+const CLIP_HIDDEN = "inset(0% 100% 0% 0%)"; // fully clipped from the right
+const CLIP_SHOWN = "inset(0% 0% 0% 0%)";
+
+// Frame f displays step ((f + tick) mod N) — every cycle the step contents
+// advance one frame while the frames themselves stay put.
+const stepOf = (frame: number, tick: number) => (frame + tick) % N;
 
 export default function RitualCards() {
   const layerRef = useRef<HTMLDivElement | null>(null);
@@ -70,140 +77,174 @@ export default function RitualCards() {
 
   useEffect(() => {
     const layer = layerRef.current;
-    const cards = cardRefs.current.filter((el): el is HTMLDivElement => el !== null);
-    if (!layer || cards.length < N) return;
+    const frames = cardRefs.current.filter((el): el is HTMLDivElement => el !== null);
+    if (!layer || frames.length < N) return;
 
-    // Figma px → device px. The layer spans the 1440-unit canvas, so one
-    // design unit (`--u`) equals layerWidth / 1440. Recomputed on resize.
-    const uPx = () => layer.offsetWidth / 1440;
+    const photosOf = (el: HTMLDivElement) => Array.from(el.querySelectorAll<HTMLElement>("[data-photo]"));
+    const textsOf = (el: HTMLDivElement, k: number) =>
+      Array.from(el.querySelectorAll<HTMLElement>(`[data-text-step="${k}"]`));
 
-    const placeXY = (el: HTMLDivElement, slotIdx: number, animate: boolean) => {
-      const s = SLOTS[slotIdx];
-      const px = uPx();
-      const vars = { x: s.left * px, y: s.top * px, opacity: s.opacity };
-      if (animate) gsap.to(el, { ...vars, duration: DUR, ease: "power2.inOut" });
-      else gsap.set(el, vars);
-    };
+    // Seed content: frame f starts on step f; the other layers wait hidden
+    // (photos parked above the clip window, texts fully clipped).
+    frames.forEach((el, f) => {
+      photosOf(el).forEach((ph, k) => gsap.set(ph, { yPercent: k === f ? 0 : -100 }));
+      for (let k = 0; k < N; k++) gsap.set(textsOf(el, k), { clipPath: k === f ? CLIP_SHOWN : CLIP_HIDDEN });
+    });
 
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
     let tick = 0;
     let dc: gsap.core.Tween | null = null;
 
-    // Re-pin cards to their current slots after a viewport resize.
-    const onResize = () => cards.forEach((el, i) => placeXY(el, slotOf(i, tick), false));
-    const ro = new ResizeObserver(onResize);
-
-    function shuffle() {
+    function cycle() {
+      const prev = tick;
       tick = (tick + 1) % N;
-      cards.forEach((el, i) => placeXY(el, slotOf(i, tick), true));
-      // Swap paint order at the midpoint so the incoming card has cleared the
-      // others before it rises — avoids a faded card flickering over the front.
-      gsap.delayedCall(DUR / 2, () => {
-        cards.forEach((el, i) => gsap.set(el, { zIndex: SLOTS[slotOf(i, tick)].z }));
+      frames.forEach((el, f) => {
+        const oldK = stepOf(f, prev);
+        const newK = stepOf(f, tick);
+        const photos = photosOf(el);
+        // Conveyor slide: the incoming photo enters from the top while the
+        // outgoing one exits through the bottom at the same speed.
+        gsap.fromTo(photos[newK], { yPercent: -100 }, { yPercent: 0, duration: PHOTO_DUR, ease: "power2.inOut" });
+        gsap.to(photos[oldK], {
+          yPercent: 100,
+          duration: PHOTO_DUR,
+          ease: "power2.inOut",
+          onComplete: () => gsap.set(photos[oldK], { yPercent: -100 }),
+        });
+        // Texts: the old step vanishes, the new one wipes in left → right.
+        gsap.set(textsOf(el, oldK), { clipPath: CLIP_HIDDEN });
+        gsap.fromTo(
+          textsOf(el, newK),
+          { clipPath: CLIP_HIDDEN },
+          { clipPath: CLIP_SHOWN, duration: TEXT_DUR, ease: "power2.out", delay: TEXT_DELAY }
+        );
       });
-      dc = gsap.delayedCall(DUR + HOLD, shuffle);
+      dc = gsap.delayedCall(PHOTO_DUR + HOLD, cycle);
     }
 
     if (reduce) {
-      // No entrance, no loop: drop the stack straight into place.
-      cards.forEach((el, i) => {
-        gsap.set(el, { rotation: 0, scale: 1, zIndex: SLOTS[i].z });
-        placeXY(el, i, false);
-      });
-      ro.observe(layer);
-      return () => ro.disconnect();
+      // No entrance, no cycle: drop the fan straight into place.
+      frames.forEach((el, i) => gsap.set(el, { rotation: SLOTS[i].rotation, scale: SLOTS[i].scale, opacity: 1 }));
+      return () => gsap.killTweensOf(frames);
     }
 
-    // Seed each card at its slot, hidden, ready for the entrance.
-    cards.forEach((el, i) => {
-      placeXY(el, i, false);
-      gsap.set(el, { opacity: 0, zIndex: SLOTS[i].z });
-    });
+    // Seed the fan pose, hidden, ready for the entrance.
+    frames.forEach((el, i) => gsap.set(el, { rotation: SLOTS[i].rotation, scale: SLOTS[i].scale, opacity: 0 }));
 
     const st = ScrollTrigger.create({
       trigger: layer,
       start: "top 85%",
       once: true,
       onEnter() {
-        cards.forEach((el, i) => {
+        // Fan out: each frame starts gathered at the front slot, then spreads
+        // to its own slot with the stagger.
+        const px = layer.offsetWidth / 1440;
+        frames.forEach((el, i) => {
           const slot = SLOTS[i];
           gsap.fromTo(
             el,
-            { rotation: slot.fromRotation, scale: 0.94, opacity: 0 },
+            { x: (SLOTS[0].x - slot.x) * px, y: (SLOTS[0].y - slot.y) * px, rotation: 0, scale: slot.scale * 0.9, opacity: 0 },
             {
-              rotation: 0,
-              scale: 1,
-              opacity: slot.opacity,
+              x: 0,
+              y: 0,
+              rotation: slot.rotation,
+              scale: slot.scale,
+              opacity: 1,
               duration: 0.85,
               ease: "power3.out",
               delay: i * 0.14,
-              ...(i === N - 1 ? { onComplete: () => { dc = gsap.delayedCall(HOLD, shuffle); } } : {}),
+              ...(i === N - 1 ? { onComplete: () => { dc = gsap.delayedCall(HOLD, cycle); } } : {}),
             }
           );
         });
       },
     });
 
-    ro.observe(layer);
-
     return () => {
       st.kill();
       dc?.kill();
-      ro.disconnect();
-      gsap.killTweensOf(cards);
+      gsap.killTweensOf(frames);
+      frames.forEach((el) => {
+        gsap.killTweensOf(photosOf(el));
+        for (let k = 0; k < N; k++) gsap.killTweensOf(textsOf(el, k));
+      });
     };
   }, []);
 
   return (
     <div ref={layerRef} className="absolute inset-0" style={{ pointerEvents: "none" }}>
-      {STEPS.map((s, i) => (
+      {SLOTS.map((slot, f) => (
         <div
-          key={s.src}
-          ref={el => { cardRefs.current[i] = el; }}
+          key={slot.x}
+          ref={el => { cardRefs.current[f] = el; }}
           className="absolute"
-          style={{ left: 0, top: 0, width: u(CARD.w), height: u(CARD.h), opacity: 0 }}
+          style={{ left: u(slot.x), top: u(slot.y), width: u(CARD.w), height: u(CARD.h), opacity: 0, zIndex: slot.z }}
         >
-          {/* Card silhouette (border travels with the photo) */}
+          {/* Card silhouette (border stays put; only the contents cycle) */}
           <div style={{ position: "absolute", inset: 0, transform: "rotate(180deg)" }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/s5-card2.svg" alt="" className="block size-full" />
           </div>
 
-          {/* Photo window */}
+          {/* Photo window — all step photos stacked; the active one slides top-to-bottom on each cycle */}
           <div
             className="absolute overflow-hidden"
             style={{ left: u(REL.photo.left), top: u(REL.photo.top), width: u(REL.photo.w), height: u(REL.photo.h) }}
           >
-            <Image src={s.src} alt={s.alt} fill sizes="40vw" className="object-cover" />
+            {/* No inline transform on the layers — the GSAP seed owns yPercent
+                before the frame becomes visible (an inline translateY would
+                compound with it and strand the photo off-window). */}
+            {STEPS.map((s) => (
+              <div key={s.src} data-photo className="absolute inset-0">
+                <Image src={s.src} alt={s.alt} fill sizes="40vw" className="object-cover" />
+              </div>
+            ))}
           </div>
 
-          {/* Step label */}
-          <div className="absolute" style={{ left: u(REL.label.left), top: u(REL.label.top), padding: `${u(REL.label.pad[0])} ${u(REL.label.pad[1])}` }}>
-            <p
-              className="whitespace-nowrap uppercase"
-              style={{ fontFamily: "var(--font-mono-label)", fontSize: u(REL.label.font), lineHeight: 0.87, letterSpacing: u(REL.label.ls), color: CREAM }}
-            >
-              {s.step}
-            </p>
-          </div>
-
-          {/* Title */}
-          <p
-            className="absolute font-bold uppercase"
-            style={{ left: u(REL.title.left), top: u(REL.title.top), width: u(REL.title.w), fontFamily: "var(--font-display)", fontSize: u(REL.title.font), lineHeight: 0.8, letterSpacing: u(REL.title.ls), color: CREAM }}
+          {/* Step label — layered per step, revealed left → right */}
+          <div
+            className="absolute grid"
+            style={{ left: u(REL.label.left), top: u(REL.label.top), padding: `${u(REL.label.pad[0])} ${u(REL.label.pad[1])}`, justifyItems: "end" }}
           >
-            {s.title}
-          </p>
+            {STEPS.map((s, k) => (
+              <p
+                key={s.step}
+                data-text-step={k}
+                className="whitespace-nowrap uppercase"
+                style={{ gridArea: "1 / 1", fontFamily: "var(--font-mono-label)", fontSize: u(REL.label.font), lineHeight: 0.87, letterSpacing: u(REL.label.ls), color: CREAM, clipPath: k === f ? CLIP_SHOWN : CLIP_HIDDEN }}
+              >
+                {s.step}
+              </p>
+            ))}
+          </div>
 
-          {/* Body */}
-          <div className="absolute" style={{ left: u(REL.body.left), top: u(REL.body.top), width: u(REL.body.w) }}>
-            <p
-              className="text-right"
-              style={{ padding: `${u(REL.body.pad[0])} ${u(REL.body.pad[1])}`, fontFamily: "var(--font-body)", fontSize: u(REL.body.font), lineHeight: 1.6, letterSpacing: u(REL.body.ls), color: CREAM }}
-            >
-              {s.body}
-            </p>
+          {/* Title — layered per step, revealed left → right */}
+          <div className="absolute grid" style={{ left: u(REL.title.left), top: u(REL.title.top), width: u(REL.title.w) }}>
+            {STEPS.map((s, k) => (
+              <p
+                key={s.title}
+                data-text-step={k}
+                className="font-bold uppercase"
+                style={{ gridArea: "1 / 1", fontFamily: "var(--font-display)", fontSize: u(REL.title.font), lineHeight: 0.8, letterSpacing: u(REL.title.ls), color: CREAM, clipPath: k === f ? CLIP_SHOWN : CLIP_HIDDEN }}
+              >
+                {s.title}
+              </p>
+            ))}
+          </div>
+
+          {/* Body — layered per step, revealed left → right */}
+          <div className="absolute grid" style={{ left: u(REL.body.left), top: u(REL.body.top), width: u(REL.body.w) }}>
+            {STEPS.map((s, k) => (
+              <p
+                key={s.src}
+                data-text-step={k}
+                className="text-right"
+                style={{ gridArea: "1 / 1", padding: `${u(REL.body.pad[0])} ${u(REL.body.pad[1])}`, fontFamily: "var(--font-body)", fontSize: u(REL.body.font), lineHeight: 1.6, letterSpacing: u(REL.body.ls), color: CREAM, clipPath: k === f ? CLIP_SHOWN : CLIP_HIDDEN }}
+              >
+                {s.body}
+              </p>
+            ))}
           </div>
         </div>
       ))}

@@ -48,10 +48,31 @@ body {
   animation-iteration-count: infinite;
 }
 
+/* ── Floating fruit (flavour modal) ──
+   Organic drift: a lazy figure-eight of a few px plus a slight sway. Each fruit
+   sets its own --float-* vars (amplitude, spin, duration, phase) so nothing
+   moves in lockstep. */
+@keyframes fl-float {
+  0%   { transform: translate3d(0, 0, 0) rotate(0deg); }
+  25%  { transform: translate3d(calc(var(--float-x) * 0.7), var(--float-y), 0) rotate(var(--float-r)); }
+  50%  { transform: translate3d(var(--float-x), calc(var(--float-y) * -0.5), 0) rotate(calc(var(--float-r) * -0.5)); }
+  75%  { transform: translate3d(calc(var(--float-x) * -0.5), calc(var(--float-y) * 0.6), 0) rotate(calc(var(--float-r) * 0.6)); }
+  100% { transform: translate3d(0, 0, 0) rotate(0deg); }
+}
+
+.fl-float {
+  animation: fl-float var(--float-dur, 6s) ease-in-out var(--float-delay, 0s) infinite;
+  will-change: transform;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .vmg-animate-up,
   .vmg-animate-down {
     animation: none !important;
     transform: none !important;
+  }
+
+  .fl-float {
+    animation: none !important;
   }
 }

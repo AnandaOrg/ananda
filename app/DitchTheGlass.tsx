@@ -186,7 +186,7 @@ export default function DitchTheGlass() {
       {/* Gallery — pinned at the card slot; first photo is the pour image, so the
           traveling diamond lands straight onto it. Steps through the rest. */}
       <div ref={galleryRef} data-dtg="gallery" className="absolute" style={{ ...ABOUT_CARD, opacity: 0, zIndex: 4 }}>
-        <VerticalSlider images={PHOTOS} index={index} frame style={{ width: "100%", height: "100%" }} />
+        <VerticalSlider images={PHOTOS} index={index} frame direction="down" style={{ width: "100%", height: "100%" }} />
       </div>
 
       {/* Copy — upper right; fades + slides in as the image travels to the slot. */}

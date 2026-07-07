@@ -1,13 +1,16 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { useEffect, useRef } from "react";
+import { AnimatePresence, motion, useAnimationControls, useReducedMotion, type Variants } from "framer-motion";
 import GlbViewer, { type GlbViewerHandle, type ModelEntry } from "./GlbViewer";
 
 /**
  * Full-screen flavour detail overlay (Figma 198:4281 / 4607 / 5127 / 5571).
- * A 16:9 stage (1920×1080) scaled to fit the viewport via `--u = 100cqw / 1920`,
- * with the flavour colour bleeding into any letterbox. Prev/next cycles flavours.
+ * The stage fills the whole viewport; lengths are width-scaled via
+ * `--u = 100cqw / 1920`. The decorative scene keeps its 1920×1080 composition,
+ * centered vertically as a band on taller screens, while the chrome (close,
+ * name, chevrons, ingredients) anchors to the real viewport edges.
+ * Prev/next cycles flavours.
  */
 
 const u = (n: number) => `calc(var(--u) * ${n})`;
@@ -16,6 +19,45 @@ const u = (n: number) => `calc(var(--u) * ${n})`;
 // colour cross-fade (navDuration), the background, and the scene all use this so
 // they change in lockstep.
 const NAV_DURATION = 1.7;
+
+// Carousel swing — the flavour screens behave like spokes on a wheel hinged at
+// the viewport's bottom-centre. Navigation rotates the wheel one quarter turn:
+// the outgoing layer swings out to one side (0° → ∓90°) while the incoming one
+// swings in from the other (±90° → 0°) at the same time. Each layer is a huge
+// square colour plane centred ON the hinge — a square rotating about its own
+// centre covers the viewport at any angle, so no plane edge can ever show —
+// and the incoming plane crossfades 0 → 1 while it swings, so the switch reads
+// as one continuous, edgeless rotation. `custom` carries the nav direction
+// (+1 next / −1 prev / 0 reduced motion → plain crossfade).
+const SWING_ORIGIN = { transformOrigin: "50% 100%" } as const;
+const SWING_TRANSITION = { type: "tween", duration: NAV_DURATION, ease: "easeInOut" } as const;
+const LAYER_VARIANTS: Variants = {
+  enter: (dir: number) => ({ rotate: 90 * dir, opacity: 0 }),
+  center: { rotate: 0, opacity: 1 },
+  exit: (dir: number) => ({ rotate: -90 * dir, opacity: 1 }),
+};
+// The rotating plane: a 260vmax square whose centre sits exactly on the hinge
+// (bottom-centre of the viewport). 130vmax always exceeds the distance from the
+// hinge to the farthest viewport corner, so the plane covers the screen at any
+// rotation. The margin trick centres it without a translate that would fight
+// the animated transform.
+const PLANE_STYLE = {
+  position: "absolute",
+  left: "50%",
+  top: "100%",
+  width: "260vmax",
+  height: "260vmax",
+  margin: "-130vmax",
+  transformOrigin: "50% 50%",
+} as const;
+// Re-aligns the flavour content with the viewport inside the oversized plane.
+const PLANE_CONTENT_STYLE = {
+  position: "absolute",
+  left: "calc(130vmax - 50vw)",
+  top: "calc(130vmax - 100vh)",
+  width: "100vw",
+  height: "100vh",
+} as const;
 
 type Crop = { w: string; h: string; left: string; top: string };
 type Fruit = {
@@ -137,9 +179,19 @@ export const FLAVORS: Flavor[] = [
 
 // (Letter-by-letter reveal removed — ingredient text now renders statically.)
 
-function FruitImg({ f }: { f: Fruit }) {
+function FruitImg({ f, i }: { f: Fruit; i: number }) {
   const filter = f.blur ? { filter: `blur(${u(f.blur)})` } : undefined;
   const inner = f.inner ?? (f.box ? { w: f.box.w, h: f.box.h } : null);
+
+  // Organic float (see .fl-float in globals.css) — amplitude, spin, speed and
+  // phase all vary with the fruit's index so the drift never syncs up.
+  const floatStyle = {
+    ["--float-x" as string]: `${8 + (i % 3) * 4}px`,
+    ["--float-y" as string]: `${-(12 + (i % 4) * 4)}px`,
+    ["--float-r" as string]: `${(i % 2 ? -1 : 1) * (2 + (i % 3))}deg`,
+    ["--float-dur" as string]: `${5 + (i % 5) * 0.9}s`,
+    ["--float-delay" as string]: `${-i * 1.3}s`,
+  };
 
   const media = f.crop ? (
     // eslint-disable-next-line @next/next/no-img-element
@@ -152,8 +204,10 @@ function FruitImg({ f }: { f: Fruit }) {
   if (f.inset) {
     return (
       <div className="pointer-events-none absolute" style={{ left: f.inset.left, top: f.inset.top, width: f.inset.w, height: f.inset.h, ...filter }}>
-        <div className="relative size-full overflow-hidden" style={{ transform: f.rotate ? `rotate(${f.rotate}deg)` : undefined }}>
-          {media}
+        <div className="fl-float size-full" style={floatStyle}>
+          <div className="relative size-full overflow-hidden" style={{ transform: f.rotate ? `rotate(${f.rotate}deg)` : undefined }}>
+            {media}
+          </div>
         </div>
       </div>
     );
@@ -162,9 +216,11 @@ function FruitImg({ f }: { f: Fruit }) {
   const b = f.box!;
   return (
     <div className="pointer-events-none absolute flex items-center justify-center" style={{ left: u(b.left), top: u(b.top), width: u(b.w), height: u(b.h) }}>
-      <div style={{ transform: f.rotate ? `rotate(${f.rotate}deg)` : undefined, ...filter }}>
-        <div className="relative overflow-hidden" style={{ width: u(inner!.w), height: u(inner!.h) }}>
-          {media}
+      <div className="fl-float" style={floatStyle}>
+        <div style={{ transform: f.rotate ? `rotate(${f.rotate}deg)` : undefined, ...filter }}>
+          <div className="relative overflow-hidden" style={{ width: u(inner!.w), height: u(inner!.h) }}>
+            {media}
+          </div>
         </div>
       </div>
     </div>
@@ -200,7 +256,7 @@ function Scene({ f }: { f: Flavor }) {
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src={f.pattern} alt="" className="pointer-events-none absolute -translate-x-1/2" style={{ left: "50%", top: u(-1165.4), width: u(1920), height: u(1920) }} />
       {f.fruits.map((fr, i) => (
-        <FruitImg key={i} f={fr} />
+        <FruitImg key={i} f={fr} i={i} />
       ))}
     </>
   );
@@ -208,21 +264,38 @@ function Scene({ f }: { f: Flavor }) {
 
 export default function FlavorModal({
   index,
+  navDir,
   origin,
   onClose,
   onNav,
 }: {
   index: number;
+  /** Direction of the last prev/next nav: +1 or −1. Drives the wheel swing. */
+  navDir: number;
   origin: { x: number; y: number };
   onClose: () => void;
   onNav: (dir: number) => void;
 }) {
-  // true once the initial open animation completes — enables nav scale transitions
-  const [outerReady, setOuterReady] = useState(false);
-  useEffect(() => { const id = setTimeout(() => setOuterReady(true), 900); return () => clearTimeout(id); }, []);
+  const reduceMotion = useReducedMotion();
 
   const desktopGlbRef = useRef<GlbViewerHandle>(null);
   const mobileGlbRef  = useRef<GlbViewerHandle>(null);
+
+  // Wheel direction for the layer variants; 0 disables the swing entirely.
+  const layerDir = reduceMotion ? 0 : navDir;
+
+  // The GLB canvas rides the incoming spoke: on every nav it snaps to ±90°
+  // and rotates to 0° in lockstep with the incoming layer. One controls
+  // instance drives both the desktop and mobile wrappers.
+  const glbSwing = useAnimationControls();
+  const prevIndexRef = useRef(index);
+  useEffect(() => {
+    if (prevIndexRef.current === index) return;
+    prevIndexRef.current = index;
+    if (reduceMotion) return;
+    glbSwing.set({ rotate: 90 * navDir });
+    glbSwing.start({ rotate: 0, transition: SWING_TRANSITION });
+  }, [index, navDir, glbSwing, reduceMotion]);
 
   // The GLB always renders above the modal's scene/text (high z-index set on the
   // viewer itself, below). Clicking the stage lays the bottle flat at +90°.
@@ -272,85 +345,88 @@ export default function FlavorModal({
         transition={{ type: "tween", duration: NAV_DURATION, ease: "easeInOut" }}
       />
 
-      {/* ───────── Desktop / tablet: 16:9 stage that fits inside the viewport ───────── */}
-      <div className="hidden size-full md:flex md:items-center md:justify-center">
+      {/* ───────── Desktop / tablet: stage fills the viewport ───────── */}
+      <div className="hidden size-full md:block">
         <div
           onClick={liftGlb}
-          className="relative overflow-hidden w-full"
-          style={{ aspectRatio: "16 / 9", containerType: "inline-size", ["--u" as string]: "calc(100cqw / 1920)" }}
+          className="relative size-full overflow-hidden"
+          style={{ containerType: "inline-size", ["--u" as string]: "calc(100cqw / 1920)" }}
         >
-          {/* GLB: persistent — stays visible while scene/text transitions */}
-          <GlbViewer
-            ref={desktopGlbRef}
-            models={MODAL_GLB_MODELS}
-            activeIndex={index}
-            navDuration={NAV_DURATION}
-            initialTilt={0}
-            noScroll
-            style={{
-              position: "absolute",
-              left: "50%",
-              top: `calc(50% - ${u(150)})`,
-              transform: "translate(-50%, -50%)",
-              // Wider than the bottle so the spin/tilt is never clipped by the
-              // canvas. Same camera FOV → identical on-screen size.
-              width: u(1200),
-              height: u(1440),
-              pointerEvents: "none",
-              zIndex: 40,
-            }}
-          />
+          {/* GLB: persistent viewer inside a full-screen wrapper that replays
+              the protractor swing on nav, so the product arrives with the scene. */}
+          <motion.div animate={glbSwing} className="absolute inset-0" style={{ ...SWING_ORIGIN, pointerEvents: "none", zIndex: 40 }}>
+            <GlbViewer
+              ref={desktopGlbRef}
+              models={MODAL_GLB_MODELS}
+              activeIndex={index}
+              navDuration={NAV_DURATION}
+              initialTilt={0}
+              noScroll
+              style={{
+                position: "absolute",
+                left: "50%",
+                top: `calc(50% - ${u(150)})`,
+                transform: "translate(-50%, -50%)",
+                // Wider than the bottle so the spin/tilt is never clipped by the
+                // canvas. Same camera FOV → identical on-screen size.
+                width: u(1200),
+                height: u(1440),
+                pointerEvents: "none",
+              }}
+            />
+          </motion.div>
 
-          {/* Scene + ingredients: cross-fade old→new over the ~0.7s spin, in sync
-              with the bottle + background colours (no scale, no exit-then-enter). */}
-          <AnimatePresence>
+          {/* Scene + ingredients + name: the outgoing flavour swings out one
+              way while this one swings in from the other, crossfading — one
+              edgeless wheel turn (see PLANE_STYLE). */}
+          <AnimatePresence custom={layerDir} initial={false}>
             <motion.div
               key={f.key}
-              className="absolute inset-0"
-              initial={outerReady ? { opacity: 0 } : false}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ type: "tween", duration: NAV_DURATION, ease: "easeInOut" }}
+              style={{ ...PLANE_STYLE, backgroundColor: f.bg }}
+              custom={layerDir}
+              variants={LAYER_VARIANTS}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              transition={SWING_TRANSITION}
             >
-              <Scene f={f} />
-              <div className="absolute inset-x-0 flex flex-col items-center" style={{ bottom: u(210), gap: u(14), color: f.textColor }}>
-                <p aria-label="Ingredients" className="whitespace-nowrap uppercase" style={{ fontFamily: "var(--font-mono-label)", fontSize: u(16), lineHeight: 0.87, letterSpacing: u(1.12) }}>
-                  Ingredients
-                </p>
-                <div className="text-center" style={{ fontFamily: "var(--font-body)", fontSize: u(24), lineHeight: 1.6, letterSpacing: u(0.24), width: u(465.222) }}>
-                  <p className="mb-0" aria-label={f.ingredients[0]}>
-                    {f.ingredients[0]}
-                  </p>
-                  <p aria-label={f.ingredients[1]}>
-                    {f.ingredients[1]}
-                  </p>
+              {/* Flavour content, re-aligned with the viewport inside the plane */}
+              <div style={PLANE_CONTENT_STYLE}>
+                {/* Scene band — the 1920×1080u composition, vertically centered on
+                    taller screens; fruits may spill past the band, unclipped. */}
+                <div className="absolute inset-x-0 top-1/2 -translate-y-1/2" style={{ height: u(1080) }}>
+                  <Scene f={f} />
                 </div>
+                <div className="absolute inset-x-0 flex flex-col items-center" style={{ bottom: u(210), gap: u(14), color: f.textColor }}>
+                  <p aria-label="Ingredients" className="whitespace-nowrap uppercase" style={{ fontFamily: "var(--font-mono-label)", fontSize: u(16), lineHeight: 0.87, letterSpacing: u(1.12) }}>
+                    Ingredients
+                  </p>
+                  <div className="text-center" style={{ fontFamily: "var(--font-body)", fontSize: u(24), lineHeight: 1.6, letterSpacing: u(0.24), width: u(465.222) }}>
+                    <p className="mb-0" aria-label={f.ingredients[0]}>
+                      {f.ingredients[0]}
+                    </p>
+                    <p aria-label={f.ingredients[1]}>
+                      {f.ingredients[1]}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Name — rides the swing with the rest of the flavour content */}
+                <p
+                  className="absolute inset-x-0 text-center font-bold uppercase"
+                  style={{ bottom: u(40), fontFamily: "var(--font-display)", fontSize: u(160), lineHeight: 0.8, letterSpacing: u(-12.8), color: f.nameColor }}
+                >
+                  {f.name}
+                </p>
               </div>
             </motion.div>
           </AnimatePresence>
 
-          {/* Nav row: persistent — always visible */}
-          <div className="absolute inset-x-0 flex items-center justify-between" style={{ bottom: u(40), padding: `0 ${u(60)}` }}>
+          {/* Nav row: persistent controls — always visible, never swing */}
+          <div className="absolute inset-x-0 flex items-center justify-between" style={{ bottom: u(40), padding: `0 ${u(60)}`, height: u(128) }}>
             <button type="button" aria-label="Previous flavour" onClick={(e) => { e.stopPropagation(); onNav(-1); }} className="cursor-pointer">
               <Chevron color={f.nameColor} flip />
             </button>
-            {/* Name cross-fades on nav like the rest (grid stacks the old/new in
-                one cell so the arrows stay put). */}
-            <div className="grid" style={{ width: u(760.75) }}>
-              <AnimatePresence>
-                <motion.p
-                  key={f.key}
-                  className="text-center font-bold uppercase"
-                  style={{ gridArea: "1 / 1", fontFamily: "var(--font-display)", fontSize: u(160), lineHeight: 0.8, letterSpacing: u(-12.8), color: f.nameColor }}
-                  initial={outerReady ? { opacity: 0 } : false}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ type: "tween", duration: NAV_DURATION, ease: "easeInOut" }}
-                >
-                  {f.name}
-                </motion.p>
-              </AnimatePresence>
-            </div>
             <button type="button" aria-label="Next flavour" onClick={(e) => { e.stopPropagation(); onNav(1); }} className="cursor-pointer">
               <Chevron color={f.nameColor} />
             </button>
@@ -364,62 +440,69 @@ export default function FlavorModal({
 
       {/* ───────── Mobile: scene covers the screen, controls fit the viewport ───────── */}
       <div onClick={liftGlb} className="absolute inset-0 md:hidden">
-        {/* GLB: persistent */}
-        <GlbViewer
-          ref={mobileGlbRef}
-          models={MODAL_GLB_MODELS}
-          activeIndex={index}
-          navDuration={NAV_DURATION}
-          initialTilt={0}
-          noScroll
-          style={{
-            position: "absolute",
-            left: "50%",
-            top: "42%",
-            transform: "translate(-50%, -50%)",
-            // Wider than the bottle so the spin/tilt is never clipped by the canvas.
-            width: "72vh",
-            height: "84vh",
-            pointerEvents: "none",
-            zIndex: 40,
-          }}
-        />
+        {/* GLB: persistent viewer inside a full-screen wrapper that replays
+            the protractor swing on nav. */}
+        <motion.div animate={glbSwing} className="absolute inset-0" style={{ ...SWING_ORIGIN, pointerEvents: "none", zIndex: 40 }}>
+          <GlbViewer
+            ref={mobileGlbRef}
+            models={MODAL_GLB_MODELS}
+            activeIndex={index}
+            navDuration={NAV_DURATION}
+            initialTilt={0}
+            noScroll
+            style={{
+              position: "absolute",
+              left: "50%",
+              top: "42%",
+              transform: "translate(-50%, -50%)",
+              // Wider than the bottle so the spin/tilt is never clipped by the canvas.
+              width: "72vh",
+              height: "84vh",
+              pointerEvents: "none",
+            }}
+          />
+        </motion.div>
 
-        {/* Scene + text: clean cross-fade over the ~0.7s spin, synced with the
-            bottle + background colours. */}
-        <AnimatePresence>
+        {/* Scene + text: the outgoing flavour swings out one way while this
+            one swings in from the other, crossfading — one edgeless wheel turn. */}
+        <AnimatePresence custom={layerDir} initial={false}>
           <motion.div
             key={f.key}
-            className="absolute inset-0"
-            initial={outerReady ? { opacity: 0 } : false}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ type: "tween", duration: NAV_DURATION, ease: "easeInOut" }}
+            style={{ ...PLANE_STYLE, backgroundColor: f.bg }}
+            custom={layerDir}
+            variants={LAYER_VARIANTS}
+            initial="enter"
+            animate="center"
+            exit="exit"
+            transition={SWING_TRANSITION}
           >
-            <div
-              className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 overflow-hidden w-full"
-              style={{ aspectRatio: "16 / 9", containerType: "inline-size", ["--u" as string]: "calc(100cqw / 1920)" }}
-            >
-              <Scene f={f} />
-            </div>
-            <div className="absolute inset-x-0 bottom-0 flex flex-col items-center text-center px-6 pb-4" style={{ gap: "0.5rem", color: f.textColor }}>
-              <p aria-label="Ingredients" className="whitespace-nowrap uppercase" style={{ fontFamily: "var(--font-mono-label)", fontSize: 11, lineHeight: 0.87, letterSpacing: "0.8px" }}>
-                Ingredients
-              </p>
-              <div style={{ fontFamily: "var(--font-body)", fontSize: 15, lineHeight: 1.5, maxWidth: "84vw" }}>
-                <p className="mb-0" aria-label={f.ingredients[0]}>
-                  {f.ingredients[0]}
+            {/* Flavour content, re-aligned with the viewport inside the plane */}
+            <div style={PLANE_CONTENT_STYLE}>
+              <div
+                className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 overflow-hidden w-full"
+                style={{ aspectRatio: "16 / 9", containerType: "inline-size", ["--u" as string]: "calc(100cqw / 1920)" }}
+              >
+                <Scene f={f} />
+              </div>
+              <div className="absolute inset-x-0 bottom-0 flex flex-col items-center text-center px-6 pb-4" style={{ gap: "0.5rem", color: f.textColor }}>
+                <p aria-label="Ingredients" className="whitespace-nowrap uppercase" style={{ fontFamily: "var(--font-mono-label)", fontSize: 11, lineHeight: 0.87, letterSpacing: "0.8px" }}>
+                  Ingredients
                 </p>
-                <p aria-label={f.ingredients[1]}>
-                  {f.ingredients[1]}
+                <div style={{ fontFamily: "var(--font-body)", fontSize: 15, lineHeight: 1.5, maxWidth: "84vw" }}>
+                  <p className="mb-0" aria-label={f.ingredients[0]}>
+                    {f.ingredients[0]}
+                  </p>
+                  <p aria-label={f.ingredients[1]}>
+                    {f.ingredients[1]}
+                  </p>
+                </div>
+                <p
+                  className="text-center font-bold uppercase"
+                  style={{ fontFamily: "var(--font-display)", fontSize: "clamp(2.5rem, 13vw, 5.5rem)", lineHeight: 0.8, letterSpacing: "-0.06em", color: f.nameColor }}
+                >
+                  {f.name}
                 </p>
               </div>
-              <p
-                className="text-center font-bold uppercase"
-                style={{ fontFamily: "var(--font-display)", fontSize: "clamp(2.5rem, 13vw, 5.5rem)", lineHeight: 0.8, letterSpacing: "-0.06em", color: f.nameColor }}
-              >
-                {f.name}
-              </p>
             </div>
           </motion.div>
         </AnimatePresence>

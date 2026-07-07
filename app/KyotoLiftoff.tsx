@@ -45,21 +45,24 @@ const TO = 0.12;
 const FADE_END = 0.3; // video → red background cross-fade completes here
 const EMERGE_END = 0.35; // pouch fully "out of the video" here
 const ROT_DELAY = 0.3; // rotation only starts once the pouch is mostly out
-// "Come out toward the viewer" pop. The cutout materialises exactly where the
-// pouch sits in the video frame (offset + scale below, in design px relative
-// to the rest position), then travels to its rest spot as it emerges.
+// "Come out toward the viewer" pop. The cutout's rest spot now sits exactly
+// where the pouch appears in the video frame (centred), so it materialises over
+// its twin and STAYS put — only growing toward the viewer (scale) and lifting,
+// no sideways drift. Hence the positional emerge deltas are 0.
 const EMERGE_SCALE = 0.8; // ≈ the video pouch's size vs the cutout
-const EMERGE_DX = 213; // video pouch centre is ~27% of the box to the right…
-const EMERGE_DY = 91; // …and ~10% down from the cutout's rest centre
+const EMERGE_DX = 0; // no horizontal drift — stays centred on the video twin
+const EMERGE_DY = 0; // no vertical drift on emerge (the lift below still applies)
 const LIFT_U = 150; // how far (design px) it rises
 const GROW = 0.12; // extra scale as it pops out
 // Rotation (flat 2-D, deg), scrubbed over the back of the window.
 const ROT_START = 0; // at rest
-const ROT_END = -200; // full scroll-down
-// Pouch image (square) + placement inside the 789×906 scene box.
+const ROT_END = 200; // full scroll-down (positive = tips to the right / clockwise)
+// Pouch image (square) + placement inside the 789×906 scene box. Centred on the
+// video pouch (the old 20%/60% rest + emerge offset landed here), so the cutout
+// emerges dead-centre in the frame.
 const POUCH_W = 900; // img side in design px (visible pouch ≈ 32% of this)
-const POUCH_X = "20%";
-const POUCH_Y = "60%";
+const POUCH_X = "47%";
+const POUCH_Y = "70%";
 // Red-wave splash. Placement is relative to the scene box, in design px
 // (same canvas spot it occupied as a static layer in AboutCollage).
 const WAVE_LEFT = -307.27; // = -9.75 (canvas) - 297.52 (scene left)
@@ -78,7 +81,7 @@ const SPLASH_ROT = 150;
 // Cap-tracking: the wave is translated so its trickle spike (= its transform
 // origin) sits under the spout's PROJECTED position while the pouch swings —
 // otherwise the splash blooms where the cap will be, not where it is.
-const POUCH_CX = 789.24 * 0.2; // pouch centre x (= POUCH_X of the scene box)
+const POUCH_CX = 789.24 * 0.47; // pouch centre x (= POUCH_X of the scene box)
 const CAP_D = 342; // cap-tip distance from the pouch image centre (design px)
 const SPIKE_X = WAVE_LEFT + 0.42 * WAVE_W; // trickle spike x at rest
 

@@ -27,10 +27,15 @@ interface Props {
   /** Apply the /m-photo-card.svg curved frame mask. Default false. */
   frame?: boolean;
   /**
+   * Where incoming slides enter from. "up" (default): the incoming slide rises
+   * from below; "down": it descends from above. The reverse step mirrors it.
+   */
+  direction?: "up" | "down";
+  /**
    * Controlled mode. When provided, the timer autoplay is disabled and the slider
-   * animates to this index — incoming rises over the current slide on increase,
-   * the current slide drops to reveal the previous one on decrease (so scroll-up
-   * reverses cleanly). Omit for self-driven autoplay.
+   * animates to this index — incoming slides over the current one on increase,
+   * the current slide moves away to reveal the previous one on decrease (so
+   * scroll-up reverses cleanly). Omit for self-driven autoplay.
    */
   index?: number;
   className?: string;
@@ -42,6 +47,7 @@ export default function VerticalSlider({
   interval = 3200,
   duration = 0.9,
   frame = false,
+  direction = "up",
   index,
   className,
   style,
@@ -52,18 +58,24 @@ export default function VerticalSlider({
   // Refs so the one-shot effect always reads current prop values
   const intervalRef = useRef(interval);
   const durationRef = useRef(duration);
+  const directionRef = useRef(direction);
   useEffect(() => { intervalRef.current = interval; }, [interval]);
   useEffect(() => { durationRef.current = duration; }, [duration]);
+  useEffect(() => { directionRef.current = direction; }, [direction]);
+
+  // Off-screen parking spot for hidden slides: below for "up", above for "down".
+  const off = () => (directionRef.current === "down" ? "-100%" : "100%");
 
   // Tracks the visible slide across renders for controlled stepping.
   const curRef = useRef(0);
 
-  // Initial stacking: slid, the rest parked below (clipped by overflow:hidden).
+  // Initial stacking: first slide shown, the rest parked off-screen (clipped
+  // by overflow:hidden).
   useEffect(() => {
     const els = slideRefs.current.filter((el): el is HTMLDivElement => el !== null);
     if (els.length < 1) return;
     gsap.set(els[0], { y: "0%", zIndex: 1 });
-    els.slice(1).forEach(el => gsap.set(el, { y: "100%", zIndex: 0 }));
+    els.slice(1).forEach(el => gsap.set(el, { y: off(), zIndex: 0 }));
     curRef.current = 0;
   }, []);
 
@@ -85,8 +97,8 @@ export default function VerticalSlider({
       const curEl = els[cur];
       const nxtEl = els[nxt];
 
-      // Park incoming below, then slide it up
-      gsap.set(nxtEl, { y: "100%", zIndex: 2 });
+      // Park incoming off-screen, then slide it in
+      gsap.set(nxtEl, { y: off(), zIndex: 2 });
       gsap.to(nxtEl, {
         y: "0%",
         duration: durationRef.current,
@@ -120,23 +132,23 @@ export default function VerticalSlider({
     const nxtEl = els[next];
 
     if (next > cur) {
-      // Forward: incoming rises over the current slide.
-      gsap.set(nxtEl, { y: "100%", zIndex: 2 });
+      // Forward: incoming slides in over the current slide.
+      gsap.set(nxtEl, { y: off(), zIndex: 2 });
       gsap.to(nxtEl, {
         y: "0%",
         duration: durationRef.current,
         ease: "power2.inOut",
         onComplete() {
-          gsap.set(curEl, { y: "100%", zIndex: 0 });
+          gsap.set(curEl, { y: off(), zIndex: 0 });
           gsap.set(nxtEl, { zIndex: 1 });
         },
       });
     } else {
-      // Reverse: target sits beneath, current drops away to reveal it.
+      // Reverse: target sits beneath, current moves away to reveal it.
       gsap.set(nxtEl, { y: "0%", zIndex: 1 });
       gsap.set(curEl, { zIndex: 2 });
       gsap.to(curEl, {
-        y: "100%",
+        y: off(),
         duration: durationRef.current,
         ease: "power2.inOut",
         onComplete() {

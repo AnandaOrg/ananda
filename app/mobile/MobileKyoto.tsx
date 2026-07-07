@@ -47,24 +47,27 @@ const TO = 0.12;
 const FADE_END = 0.3; // video → red background cross-fade completes here
 const EMERGE_END = 0.35; // pouch fully "out of the video" here
 const ROT_DELAY = 0.3; // rotation only starts once the pouch is mostly out
-// "Come out toward the viewer" pop. The cutout materialises exactly where the
-// pouch sits in the video frame (offset + scale below, in mobile design px
-// relative to the rest position), then travels to its rest spot as it emerges.
+// "Come out toward the viewer" pop. The cutout's rest spot now sits exactly
+// where the pouch appears in the video frame (centred), so it materialises over
+// its twin and STAYS put — only growing toward the viewer (scale) and lifting,
+// no sideways drift. Hence the positional emerge deltas are 0.
 const EMERGE_SCALE = 0.8; // ≈ the video pouch's size vs the cutout
-const EMERGE_DX = 105; // desktop 213 × 0.494
-const EMERGE_DY = 45; // desktop 91 × 0.494
+const EMERGE_DX = 0; // no horizontal drift — stays centred on the video twin
+const EMERGE_DY = 0; // no vertical drift on emerge (the lift below still applies)
 const LIFT_MU = 74; // how far (mobile design px) it rises
 const GROW = 0.12; // extra scale as it pops out
 // Rotation (flat 2-D, deg), scrubbed over the back of the window.
 const ROT_START = 0; // at rest
-const ROT_END = -200; // full scroll-down
+const ROT_END = 200; // full scroll-down (positive = tips to the right / clockwise)
 // Scene box (desktop 789.24×905.94 → full mobile frame width).
 const SCENE_W = 390;
 const SCENE_H = 447.7;
-// Pouch image (square) + placement inside the scene box.
+// Pouch image (square) + placement inside the scene box. Centred on the video
+// pouch (the old 20%/60% rest + emerge offset landed here), so the cutout
+// emerges dead-centre in the frame.
 const POUCH_W = 444.7; // img side in mobile design px
-const POUCH_X = "20%";
-const POUCH_Y = "60%";
+const POUCH_X = "47%";
+const POUCH_Y = "70%";
 // Red-wave splash, relative to the scene box.
 const WAVE_LEFT = -151.8;
 const WAVE_TOP = 399.5;
@@ -82,7 +85,7 @@ const SPLASH_ROT = 150;
 // Cap-tracking: the wave is translated so its trickle spike (= its transform
 // origin) sits under the spout's PROJECTED position while the pouch swings —
 // otherwise the splash blooms where the cap will be, not where it is.
-const POUCH_CX = SCENE_W * 0.2; // pouch centre x (= POUCH_X of the scene box)
+const POUCH_CX = SCENE_W * 0.47; // pouch centre x (= POUCH_X of the scene box)
 const CAP_D = 169; // cap-tip distance from the pouch image centre (desktop 342 × 0.494)
 const SPIKE_X = WAVE_LEFT + 0.42 * WAVE_W; // trickle spike x at rest
 
