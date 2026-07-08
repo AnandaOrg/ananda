@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import { useEffect, useRef } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
@@ -133,12 +132,14 @@ export default function MobileIntro() {
                   transform: "rotate(-45deg) scale(1.5)",
                 }}
               >
-                <Image
-                  src="/ananda-pour.png"
-                  alt="Pouring an ANANDA cocktail"
-                  fill
-                  sizes="60vw"
-                  className="object-cover"
+                <video
+                  src="/videos/woman-drinking.mp4"
+                  autoPlay
+                  muted
+                  loop
+                  playsInline
+                  aria-hidden="true"
+                  className="absolute inset-0 h-full w-full object-cover"
                 />
               </span>
             </span>

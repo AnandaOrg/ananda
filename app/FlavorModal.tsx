@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { AnimatePresence, motion, useAnimationControls, useReducedMotion, type Variants } from "framer-motion";
+import { AnimatePresence, motion, useReducedMotion, type Transition, type Variants } from "framer-motion";
 import GlbViewer, { type GlbViewerHandle, type ModelEntry } from "./GlbViewer";
 
 /**
@@ -18,7 +18,7 @@ const u = (n: number) => `calc(var(--u) * ${n})`;
 // Single source of truth for the prev/next transition length. The GLB spin +
 // colour cross-fade (navDuration), the background, and the scene all use this so
 // they change in lockstep.
-const NAV_DURATION = 1.7;
+const NAV_DURATION = 0.5;
 
 // Carousel swing — the flavour screens behave like spokes on a wheel hinged at
 // the viewport's bottom-centre. Navigation rotates the wheel one quarter turn:
@@ -29,12 +29,33 @@ const NAV_DURATION = 1.7;
 // and the incoming plane crossfades 0 → 1 while it swings, so the switch reads
 // as one continuous, edgeless rotation. `custom` carries the nav direction
 // (+1 next / −1 prev / 0 reduced motion → plain crossfade).
-const SWING_ORIGIN = { transformOrigin: "50% 100%" } as const;
 const SWING_TRANSITION = { type: "tween", duration: NAV_DURATION, ease: "easeInOut" } as const;
+// Overshoot-and-settle: each half of the wheel swing peaks past its resting
+// angle before springing back, so the combined 180° wheel turn overshoots and
+// settles at 180° — the GLB swing (below) mirrors the same keyframes/timing so
+// the bottle and background stay in lockstep. Runs faster than NAV_DURATION
+// (which still paces the crossfade) so the rotation reads as a hard impact —
+// the layer slams into the overshoot, then snaps back off the "wall".
+const SWING_OVERSHOOT = 32;
+const SWING_IMPACT_DURATION = 0.364;
+const SWING_ROTATE_TRANSITION: Transition = {
+  type: "tween",
+  duration: SWING_IMPACT_DURATION,
+  times: [0, 0.6, 1],
+  ease: ["easeIn", "easeOut"],
+};
 const LAYER_VARIANTS: Variants = {
   enter: (dir: number) => ({ rotate: 90 * dir, opacity: 0 }),
-  center: { rotate: 0, opacity: 1 },
-  exit: (dir: number) => ({ rotate: -90 * dir, opacity: 1 }),
+  center: (dir: number) => ({
+    rotate: [90 * dir, -SWING_OVERSHOOT * dir, 0],
+    opacity: 1,
+    transition: { ...SWING_TRANSITION, rotate: SWING_ROTATE_TRANSITION },
+  }),
+  exit: (dir: number) => ({
+    rotate: [0, -(90 + SWING_OVERSHOOT) * dir, -90 * dir],
+    opacity: 1,
+    transition: { ...SWING_TRANSITION, rotate: SWING_ROTATE_TRANSITION },
+  }),
 };
 // The rotating plane: a 260vmax square whose centre sits exactly on the hinge
 // (bottom-centre of the viewport). 130vmax always exceeds the distance from the
@@ -92,6 +113,10 @@ const MODAL_GLB_MODELS: ModelEntry[] = [
   { src: "/glb/kyoto.glb" },
 ];
 
+/** Source paths for the modal's GLB models — exported so the page can warm them
+ *  (preloadGlb) before the overlay opens. */
+export const MODAL_GLB_SRCS = MODAL_GLB_MODELS.map((m) => m.src);
+
 const LEMON: Crop = { w: "134.65%", h: "166.26%", left: "-22.14%", top: "-38.75%" };
 const ANIS: Crop = { w: "198.31%", h: "263.23%", left: "-50.89%", top: "-95.48%" };
 const MANGO: Crop = { w: "143.08%", h: "181.55%", left: "-22.78%", top: "-36.97%" };
@@ -108,7 +133,7 @@ export const FLAVORS: Flavor[] = [
     textColor: "#fff0e5",
     pattern: "/fl-bg-blue.svg",
     pouch: { src: "/fl-pouch-blue.png", w: 239.498, crop: { w: "309.93%", h: "112.64%", left: "-107.01%", top: "-8.24%" } },
-    ingredients: ["Lemon, Mint and Anise.", "Mediterranean freshness."],
+    ingredients: ["Anise, Mint and Lemon.", "Mediterranean freshness."],
     fruits: [
       { src: "/fl-lemon.png", box: { left: 1394.65, top: 129.43, w: 498.3, h: 511.147 }, inner: { w: 325.032, h: 394.871 }, rotate: 37.53, crop: LEMON },
       { src: "/fl-lemon.png", box: { left: -273.6, top: 129.43, w: 860.531, h: 887.238 }, inner: { w: 564.863, h: 686.234 }, rotate: -36.05, blur: 4.148, crop: LEMON },
@@ -189,7 +214,7 @@ function FruitImg({ f, i }: { f: Fruit; i: number }) {
     ["--float-x" as string]: `${8 + (i % 3) * 4}px`,
     ["--float-y" as string]: `${-(12 + (i % 4) * 4)}px`,
     ["--float-r" as string]: `${(i % 2 ? -1 : 1) * (2 + (i % 3))}deg`,
-    ["--float-dur" as string]: `${5 + (i % 5) * 0.9}s`,
+    ["--float-dur" as string]: `${8 + (i % 5) * 1.3}s`,
     ["--float-delay" as string]: `${-i * 1.3}s`,
   };
 
@@ -284,26 +309,6 @@ export default function FlavorModal({
   // Wheel direction for the layer variants; 0 disables the swing entirely.
   const layerDir = reduceMotion ? 0 : navDir;
 
-  // The GLB canvas rides the incoming spoke: on every nav it snaps to ±90°
-  // and rotates to 0° in lockstep with the incoming layer. One controls
-  // instance drives both the desktop and mobile wrappers.
-  const glbSwing = useAnimationControls();
-  const prevIndexRef = useRef(index);
-  useEffect(() => {
-    if (prevIndexRef.current === index) return;
-    prevIndexRef.current = index;
-    if (reduceMotion) return;
-    glbSwing.set({ rotate: 90 * navDir });
-    glbSwing.start({ rotate: 0, transition: SWING_TRANSITION });
-  }, [index, navDir, glbSwing, reduceMotion]);
-
-  // The GLB always renders above the modal's scene/text (high z-index set on the
-  // viewer itself, below). Clicking the stage lays the bottle flat at +90°.
-  const liftGlb = () => {
-    desktopGlbRef.current?.tiltTo90();
-    mobileGlbRef.current?.tiltTo90();
-  };
-
   useEffect(() => {
     // Spin is handled by the viewer's spinOnMount as the new model loads.
     const onKey = (e: KeyboardEvent) => {
@@ -348,18 +353,19 @@ export default function FlavorModal({
       {/* ───────── Desktop / tablet: stage fills the viewport ───────── */}
       <div className="hidden size-full md:block">
         <div
-          onClick={liftGlb}
           className="relative size-full overflow-hidden"
-          style={{ containerType: "inline-size", ["--u" as string]: "calc(100cqw / 1920)" }}
+          style={{ containerType: "inline-size", ["--u" as string]: "calc(100cqw / 1920)", height: "100svh" }}
         >
-          {/* GLB: persistent viewer inside a full-screen wrapper that replays
-              the protractor swing on nav, so the product arrives with the scene. */}
-          <motion.div animate={glbSwing} className="absolute inset-0" style={{ ...SWING_ORIGIN, pointerEvents: "none", zIndex: 40 }}>
+          {/* GLB: persistent viewer, stays put on screen — on nav it spins a full
+              360° left-to-right turntable (see GlbViewer's activeIndex handling)
+              timed to the modal's bounce-back instead of swinging out of frame. */}
+          <div className="absolute inset-0" style={{ pointerEvents: "none", zIndex: 40 }}>
             <GlbViewer
               ref={desktopGlbRef}
               models={MODAL_GLB_MODELS}
               activeIndex={index}
               navDuration={NAV_DURATION}
+              spinDuration={SWING_IMPACT_DURATION}
               initialTilt={0}
               noScroll
               style={{
@@ -374,7 +380,7 @@ export default function FlavorModal({
                 pointerEvents: "none",
               }}
             />
-          </motion.div>
+          </div>
 
           {/* Scene + ingredients + name: the outgoing flavour swings out one
               way while this one swings in from the other, crossfading — one
@@ -439,15 +445,16 @@ export default function FlavorModal({
       </div>
 
       {/* ───────── Mobile: scene covers the screen, controls fit the viewport ───────── */}
-      <div onClick={liftGlb} className="absolute inset-0 md:hidden">
-        {/* GLB: persistent viewer inside a full-screen wrapper that replays
-            the protractor swing on nav. */}
-        <motion.div animate={glbSwing} className="absolute inset-0" style={{ ...SWING_ORIGIN, pointerEvents: "none", zIndex: 40 }}>
+      <div className="absolute inset-0 md:hidden">
+        {/* GLB: persistent viewer, stays put on screen — on nav it spins a full
+            360° left-to-right turntable timed to the modal's bounce-back. */}
+        <div className="absolute inset-0" style={{ pointerEvents: "none", zIndex: 40 }}>
           <GlbViewer
             ref={mobileGlbRef}
             models={MODAL_GLB_MODELS}
             activeIndex={index}
             navDuration={NAV_DURATION}
+            spinDuration={SWING_IMPACT_DURATION}
             initialTilt={0}
             noScroll
             style={{
@@ -461,7 +468,7 @@ export default function FlavorModal({
               pointerEvents: "none",
             }}
           />
-        </motion.div>
+        </div>
 
         {/* Scene + text: the outgoing flavour swings out one way while this
             one swings in from the other, crossfading — one edgeless wheel turn. */}
@@ -480,7 +487,7 @@ export default function FlavorModal({
             <div style={PLANE_CONTENT_STYLE}>
               <div
                 className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 overflow-hidden w-full"
-                style={{ aspectRatio: "16 / 9", containerType: "inline-size", ["--u" as string]: "calc(100cqw / 1920)" }}
+                style={{ aspectRatio: "16 / 9", containerType: "inline-size", ["--u" as string]: "calc(100cqw / 1920)", height: "100svh" }}
               >
                 <Scene f={f} />
               </div>

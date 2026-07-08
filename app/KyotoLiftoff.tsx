@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import gsap from "gsap";
 
 /**
  * Section 3 — the KYOTO pouch scene. One scroll-scrubbed choreography:
@@ -11,16 +12,21 @@ import { useEffect, useRef } from "react";
  *    and the pouch EMERGES out of it: the frozen frame cross-fades into the
  *    soft red background (`kyoto-background.png`) while the KYOTO pouch cutout
  *    (`kyoto-image.png`) fades + grows up out of the frame. Only once it's out
- *    does it start rotating/tipping over, and the red wave (`/c-wave.svg`)
- *    splashes OUT of the spout — surging up from the seam with the red section
- *    below, with a slight overshoot before settling. Everything is scrubbed
- *    (reverses on scroll-up), and
- *    scrolling fully back to rest resumes the video loop.
+ *    does it start rotating/tipping over, and liquid POURS out of the spout —
+ *    a thin STREAM (tracking the cap) whose height is pure geometry (cap Y to
+ *    the PUDDLE's fixed top), so it visibly falls/grows as the pouch tips and
+ *    collapses once the spout reaches the puddle, plus a PUDDLE (`/c-wave.svg`)
+ *    that fades + "plops" in at the seam below, with a brief settle bounce.
+ *    Once fully settled both keep a slow, subtle flow/wobble loop (killed and
+ *    reset the moment you scroll back out of the settled zone) so it keeps
+ *    reading as liquid still moving, not a static shape. Everything but that
+ *    idle loop is scrubbed (reverses on scroll-up), and scrolling fully back
+ *    to rest resumes the video loop.
  *
  * All layers stay mounted so the cross-fade can scrub in both directions —
  * there is no phase swap / remount any more.
  *
- * NOTE: this component owns the red wave layer (it used to be a static
+ * NOTE: this component owns the red pour layer (it used to be a static
  * sibling in AboutCollage) so one scroll progress drives pouch + splash.
  */
 
@@ -56,34 +62,51 @@ const LIFT_U = 150; // how far (design px) it rises
 const GROW = 0.12; // extra scale as it pops out
 // Rotation (flat 2-D, deg), scrubbed over the back of the window.
 const ROT_START = 0; // at rest
-const ROT_END = 200; // full scroll-down (positive = tips to the right / clockwise)
+const ROT_END = 160; // full scroll-down (positive = tips to the right / clockwise)
 // Pouch image (square) + placement inside the 789×906 scene box. Centred on the
 // video pouch (the old 20%/60% rest + emerge offset landed here), so the cutout
 // emerges dead-centre in the frame.
-const POUCH_W = 900; // img side in design px (visible pouch ≈ 32% of this)
-const POUCH_X = "47%";
-const POUCH_Y = "70%";
-// Red-wave splash. Placement is relative to the scene box, in design px
-// (same canvas spot it occupied as a static layer in AboutCollage).
-const WAVE_LEFT = -307.27; // = -9.75 (canvas) - 297.52 (scene left)
-const WAVE_TOP = 808.52; // = 1787.06 (canvas) - 978.54 (scene top)
-const WAVE_W = 1464.584;
-const WAVE_H = 323.123;
-// The wave SVG's trickle spike tops out at ~x 615 / 1464, y 0. The wave is
-// anchored to its BOTTOM edge (which is flat and sits flush with the red
-// Pathways section below) so that at any scale the splash stays connected to
-// the next section and grows UP toward the spout.
-const WAVE_ORIGIN = "42% 100%";
+const SCENE_H = 905.94; // wrapRef's own height — where the video/background box's red ends
+const POUCH_W = 740; // img side in design px (visible pouch ≈ 32% of this)
+const POUCH_X = "40%";
+const POUCH_Y = "68%";
+// The pour has three independent pieces so it reads as liquid actually
+// FALLING onto a continuous surface rather than a shape unveiling in a void:
+//  • BACKDROP — a static, same-red panel (matches the video/background box's
+//    own red) that extends the scene box's colour down to the puddle's
+//    floor. Without it there'd be a visible band of the page's cream
+//    background between the box's hard bottom edge and the puddle's silhouette
+//    (which — being a wavy shape — only touches its own box's top at its
+//    narrow peak, not across its full width), reading as a stray seam line.
+//    Fades in with the stream, same width as the scene box above it.
+//  • STREAM — a thin column tracking the cap horizontally (like the real
+//    spout), whose height is pure geometry: cap Y down to the puddle's fixed
+//    top. It visibly grows as the pouch tips and collapses to nothing once
+//    the spout reaches the puddle — no separate reveal animation needed.
+//  • PUDDLE (`/c-wave.svg`) — pinned edge-to-edge across the FULL canvas
+//    width (matching the section, which is always exactly viewport-wide —
+//    see AboutCollage). Its height is shallower than the SVG's natural ratio
+//    would give (~318u) on purpose: the cap barely moves vertically across
+//    the visible splash window (SPLASH_ROT→ROT_END, ~25u of travel), so a
+//    full-height puddle would swallow the stream almost entirely — a
+//    shallower puddle leaves it room to actually be seen falling. It fades +
+//    "plops" in a beat after the stream starts, as if the liquid takes a
+//    moment to reach it.
+const WAVE_FLOOR_Y = 1131.643; // = old WAVE_TOP(808.52) + WAVE_H(323.123): the fixed seam
+const CANVAS_W = 1440; // AboutCollage's canvas width (design px) — the puddle always spans this
+const PUDDLE_H = 180; // shallower than natural (~318u) so the stream stays visible — see above
+const STREAM_W = 40; // falling-stream column width (design px)
 // The splash is keyed to the pouch's ROTATION, not raw scroll: it starts once
 // the cap has swung past SPLASH_ROT° (cap points straight down at 180°) and
 // completes at full rotation (|ROT_END|).
 const SPLASH_ROT = 150;
-// Cap-tracking: the wave is translated so its trickle spike (= its transform
-// origin) sits under the spout's PROJECTED position while the pouch swings —
-// otherwise the splash blooms where the cap will be, not where it is.
+// Cap-tracking geometry: the pouch's centre (x constant, y falls by the LIFT
+// as it emerges) plus the cap's rotated offset from that centre gives the
+// cap's actual (x, y) every frame — used to position the STREAM only (the
+// puddle's position is fixed full-bleed, see above).
 const POUCH_CX = 789.24 * 0.47; // pouch centre x (= POUCH_X of the scene box)
+const POUCH_CY = 905.94 * 0.7; // pouch centre y at rest (= POUCH_Y of the scene box)
 const CAP_D = 342; // cap-tip distance from the pouch image centre (design px)
-const SPIKE_X = WAVE_LEFT + 0.42 * WAVE_W; // trickle spike x at rest
 
 const prefersReducedMotion = () =>
   typeof window !== "undefined" &&
@@ -100,10 +123,15 @@ export default function KyotoLiftoff({
 } = {}) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const pouchRef = useRef<HTMLDivElement>(null);
+  const backdropRef = useRef<HTMLDivElement>(null);
+  const streamRef = useRef<HTMLDivElement>(null);
   const waveRef = useRef<HTMLDivElement>(null);
+  const waveInnerRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const bgRef = useRef<HTMLImageElement>(null);
   const engagedRef = useRef(false);
+  const waveSettledRef = useRef(false);
+  const waveIdleRef = useRef<gsap.core.Tween | null>(null);
 
   useEffect(() => {
     const wrap = wrapRef.current;
@@ -121,10 +149,21 @@ export default function KyotoLiftoff({
         pouch.style.opacity = "1";
         pouch.style.transform = "translate(-50%, -50%)";
       }
+      const backdrop = backdropRef.current;
+      const stream = streamRef.current;
       const wave = waveRef.current;
-      if (wave) {
+      if (backdrop && stream && wave) {
+        // Cap position at full rotation/lift (the settled pose), so the
+        // static stream still connects the spout to the puddle correctly.
+        const rad = (ROT_END * Math.PI) / 180;
+        const capY = POUCH_CY - LIFT_U - CAP_D * Math.cos(rad);
+        const puddleTop = WAVE_FLOOR_Y - PUDDLE_H;
+        backdrop.style.opacity = "1";
+        stream.style.opacity = "1";
+        stream.style.top = u(capY);
+        stream.style.height = u(Math.max(0, puddleTop - capY));
         wave.style.opacity = "1";
-        wave.style.transform = "scale(1)";
+        wave.style.transform = "scale(1, 1)";
       }
       return;
     }
@@ -173,29 +212,67 @@ export default function KyotoLiftoff({
         )}deg)`;
       }
 
-      // Stage 4 — the splash, keyed to the cap actually facing down: it only
-      // begins once the pouch has rotated past SPLASH_ROT°. Anchored to the
-      // seam with the red section below, it surges UP toward the spout with a
-      // slight overshoot (backOut on Y), spreads sideways a beat behind
-      // (smoothstep on X).
+      // Stage 4 — the pour, keyed to the cap actually facing down: it only
+      // begins once the pouch has rotated past SPLASH_ROT°. The STREAM's
+      // height is pure geometry (cap Y down to the puddle's fixed top), so it
+      // visibly falls/grows as the pouch tips and collapses to nothing once
+      // the spout reaches the puddle — no separate reveal animation needed.
+      // The PUDDLE fades + "plops" in a beat after the stream starts (a brief
+      // scaleY bounce sells it "landing"), as if the liquid takes a moment to
+      // reach it.
+      const backdrop = backdropRef.current;
+      const stream = streamRef.current;
       const wave = waveRef.current;
-      if (wave) {
+      if (backdrop && stream && wave) {
         const sp = clamp(
           (Math.abs(rot) - SPLASH_ROT) / (Math.abs(ROT_END) - SPLASH_ROT),
           0,
           1
         );
-        const sy = backOut(sp);
-        const sx = smoothstep(sp);
-        // Slide the wave so the spike stays under the swinging cap. No
-        // rotation here: any tilt would lift the flat bottom edge off the
-        // seam with the red section below.
-        const capX = POUCH_CX + CAP_D * Math.sin((rot * Math.PI) / 180);
-        const wdx = capX - SPIKE_X;
-        wave.style.opacity = clamp(sp / 0.15, 0, 1).toFixed(3);
-        wave.style.transform = `translateX(calc(var(--u) * ${wdx.toFixed(
-          2
-        )})) scale(${sx.toFixed(3)}, ${sy.toFixed(3)})`;
+        // Isolate just the overshoot hump of backOut (its excess above 1) so
+        // the bounce is a brief "plop" near the end, not a scale-from-zero.
+        const bounce = 1 + Math.max(0, backOut(sp) - 1) * 0.6;
+        // The cap's actual Y: pouch centre (lowered by the lift) plus its
+        // rotated offset from that centre.
+        const rad = (rot * Math.PI) / 180;
+        const capY = POUCH_CY - LIFT_U * p - CAP_D * Math.cos(rad);
+        const puddleTop = WAVE_FLOOR_Y - PUDDLE_H;
+        const streamOpacity = clamp(sp / 0.1, 0, 1);
+        backdrop.style.opacity = streamOpacity.toFixed(3);
+        stream.style.opacity = streamOpacity.toFixed(3);
+        stream.style.top = u(capY);
+        stream.style.height = u(Math.max(0, puddleTop - capY));
+
+        const puddleOpacity = clamp((sp - 0.2) / 0.5, 0, 1);
+        wave.style.opacity = puddleOpacity.toFixed(3);
+        wave.style.transform = `scale(1, ${bounce.toFixed(3)})`;
+
+        // Idle loop: once the pour has essentially finished settling, keep
+        // the puddle subtly alive (gentle flow/wobble) instead of going
+        // static. Scrolling back out of the settled zone stops it and resets
+        // the inner wrapper — the idle animation lives there, never touching
+        // the outer div's scroll-driven transform/clip-path, so the two never
+        // fight over the same property.
+        const settled = sp >= 0.98;
+        if (settled && !waveSettledRef.current) {
+          waveSettledRef.current = true;
+          const inner = waveInnerRef.current;
+          if (inner) {
+            waveIdleRef.current = gsap.to(inner, {
+              scaleX: 1.018,
+              skewX: 1.2,
+              duration: 2.6,
+              ease: "sine.inOut",
+              yoyo: true,
+              repeat: -1,
+            });
+          }
+        } else if (!settled && waveSettledRef.current) {
+          waveSettledRef.current = false;
+          waveIdleRef.current?.kill();
+          waveIdleRef.current = null;
+          if (waveInnerRef.current) gsap.set(waveInnerRef.current, { scaleX: 1, skewX: 0 });
+        }
       }
     };
 
@@ -226,6 +303,7 @@ export default function KyotoLiftoff({
       window.removeEventListener("resize", onScroll);
       io?.disconnect();
       if (raf) cancelAnimationFrame(raf);
+      waveIdleRef.current?.kill();
     };
   }, []);
 
@@ -233,77 +311,130 @@ export default function KyotoLiftoff({
     <div
       ref={wrapRef}
       className="absolute"
-      style={{ left: u(posLeft), top: u(posTop), width: u(789.24), height: u(905.94) }}
+      style={{ left: u(posLeft), top: u(posTop), width: u(789.24), height: u(SCENE_H) }}
     >
-      {/* Soft red background — revealed under the video as it fades out */}
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        ref={bgRef}
-        src="/kyoto/kyoto-background.png"
-        alt=""
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-0 size-full object-cover"
-        style={{ opacity: 0 }}
-      />
-
-      {/* Looping KYOTO video — freezes and cross-fades away as the pouch emerges */}
-      <video
-        ref={videoRef}
-        src={VIDEO_SRC}
-        className="pointer-events-none absolute inset-0 size-full object-cover"
-        style={{ opacity: 1, willChange: "opacity" }}
-        muted
-        loop
-        playsInline
-        preload="auto"
-        aria-hidden="true"
-      />
-
-      {/* KYOTO pouch — emerges out of the video (fade + grow), then tips over on scroll */}
-      <div
-        ref={pouchRef}
-        className="pointer-events-none absolute"
-        style={{
-          left: POUCH_X,
-          top: POUCH_Y,
-          width: u(POUCH_W),
-          height: u(POUCH_W),
-          opacity: 0,
-          transform: `translate(-50%, -50%) translate(${u(EMERGE_DX)}, ${u(
-            EMERGE_DY
-          )}) scale(${EMERGE_SCALE})`,
-          transformOrigin: "50% 50%",
-          willChange: "transform, opacity",
-        }}
-      >
+      {/* Clips the video + pouch to the red scene box — the pouch must stay
+          inside this frame at every rotation, never spilling past its edges.
+          The wave is a SIBLING outside this clip (below), since it's meant to
+          spill past the box's bottom edge into the section below. */}
+      <div className="absolute inset-0 overflow-hidden">
+        {/* Soft red background — revealed under the video as it fades out */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src="/kyoto/kyoto-image.png"
-          alt="ANANDA KYOTO cocktail pouch — Strawberry / Lychee · Yuzu"
-          className="block size-full select-none"
+          ref={bgRef}
+          src="/kyoto/kyoto-background.png"
+          alt=""
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 size-full object-cover"
+          style={{ opacity: 0 }}
         />
+
+        {/* Looping KYOTO video — freezes and cross-fades away as the pouch emerges */}
+        <video
+          ref={videoRef}
+          src={VIDEO_SRC}
+          className="pointer-events-none absolute inset-0 size-full object-cover"
+          style={{ opacity: 1, willChange: "opacity" }}
+          muted
+          loop
+          playsInline
+          preload="auto"
+          aria-hidden="true"
+        />
+
+        {/* KYOTO pouch — emerges out of the video (fade + grow), then tips over on scroll */}
+        <div
+          ref={pouchRef}
+          className="pointer-events-none absolute"
+          style={{
+            left: POUCH_X,
+            top: POUCH_Y,
+            width: u(POUCH_W),
+            height: u(POUCH_W),
+            opacity: 0,
+            transform: `translate(-50%, -50%) translate(${u(EMERGE_DX)}, ${u(
+              EMERGE_DY
+            )}) scale(${EMERGE_SCALE})`,
+            transformOrigin: "50% 50%",
+            willChange: "transform, opacity",
+          }}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/kyoto/kyoto-image.png"
+            alt="ANANDA KYOTO cocktail pouch — Strawberry / Lychee · Yuzu"
+            className="block size-full select-none"
+          />
+        </div>
       </div>
 
-      {/* Red wave — the splash. Bottom-anchored to the seam with the red
-          section below; rises with overshoot to meet the spout as the
-          pouch tips. Always mounted so it can bloom while scrubbing;
-          invisible at rest. */}
+      {/* Backdrop continuation — see BACKDROP comment above. Static same-red
+          panel, same width as the scene box above it. Stops EXACTLY at the
+          puddle's own top (not the floor) — it must only patch the gap
+          above the puddle, never sit behind the puddle's own box, or it'd
+          flatten out its wavy silhouette (same red, zero contrast). */}
+      <div
+        ref={backdropRef}
+        className="pointer-events-none absolute inset-x-0"
+        style={{
+          top: u(SCENE_H),
+          height: u(WAVE_FLOOR_Y - PUDDLE_H - SCENE_H),
+          background: "#eb4638",
+          opacity: 0,
+          willChange: "opacity",
+        }}
+      />
+
+      {/* Falling stream — connects the spout to the puddle. Height is pure
+          geometry (cap Y down to the puddle's fixed top), so it visibly
+          grows as the pouch tips and collapses once the spout reaches the
+          puddle — this alone reads as liquid falling, no reveal trick
+          needed. Tracks the cap horizontally, unlike the full-bleed puddle
+          below. The looping highlight (.wave-flow-glint) sells continuous
+          motion long after the scroll-driven fall finishes. */}
+      <div
+        ref={streamRef}
+        className="pointer-events-none absolute overflow-hidden"
+        style={{
+          left: u(POUCH_CX - STREAM_W / 2),
+          top: u(POUCH_CY - CAP_D),
+          width: u(STREAM_W),
+          height: 0,
+          opacity: 0,
+          borderRadius: u(STREAM_W / 2),
+          background: "linear-gradient(180deg, #f0685a 0%, #eb4638 45%, #eb4638 100%)",
+          willChange: "top, height, opacity",
+        }}
+      >
+        <div className="wave-flow-glint" aria-hidden="true" />
+      </div>
+
+      {/* Puddle — the splash landing at the seam with the red Pathways
+          section below. Fixed edge-to-edge across the full canvas width
+          (always exactly viewport-wide — see AboutCollage) so it never gaps
+          on one side, at its own natural (undistorted) height. Fades + plops
+          in a beat after the stream starts. Always mounted so it can bloom
+          while scrubbing; invisible at rest. The inner wrapper is a separate
+          layer purely for the settled idle wobble, so it never fights the
+          outer div's scroll-driven styles. */}
       <div
         ref={waveRef}
-        className="pointer-events-none absolute"
+        className="pointer-events-none absolute overflow-hidden"
         style={{
-          left: u(WAVE_LEFT),
-          top: u(WAVE_TOP),
-          width: u(WAVE_W),
-          height: u(WAVE_H),
+          left: u(-posLeft),
+          top: u(WAVE_FLOOR_Y - PUDDLE_H),
+          width: u(CANVAS_W),
+          height: u(PUDDLE_H),
           opacity: 0,
-          transform: "scale(0)",
-          transformOrigin: WAVE_ORIGIN,
+          transform: "scale(1, 1)",
+          transformOrigin: "50% 100%",
           willChange: "transform, opacity",
         }}
       >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/c-wave.svg" alt="" aria-hidden="true" className="block size-full" />
+        <div ref={waveInnerRef} className="size-full">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/c-wave.svg" alt="" aria-hidden="true" className="block size-full" />
+        </div>
       </div>
     </div>
   );

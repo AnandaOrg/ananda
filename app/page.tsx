@@ -58,11 +58,6 @@ export default function Home() {
       <div className="hidden md:block">
         <AboutCollage />
       </div>
-      {/* Block container: MobileCollage pins (usePinnedReveal). */}
-      <div className="md:hidden">
-        <MobileCollage />
-      </div>
-      <MobileCollageMedia />
       <MobileKyoto />
 
       {/* Section 4 — The Pathways to Bliss */}

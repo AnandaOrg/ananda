@@ -10,8 +10,6 @@ gsap.registerPlugin(ScrollTrigger);
 export type GlbViewerHandle = {
   spin: () => void;
   spin360: () => void;
-  /** Tilt the model to lie flat at +90° (+π/2 on Z). */
-  tiltTo90: () => void;
   resetTilt: () => void;
   /** Set the Z-tilt immediately (no tween) — for scroll-scrubbed control. */
   setTilt: (v: number) => void;
@@ -50,13 +48,39 @@ type Props = {
    *  full scroll (frac 0→1) to ride the bands. The model stays centred, so it
    *  never leaves the framebuffer; the canvas moves instead. e.g. `u(965)`. */
   scrollTravel?: string;
-  /** Index-select mode: seconds for the spin + colour cross-fade on activeIndex
+  /** Index-select mode: seconds for the colour cross-fade on activeIndex
    *  change. Match the caller's modal transition so the bottle and the
    *  background/scene change in lockstep. Default 0.7. */
   navDuration?: number;
+  /** Index-select mode: seconds for the left-to-right turntable spin on
+   *  activeIndex change. Defaults to `navDuration`. Pass the modal's
+   *  bounce-back duration so the bottle finishes its spin exactly as the
+   *  wheel swing settles. */
+  spinDuration?: number;
   className?: string;
   style?: React.CSSProperties;
 };
+
+let glbPreloaded: Promise<void> | null = null;
+/**
+ * Warm the three.js + GLTFLoader chunks and the THREE.Cache / browser copies of
+ * the given GLB files, so a GlbViewer that later loads them shows without the
+ * (multi-MB) download + chunk-import wait. Call it while the page is idle, ahead
+ * of opening the modal. Idempotent — repeated calls reuse the first promise.
+ */
+export function preloadGlb(srcs: string[]): Promise<void> {
+  if (glbPreloaded) return glbPreloaded;
+  glbPreloaded = (async () => {
+    const THREE = await import("three");
+    // Warm the GLTFLoader chunk too — init() awaits this same dynamic import.
+    await import("three/examples/jsm/loaders/GLTFLoader.js");
+    THREE.Cache.enabled = true; // so the modal's loader reuses these bytes
+    const fl = new THREE.FileLoader();
+    fl.setResponseType("arraybuffer");
+    await Promise.all(srcs.map((s) => fl.loadAsync(s).then(() => undefined).catch(() => undefined)));
+  })();
+  return glbPreloaded;
+}
 
 function cloneMaterials(
   group: THREE_TYPES.Group,
@@ -101,11 +125,13 @@ const GlbViewer = forwardRef<GlbViewerHandle, Props>(function GlbViewer({
   scrollRef,
   scrollTravel,
   navDuration,
+  spinDuration,
   className,
   style,
 }, ref) {
   const mountRef = useRef<HTMLDivElement>(null);
   const spinOffsetRef = useRef({ value: 0 });
+  const flipOffsetRef = useRef({ value: 0 });
   const tiltRef = useRef({ value: -Math.PI / 2 });
   const tiltTlRef = useRef<gsap.core.Timeline | null>(null);
   const fracRef = useRef(0);
@@ -128,11 +154,6 @@ const GlbViewer = forwardRef<GlbViewerHandle, Props>(function GlbViewer({
         ease: "power2.inOut",
       });
     },
-    tiltTo90() {
-      tiltTlRef.current?.kill();
-      tiltTlRef.current = gsap.timeline()
-        .to(tiltRef.current, { value: Math.PI / 2, duration: 1.0, ease: "sine.inOut" });
-    },
     resetTilt() {
       tiltTlRef.current?.kill();
       tiltTlRef.current = gsap.timeline()
@@ -148,8 +169,9 @@ const GlbViewer = forwardRef<GlbViewerHandle, Props>(function GlbViewer({
   }));
 
   // Index-select mode: when activeIndex changes (incl. first mount) point the
-  // render loop at the new model, reset its tilt to rest, and spin a full turn.
-  // The model is already loaded, so this never reloads — just a cross-fade.
+  // render loop at the new model, reset its tilt to rest, and spin a full
+  // left-to-right turntable turn. The model is already loaded, so this never
+  // reloads — just a cross-fade underneath the spin.
   useEffect(() => {
     if (activeIndex === undefined) return;
     const prev = activeRef.current;
@@ -168,12 +190,16 @@ const GlbViewer = forwardRef<GlbViewerHandle, Props>(function GlbViewer({
       activeRef.current = activeIndex;
       blendRef.current.value = 1;
     }
-    gsap.to(spinOffsetRef.current, {
-      value: spinOffsetRef.current.value + Math.PI * 2,
-      duration: dur,
+    // Spin a full left-to-right turntable turn instead of swinging the canvas
+    // out of frame — the bottle stays on screen the whole time. Timed to
+    // spinDuration (the modal's bounce-back) so it lands right as the wheel
+    // swing settles.
+    gsap.to(flipOffsetRef.current, {
+      value: flipOffsetRef.current.value + Math.PI * 2,
+      duration: spinDuration ?? dur,
       ease: "power2.inOut",
     });
-  }, [activeIndex, initialTilt, navDuration]);
+  }, [activeIndex, initialTilt, navDuration, spinDuration]);
 
   useEffect(() => {
     const mount = mountRef.current;
@@ -217,21 +243,10 @@ const GlbViewer = forwardRef<GlbViewerHandle, Props>(function GlbViewer({
       rim.position.set(-4, -2, 3);
       scene.add(rim);
 
+      // Reuse any bytes warmed by preloadGlb() (see above) instead of
+      // re-downloading — this is what makes the modal's pouch appear promptly.
+      THREE.Cache.enabled = true;
       const loader = new GLTFLoader();
-      const gltfs = await Promise.all(models.map((m) => loader.loadAsync(m.src)));
-
-      if (dead) return;
-
-      // Spin a full turn every time a model loads (initial mount + each models
-      // swap). Relative (+2π) so it fires on every reload, not just the first —
-      // an absolute target would be a no-op once the offset already equals 2π.
-      if (spinOnMount) {
-        gsap.to(spinOffsetRef.current, {
-          value: spinOffsetRef.current.value + Math.PI * 2,
-          duration: 0.7,
-          ease: "power2.inOut",
-        });
-      }
 
       function fitGroup(group: THREE_TYPES.Group) {
         const box = new THREE.Box3().setFromObject(group);
@@ -246,39 +261,89 @@ const GlbViewer = forwardRef<GlbViewerHandle, Props>(function GlbViewer({
         group.rotation.z = -Math.PI / 2;
       }
 
-      const groups = gltfs.map((g) => g.scene as THREE_TYPES.Group);
-      groups.forEach(fitGroup);
-
       // Index-select mode (modal): show models[activeIndex] and cross-fade on
       // change. Otherwise scroll-blend mode (Pathways): model 0 starts opaque.
       const useSelect = activeIndex !== undefined;
       const startIndex = activeIndex ?? 0;
 
-      // The shown model starts fully opaque; all others start transparent
-      const allMats = groups.map((g, i) => cloneMaterials(g, i === startIndex ? 1 : 0));
+      // Spin a full turn each time a model loads (initial mount + each swap).
+      // Relative (+2π) so it fires every reload, not just the first.
+      const spin = () => {
+        gsap.to(spinOffsetRef.current, {
+          value: spinOffsetRef.current.value + Math.PI * 2,
+          duration: 0.7,
+          ease: "power2.inOut",
+        });
+      };
 
-      groups.forEach((g, i) => {
-        g.visible = i === startIndex;
-        scene.add(g);
-      });
+      // groups[i]/allMats[i] fill in as each model loads. In index-select mode
+      // the active model loads first and the rest stream in behind it, so these
+      // arrays stay sparse briefly — the render loop iterates with forEach, which
+      // skips the holes, so a not-yet-loaded model simply isn't drawn.
+      const groups: (THREE_TYPES.Group | undefined)[] = new Array(models.length);
+      const allMats: (THREE_TYPES.MeshStandardMaterial[] | undefined)[] = new Array(models.length);
+      // Index-select mode only: an empty parent per model that carries ONLY the
+      // nav turntable spin. scn keeps its own rotation (tilt, etc.) untouched;
+      // the spin is composed on top via the parent transform, so it's a true
+      // world-Y (left-to-right) rotation no matter what scn's own rotation/order
+      // is doing.
+      const flipGroups: (THREE_TYPES.Group | undefined)[] = new Array(models.length);
 
-      // Warm up the GPU for every model up front so no model hitches the frame
-      // it first appears. compileAsync() builds the shader programs; a single
-      // warm-up render() then forces the geometry buffers + textures to upload
-      // (compile alone doesn't push those — they'd otherwise upload lazily on
-      // the first draw of each model, which is exactly the one-time lag seen on
-      // the initial santorini→aloha→gaia→kyoto pass). Both passes need every
-      // group visible; models 1-3 have opacity 0 so the warm-up draw shows
-      // nothing new. Restore per-model visibility afterwards.
-      groups.forEach((g) => { g.visible = true; });
-      if (typeof renderer.compileAsync === "function") {
-        await renderer.compileAsync(scene, camera);
+      // Fit, clone materials (opaque only for the shown model), add to the scene,
+      // then warm the GPU for it (compile shaders + upload geometry/textures) so
+      // its first visible frame never hitches. Registered in `groups` last, so
+      // the tick loop only picks it up once it's fully ready.
+      const install = async (scn: THREE_TYPES.Group, i: number, opaque: boolean) => {
+        fitGroup(scn);
+        allMats[i] = cloneMaterials(scn, opaque ? 1 : 0);
+        scn.visible = true; // visible for the compile/upload pass
+        const flipGroup = new THREE.Group();
+        flipGroup.add(scn);
+        scene.add(flipGroup);
+        if (typeof renderer!.compileAsync === "function") {
+          await renderer!.compileAsync(scene, camera);
+        } else {
+          renderer!.compile(scene, camera);
+        }
+        scn.visible = opaque; // the tick loop manages visibility from opacity hereafter
+        groups[i] = scn;
+        flipGroups[i] = flipGroup;
+      };
+
+      if (useSelect) {
+        // Active-first: load + show the opened flavour ASAP, then stream the
+        // rest in the background for the nav cross-fade. Time-to-first-pouch
+        // now costs one model (~30MB) instead of all four (~110MB).
+        const activeGltf = await loader.loadAsync(models[startIndex].src);
+        if (dead) return;
+        if (spinOnMount) spin();
+        await install(activeGltf.scene as THREE_TYPES.Group, startIndex, true);
+        if (dead) return;
+        renderer.render(scene, camera); // first paint: the opened pouch
+        void (async () => {
+          for (let i = 0; i < models.length; i++) {
+            if (i === startIndex || dead) continue;
+            try {
+              const g = await loader.loadAsync(models[i].src);
+              if (dead) return;
+              await install(g.scene as THREE_TYPES.Group, i, false);
+            } catch {
+              /* leave a hole — navigating to it will just show nothing */
+            }
+          }
+        })();
       } else {
-        renderer.compile(scene, camera);
+        // Scroll-blend (Pathways): every model must be ready before blending, so
+        // load them all up front and warm each as it's installed.
+        const gltfs = await Promise.all(models.map((m) => loader.loadAsync(m.src)));
+        if (dead) return;
+        if (spinOnMount) spin();
+        for (let i = 0; i < gltfs.length; i++) {
+          await install(gltfs[i].scene as THREE_TYPES.Group, i, i === startIndex);
+          if (dead) return;
+        }
+        renderer.render(scene, camera);
       }
-      if (dead) return;
-      renderer.render(scene, camera);
-      groups.forEach((g, i) => { g.visible = i === startIndex; });
 
       // Transition points for models[1], models[2], … (no entry for models[0])
       const transitionPoints = models.slice(1).map((m) => m.transitionAt ?? 0);
@@ -337,6 +402,8 @@ const GlbViewer = forwardRef<GlbViewerHandle, Props>(function GlbViewer({
         }
 
         groups.forEach((g, i) => {
+          const mats = allMats[i];
+          if (!g || !mats) return; // not loaded yet (streaming in the background)
           let opacity: number;
           if (useSelect) {
             // Cross-fade driven by the blend tween: new model fades in, the one
@@ -360,11 +427,17 @@ const GlbViewer = forwardRef<GlbViewerHandle, Props>(function GlbViewer({
           }
 
           g.position.y = 0;
-          g.rotation.x = 0;
           g.rotation.y = spinY + turntableY;
           g.rotation.z = tiltRef.current.value;
           g.visible = opacity > 0.01;
-          allMats[i].forEach((m) => { m.opacity = opacity; });
+          mats.forEach((m) => { m.opacity = opacity; });
+
+          // The nav flip lives on the empty parent, never on `g` itself — a
+          // rotation on a group whose only other transform is identity is a
+          // guaranteed true left-to-right turntable, regardless of g's own
+          // rotation/order.
+          const flip = flipGroups[i];
+          if (flip) flip.rotation.y = useSelect ? flipOffsetRef.current.value : 0;
         });
 
         renderer!.render(scene, camera);

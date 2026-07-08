@@ -14,13 +14,11 @@ function Socials({ scale }: { scale: (n: number) => string }) {
   return (
     <div className="flex items-center" style={{ gap: scale(14) }}>
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src="/m-facebook.svg" alt="Facebook" style={{ width: scale(39), height: scale(39) }} />
-      <span className="relative flex items-center justify-center rounded-full" style={{ width: scale(39), height: scale(39), border: `${scale(1.5)} solid #fff0e5` }}>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/m-linkedin.svg" alt="LinkedIn" style={{ width: scale(14), height: scale(14) }} />
-      </span>
+      <img src="/m-linkedin.svg" alt="LinkedIn" style={{ width: scale(39), height: scale(39) }} />
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src="/m-twitter.svg" alt="X" style={{ width: scale(39), height: scale(39) }} />
+      <img src="/m-facebook.svg" alt="Facebook" style={{ width: scale(39), height: scale(39) }} />
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src="/m-instagram.svg" alt="X" style={{ width: scale(39), height: scale(39) }} />
     </div>
   );
 }

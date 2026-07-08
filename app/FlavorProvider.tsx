@@ -1,7 +1,8 @@
 "use client";
 
-import { createContext, useCallback, useContext, useRef, useState } from "react";
-import FlavorModal, { FLAVORS } from "./FlavorModal";
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
+import FlavorModal, { FLAVORS, MODAL_GLB_SRCS } from "./FlavorModal";
+import { preloadGlb } from "./GlbViewer";
 
 type Origin = { x: number; y: number };
 type Ctx = { open: (index: number, e?: React.MouseEvent | Origin, onClose?: () => void, onNav?: () => void) => void };
@@ -16,6 +17,23 @@ export default function FlavorProvider({ children }: { children: React.ReactNode
   const [origin, setOrigin] = useState<Origin>({ x: 0.5, y: 0.5 });
   const closeCallbackRef = useRef<(() => void) | null>(null);
   const navCallbackRef = useRef<(() => void) | null>(null);
+
+  // Warm the (multi-MB) flavour GLB models while the page is idle, so the modal
+  // shows its 3-D pouch without the download wait. The user scrolls through
+  // several sections before reaching the flavours, giving this time to finish.
+  // Skipped on metered / very slow connections so we don't hammer their data.
+  useEffect(() => {
+    const nav = navigator as Navigator & { connection?: { saveData?: boolean; effectiveType?: string } };
+    const c = nav.connection;
+    if (c?.saveData || (c?.effectiveType && /(^|-)2g$/.test(c.effectiveType))) return;
+    const run = () => { preloadGlb(MODAL_GLB_SRCS); };
+    if (typeof requestIdleCallback === "function") {
+      const id = requestIdleCallback(run, { timeout: 3000 });
+      return () => cancelIdleCallback(id);
+    }
+    const t = setTimeout(run, 1500);
+    return () => clearTimeout(t);
+  }, []);
 
   const open = useCallback((i: number, e?: React.MouseEvent | Origin, onClose?: () => void, onNav?: () => void) => {
     closeCallbackRef.current = onClose ?? null;

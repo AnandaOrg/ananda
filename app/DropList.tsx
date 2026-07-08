@@ -120,7 +120,7 @@ function DropForm({ s, height, fontSize, padL, padR, radius, btnRight, btnSize, 
             <motion.div
               key="error"
               role="alert"
-              className="absolute inset-x-0 top-0 flex items-center bg-[#fff0e5] text-[#eb4638]"
+              className="dl-shake absolute inset-x-0 top-0 flex items-center bg-[#fff0e5] text-[#eb4638]"
               style={{ height: s(height), borderRadius: s(radius), padding: `0 ${s(msgSize * 0.9)}`, gap: s(msgSize * 0.55) }}
               initial={ENTER}
               animate={SHOWN}

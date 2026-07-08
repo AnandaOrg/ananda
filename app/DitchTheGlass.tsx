@@ -1,10 +1,8 @@
 "use client";
 
-import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
-import pourPhoto from "../public/ananda-pour.png";
 import AboutCopyBlock from "./AboutCopyBlock";
 import VerticalSlider from "./VerticalSlider";
 import { ABOUT_CARD } from "./configs";
@@ -86,8 +84,10 @@ export default function DitchTheGlass() {
     };
 
     const render = (prog: number) => {
-      const gP = smooth(clamp((prog - 0.03) / 0.13, 0, 1)); // grow:   0.03 → 0.16
-      const tP = smooth(clamp((prog - 0.16) / 0.16, 0, 1)); // travel: 0.16 → 0.32
+      // grow, rotate, and travel all run together over one continuous window
+      const gtP = smooth(clamp((prog - 0.03) / 0.29, 0, 1)); // 0.03 → 0.32
+      const gP = gtP;
+      const tP = gtP;
 
       const box = lerpBox(lerpBox(K0, K1, gP), K2, tP);
       travel.style.left = `${box.left}px`;
@@ -186,7 +186,7 @@ export default function DitchTheGlass() {
       {/* Gallery — pinned at the card slot; first photo is the pour image, so the
           traveling diamond lands straight onto it. Steps through the rest. */}
       <div ref={galleryRef} data-dtg="gallery" className="absolute" style={{ ...ABOUT_CARD, opacity: 0, zIndex: 4 }}>
-        <VerticalSlider images={PHOTOS} index={index} frame direction="down" style={{ width: "100%", height: "100%" }} />
+        <VerticalSlider images={PHOTOS} index={index} frame direction="down" conveyor style={{ width: "100%", height: "100%" }} />
       </div>
 
       {/* Copy — upper right; fades + slides in as the image travels to the slot. */}
@@ -221,7 +221,15 @@ export default function DitchTheGlass() {
         }}
       >
         <div ref={innerRef} className="absolute inset-0" style={{ willChange: "transform" }}>
-          <Image src={pourPhoto} alt="Pouring an ANANDA cocktail" fill sizes="50vw" className="object-cover" />
+          <video
+            src="/videos/woman-drinking.mp4"
+            autoPlay
+            muted
+            loop
+            playsInline
+            aria-hidden="true"
+            className="absolute inset-0 h-full w-full object-cover"
+          />
         </div>
       </div>
     </section>

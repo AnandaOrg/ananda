@@ -38,6 +38,14 @@ interface Props {
    * scroll-up reverses cleanly). Omit for self-driven autoplay.
    */
   index?: number;
+  /**
+   * Conveyor transition (controlled mode only): the outgoing slide keeps
+   * moving in the same direction and exits opposite the incoming slide's
+   * entry point, both at once — matching RitualCards' photo reveal — instead
+   * of the default "cover" transition where the incoming slide slides over a
+   * stationary outgoing one. Default false.
+   */
+  conveyor?: boolean;
   className?: string;
   style?: React.CSSProperties;
 }
@@ -49,6 +57,7 @@ export default function VerticalSlider({
   frame = false,
   direction = "up",
   index,
+  conveyor = false,
   className,
   style,
 }: Props) {
@@ -59,12 +68,16 @@ export default function VerticalSlider({
   const intervalRef = useRef(interval);
   const durationRef = useRef(duration);
   const directionRef = useRef(direction);
+  const conveyorRef = useRef(conveyor);
   useEffect(() => { intervalRef.current = interval; }, [interval]);
   useEffect(() => { durationRef.current = duration; }, [duration]);
   useEffect(() => { directionRef.current = direction; }, [direction]);
+  useEffect(() => { conveyorRef.current = conveyor; }, [conveyor]);
 
   // Off-screen parking spot for hidden slides: below for "up", above for "down".
   const off = () => (directionRef.current === "down" ? "-100%" : "100%");
+  // The opposite park spot — where a conveyor exit heads toward.
+  const oppositeOff = () => (directionRef.current === "down" ? "100%" : "-100%");
 
   // Tracks the visible slide across renders for controlled stepping.
   const curRef = useRef(0);
@@ -130,8 +143,28 @@ export default function VerticalSlider({
 
     const curEl = els[cur];
     const nxtEl = els[next];
+    const forward = next > cur;
 
-    if (next > cur) {
+    if (conveyorRef.current) {
+      // Conveyor: incoming enters from this step's entry side while the
+      // outgoing keeps moving the same way and exits the opposite side —
+      // both at once, mirroring RitualCards' photo reveal.
+      const entry = forward ? off() : oppositeOff();
+      const exit = forward ? oppositeOff() : off();
+      gsap.set(nxtEl, { y: entry, zIndex: 2 });
+      gsap.set(curEl, { zIndex: 1 });
+      gsap.to(nxtEl, { y: "0%", duration: durationRef.current, ease: "power2.inOut", onComplete() { gsap.set(nxtEl, { zIndex: 1 }); } });
+      gsap.to(curEl, {
+        y: exit,
+        duration: durationRef.current,
+        ease: "power2.inOut",
+        onComplete() { gsap.set(curEl, { y: entry, zIndex: 0 }); },
+      });
+      curRef.current = next;
+      return;
+    }
+
+    if (forward) {
       // Forward: incoming slides in over the current slide.
       gsap.set(nxtEl, { y: off(), zIndex: 2 });
       gsap.to(nxtEl, {

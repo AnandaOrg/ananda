@@ -102,7 +102,7 @@ const FLAVORS: Flavor[] = [
 ];
 
 const N = FLAVORS.length;
-const FRAMES = 120; // frames per full 360° rotation
+const FRAMES = 4000; // frames per full 360° rotation
 const CAN_W = 300; // canvas CSS px
 const CAN_H = 460;
 
