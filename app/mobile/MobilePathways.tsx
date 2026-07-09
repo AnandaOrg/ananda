@@ -1,12 +1,20 @@
 "use client";
 
 import Image from "next/image";
-import { useCallback, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
+import gsap from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { mu, MU_VAR } from "./scale";
 import { useFlavor } from "../FlavorProvider";
 import GlbViewer, { type GlbViewerHandle } from "../GlbViewer";
 
+gsap.registerPlugin(ScrollTrigger);
+
 /** Mobile section 4 — "The Pathways to Bliss" (Figma 198:1787, 390×1176). */
+
+const prefersReducedMotion = () =>
+  typeof window !== "undefined" &&
+  window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 type Crop = { width: string; height: string; left: string; top: string };
 type FloatingProps = {
@@ -68,11 +76,22 @@ export default function MobilePathways() {
   // Fixed band-region reference — drives cross-fade/turntable progress; stays put
   // while the GLB canvas translates to ride the bands.
   const scrollRef = useRef<HTMLDivElement>(null);
+  // Auto-open Kyoto once, the first time scroll carries the GLB to it — the
+  // page is fixed/overflow-hidden the moment the modal mounts (FlavorModal's
+  // own effect), so scroll is left sitting exactly where it crossed in.
+  const kyotoAutoOpenedRef = useRef(false);
+  // Entrance targets: the poster content (fades + drops down) and the GLB
+  // overlay (fades in with it, opacity-only so its handoff getRect is untouched).
+  const sectionRef = useRef<HTMLElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
+  const glbWrapRef = useRef<HTMLDivElement>(null);
 
   // Mirror desktop Pathways: spin the bottle, then open the modal from the
   // bottle's centre once the spin reads, wiring the modal's nav/close back to
-  // the GLB (reset tilt on close, 360° spin on nav).
-  const openWithSpin = useCallback((i: number) => {
+  // the GLB (reset tilt on close, 360° spin on nav). Optional extra onClose
+  // hook (used by the Kyoto auto-open below to lift its scroll block) merged
+  // into the modal's own close callback.
+  const openWithSpin = useCallback((i: number, onClosed?: () => void) => {
     // Beat 1: tilt to 90° AND start spinning at the same time.
     glbRef.current?.spin();
     glbRef.current?.spin360();
@@ -86,15 +105,62 @@ export default function MobilePathways() {
     // Beat 2: at ~90° the still-spinning bottle becomes the modal — the modal
     // scales out of the captured position, its own bottle continuing the spin.
     setTimeout(() => open(i, origin,
-      () => glbRef.current?.resetTilt(),
+      () => { glbRef.current?.resetTilt(); onClosed?.(); },
       () => glbRef.current?.spin360(),
     ), 1000);
   }, [open]);
 
+  const KYOTO_INDEX = 3;
+  const kyotoTransitionAt = GLB_MODELS[KYOTO_INDEX].transitionAt;
+  const handleGlbProgress = useCallback((frac: number) => {
+    if (kyotoAutoOpenedRef.current || kyotoTransitionAt === undefined || frac < kyotoTransitionAt) return;
+    kyotoAutoOpenedRef.current = true;
+
+    // Fast/momentum scrolling (touch fling especially) can carry the page well
+    // past Kyoto before this ever fires (ScrollTrigger's update is
+    // rAF-throttled, and inertial scrolling coasts without further touch
+    // events to intercept) — snap back to exactly the Kyoto position first,
+    // while the page is still scrollable, THEN freeze it. Locks <html>, not
+    // <body> — FlavorModal owns body's own overflow lock/restore; pre-touching
+    // body here would make it capture "hidden" as the "original" value and
+    // restore to that forever.
+    const el = scrollRef.current;
+    if (el) {
+      const rect = el.getBoundingClientRect();
+      const absTop = rect.top + window.scrollY;
+      const targetY = kyotoTransitionAt * rect.height + absTop - window.innerHeight * 0.5;
+      window.scrollTo({ top: targetY, behavior: "auto" });
+    }
+    const html = document.documentElement;
+    const prevHtmlOverflow = html.style.overflow;
+    html.style.overflow = "hidden";
+
+    openWithSpin(KYOTO_INDEX, () => {
+      html.style.overflow = prevHtmlOverflow;
+    });
+  }, [kyotoTransitionAt, openWithSpin]);
+
+  // Entrance — once the pour above reveals this section, the poster fades and
+  // drops DOWN into place, and the GLB overlay fades in with it. One-shot when
+  // the section scrolls in; skipped under prefers-reduced-motion.
+  useEffect(() => {
+    const section = sectionRef.current;
+    const content = contentRef.current;
+    if (!section || !content || prefersReducedMotion()) return;
+    const ctx = gsap.context(() => {
+      const scrollTrigger = { trigger: section, start: "top 80%", once: true } as const;
+      gsap.from(content, { opacity: 0, y: -40, duration: 0.9, ease: "power3.out", scrollTrigger });
+      if (glbWrapRef.current) {
+        gsap.from(glbWrapRef.current, { opacity: 0, duration: 0.9, ease: "power3.out", scrollTrigger });
+      }
+    }, section);
+    return () => ctx.revert();
+  }, []);
+
   return (
-    <section className="relative w-full overflow-hidden bg-[#eb4638] md:hidden" style={{ containerType: "inline-size", ...MU_VAR }}>
+    <section ref={sectionRef} className="relative w-full overflow-hidden bg-[#eb4638] md:hidden" style={{ containerType: "inline-size", ...MU_VAR }}>
       {/* Content layer — clipped (bands / names / fruit) */}
-      <div className="relative overflow-hidden" style={{ width: mu(390), height: mu(1176) }}>
+      <div ref={contentRef} className="relative overflow-hidden" style={{ width: mu(390), height: mu(1176) }}>
         {/* Colour bands (click to open flavour) */}
         {BANDS.map((b, i) => (
           <button key={b.color} type="button" aria-label={`Open ${FLAVORS[i].label}`} onClick={() => openWithSpin(i)} className="absolute cursor-pointer appearance-none border-0 p-0" style={{ left: 0, top: mu(b.top), width: mu(390), height: mu(200), backgroundColor: b.color }} />
@@ -150,6 +216,7 @@ export default function MobilePathways() {
           model stays centred in a square canvas (never reaches the framebuffer
           edge); the canvas CSS-translates down to ride the bands. */}
       <div
+        ref={glbWrapRef}
         className="pointer-events-none absolute left-1/2 top-0 -translate-x-1/2"
         style={{ width: mu(390), height: mu(1176), zIndex: 50 }}
       >
@@ -159,6 +226,7 @@ export default function MobilePathways() {
           transitionDuration={0.04}
           scrollRef={scrollRef}
           scrollTravel={mu(596.46)}
+          onProgress={handleGlbProgress}
           style={{
             position: "absolute",
             left: `calc(50% - ${mu(408)})`,

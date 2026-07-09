@@ -67,6 +67,20 @@ body {
   will-change: transform;
 }
 
+/* ── Floating GLB (flavour modal) ──
+   A slow, gentle bob + sway so the bottle reads as hovering rather than
+   pinned in place, even at rest between navs. */
+@keyframes glb-float {
+  0%   { transform: translate3d(0, 0, 0) rotate(0deg); }
+  50%  { transform: translate3d(0, -16px, 0) rotate(0.8deg); }
+  100% { transform: translate3d(0, 0, 0) rotate(0deg); }
+}
+
+.glb-float {
+  animation: glb-float 4.5s ease-in-out infinite;
+  will-change: transform;
+}
+
 /* ── Drop-list error shake ──
    A quick horizontal wobble that decays, played once when the subscribe
    request fails. */
@@ -83,30 +97,6 @@ body {
   animation: dl-shake 0.5s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
 }
 
-/* ── KYOTO wave — continuous pour glint ──
-   A soft highlight band that sweeps from the spout down into the puddle on a
-   loop, so the wave keeps reading as liquid actively flowing even once the
-   scroll-driven reveal has finished and the pouch is at rest mid-tip.
-   Gated purely by the wave's own opacity/clip-path (this animates always;
-   it's invisible until its ancestor is revealed), so no JS toggling needed. */
-@keyframes wave-pour-flow {
-  0% { top: -45%; opacity: 0; }
-  20% { opacity: 0.85; }
-  75% { opacity: 0.85; }
-  100% { top: 100%; opacity: 0; }
-}
-
-.wave-flow-glint {
-  position: absolute;
-  left: 0;
-  right: 0;
-  height: 45%;
-  background: linear-gradient(180deg, transparent, rgba(255, 224, 200, 0.65) 50%, transparent);
-  mix-blend-mode: overlay;
-  animation: wave-pour-flow 1.3s linear infinite;
-  will-change: top, opacity;
-}
-
 @media (prefers-reduced-motion: reduce) {
   .vmg-animate-up,
   .vmg-animate-down {
@@ -115,12 +105,8 @@ body {
   }
 
   .fl-float,
+  .glb-float,
   .dl-shake {
     animation: none !important;
-  }
-
-  .wave-flow-glint {
-    animation: none !important;
-    opacity: 0 !important;
   }
 }

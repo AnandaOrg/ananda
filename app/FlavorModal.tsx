@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { AnimatePresence, motion, useReducedMotion, type Transition, type Variants } from "framer-motion";
+import { AnimatePresence, motion, useMotionValue, useReducedMotion, useSpring, type Transition, type Variants } from "framer-motion";
 import GlbViewer, { type GlbViewerHandle, type ModelEntry } from "./GlbViewer";
 
 /**
@@ -30,29 +30,32 @@ const NAV_DURATION = 0.5;
 // as one continuous, edgeless rotation. `custom` carries the nav direction
 // (+1 next / −1 prev / 0 reduced motion → plain crossfade).
 const SWING_TRANSITION = { type: "tween", duration: NAV_DURATION, ease: "easeInOut" } as const;
-// Overshoot-and-settle: each half of the wheel swing peaks past its resting
-// angle before springing back, so the combined 180° wheel turn overshoots and
-// settles at 180° — the GLB swing (below) mirrors the same keyframes/timing so
-// the bottle and background stay in lockstep. Runs faster than NAV_DURATION
-// (which still paces the crossfade) so the rotation reads as a hard impact —
-// the layer slams into the overshoot, then snaps back off the "wall".
-const SWING_OVERSHOOT = 32;
+// Real spring physics instead of a hand-keyed overshoot tween — the layer
+// swings toward its resting angle and the spring's own momentum carries it
+// past and back, so the bounce has continuous, organic velocity instead of
+// two rigid tween segments meeting at a fixed point. The GLB spin (below)
+// mirrors this so the bottle and background stay in lockstep.
 const SWING_IMPACT_DURATION = 0.364;
 const SWING_ROTATE_TRANSITION: Transition = {
-  type: "tween",
-  duration: SWING_IMPACT_DURATION,
-  times: [0, 0.6, 1],
-  ease: ["easeIn", "easeOut"],
+  type: "spring",
+  duration: SWING_IMPACT_DURATION * 1.6,
+  bounce: 0.55,
 };
+
+// GLB mouse-tilt: max degrees of rotateX/rotateY as the cursor reaches the
+// viewport edge, springed for a smooth trailing follow rather than snapping
+// straight to the pointer.
+const GLB_TILT_MAX = 15;
+const GLB_TILT_SPRING = { stiffness: 120, damping: 20, mass: 0.4 } as const;
 const LAYER_VARIANTS: Variants = {
   enter: (dir: number) => ({ rotate: 90 * dir, opacity: 0 }),
-  center: (dir: number) => ({
-    rotate: [90 * dir, -SWING_OVERSHOOT * dir, 0],
+  center: {
+    rotate: 0,
     opacity: 1,
     transition: { ...SWING_TRANSITION, rotate: SWING_ROTATE_TRANSITION },
-  }),
+  },
   exit: (dir: number) => ({
-    rotate: [0, -(90 + SWING_OVERSHOOT) * dir, -90 * dir],
+    rotate: -90 * dir,
     opacity: 1,
     transition: { ...SWING_TRANSITION, rotate: SWING_ROTATE_TRANSITION },
   }),
@@ -72,12 +75,17 @@ const PLANE_STYLE = {
   transformOrigin: "50% 50%",
 } as const;
 // Re-aligns the flavour content with the viewport inside the oversized plane.
+// Uses svh (small viewport height), not vh, so the box matches the guaranteed-
+// visible area even while a mobile browser's address bar is showing — the
+// modal locks body scroll on mount, so the toolbar never gets a chance to
+// auto-collapse, and bottom-anchored content (ingredients/name) sized to the
+// taller vh box would sit below the actually-visible viewport.
 const PLANE_CONTENT_STYLE = {
   position: "absolute",
   left: "calc(130vmax - 50vw)",
-  top: "calc(130vmax - 100vh)",
+  top: "calc(130vmax - 100svh)",
   width: "100vw",
-  height: "100vh",
+  height: "100svh",
 } as const;
 
 type Crop = { w: string; h: string; left: string; top: string };
@@ -309,6 +317,25 @@ export default function FlavorModal({
   // Wheel direction for the layer variants; 0 disables the swing entirely.
   const layerDir = reduceMotion ? 0 : navDir;
 
+  // GLB mouse-tilt: raw targets set imperatively from pointer position (no
+  // re-render), springed for the actual rendered rotateX/rotateY.
+  const tiltRawX = useMotionValue(0);
+  const tiltRawY = useMotionValue(0);
+  const tiltX = useSpring(tiltRawX, GLB_TILT_SPRING);
+  const tiltY = useSpring(tiltRawY, GLB_TILT_SPRING);
+
+  useEffect(() => {
+    if (reduceMotion) return;
+    const onMove = (e: MouseEvent) => {
+      const nx = (e.clientX / window.innerWidth) * 2 - 1; // -1 (left) .. 1 (right)
+      const ny = (e.clientY / window.innerHeight) * 2 - 1; // -1 (top) .. 1 (bottom)
+      tiltRawY.set(nx * GLB_TILT_MAX); // cursor left/right → turn left/right
+      tiltRawX.set(-ny * GLB_TILT_MAX); // cursor up/down → tip back/forward
+    };
+    window.addEventListener("mousemove", onMove);
+    return () => window.removeEventListener("mousemove", onMove);
+  }, [reduceMotion, tiltRawX, tiltRawY]);
+
   useEffect(() => {
     // Spin is handled by the viewer's spinOnMount as the new model loads.
     const onKey = (e: KeyboardEvent) => {
@@ -358,16 +385,10 @@ export default function FlavorModal({
         >
           {/* GLB: persistent viewer, stays put on screen — on nav it spins a full
               360° left-to-right turntable (see GlbViewer's activeIndex handling)
-              timed to the modal's bounce-back instead of swinging out of frame. */}
+              timed to the modal's bounce-back instead of swinging out of frame.
+              Bobs gently at rest (glb-float) so it reads as hovering. */}
           <div className="absolute inset-0" style={{ pointerEvents: "none", zIndex: 40 }}>
-            <GlbViewer
-              ref={desktopGlbRef}
-              models={MODAL_GLB_MODELS}
-              activeIndex={index}
-              navDuration={NAV_DURATION}
-              spinDuration={SWING_IMPACT_DURATION}
-              initialTilt={0}
-              noScroll
+            <div
               style={{
                 position: "absolute",
                 left: "50%",
@@ -377,9 +398,29 @@ export default function FlavorModal({
                 // canvas. Same camera FOV → identical on-screen size.
                 width: u(1200),
                 height: u(1440),
-                pointerEvents: "none",
               }}
-            />
+            >
+              {/* Float lives on its own layer — a CSS animation on `transform`
+                  fully replaces (doesn't compose with) the parent's inline
+                  translate(-50%,-50%) centring if put on the same element. */}
+              <div className="glb-float size-full" style={{ perspective: 900 }}>
+                {/* Mouse-tilt: its own layer too, same reason as the float split
+                    above — rotateX/rotateY here, translate3d/rotate on the
+                    parent, no fighting over one element's transform. */}
+                <motion.div className="size-full" style={{ rotateX: tiltX, rotateY: tiltY }}>
+                  <GlbViewer
+                    ref={desktopGlbRef}
+                    models={MODAL_GLB_MODELS}
+                    activeIndex={index}
+                    navDuration={NAV_DURATION}
+                    spinDuration={SWING_IMPACT_DURATION}
+                    initialTilt={0}
+                    noScroll
+                    style={{ width: "100%", height: "100%", pointerEvents: "none" }}
+                  />
+                </motion.div>
+              </div>
+            </div>
           </div>
 
           {/* Scene + ingredients + name: the outgoing flavour swings out one
@@ -447,16 +488,10 @@ export default function FlavorModal({
       {/* ───────── Mobile: scene covers the screen, controls fit the viewport ───────── */}
       <div className="absolute inset-0 md:hidden">
         {/* GLB: persistent viewer, stays put on screen — on nav it spins a full
-            360° left-to-right turntable timed to the modal's bounce-back. */}
+            360° left-to-right turntable timed to the modal's bounce-back.
+            Bobs gently at rest (glb-float) so it reads as hovering. */}
         <div className="absolute inset-0" style={{ pointerEvents: "none", zIndex: 40 }}>
-          <GlbViewer
-            ref={mobileGlbRef}
-            models={MODAL_GLB_MODELS}
-            activeIndex={index}
-            navDuration={NAV_DURATION}
-            spinDuration={SWING_IMPACT_DURATION}
-            initialTilt={0}
-            noScroll
+          <div
             style={{
               position: "absolute",
               left: "50%",
@@ -465,9 +500,29 @@ export default function FlavorModal({
               // Wider than the bottle so the spin/tilt is never clipped by the canvas.
               width: "72vh",
               height: "84vh",
-              pointerEvents: "none",
             }}
-          />
+          >
+            {/* Float lives on its own layer — a CSS animation on `transform`
+                fully replaces (doesn't compose with) the parent's inline
+                translate(-50%,-50%) centring if put on the same element. */}
+            <div className="glb-float size-full" style={{ perspective: 900 }}>
+              {/* Mouse-tilt: its own layer too, same reason as the float split
+                  above — rotateX/rotateY here, translate3d/rotate on the
+                  parent, no fighting over one element's transform. */}
+              <motion.div className="size-full" style={{ rotateX: tiltX, rotateY: tiltY }}>
+                <GlbViewer
+                  ref={mobileGlbRef}
+                  models={MODAL_GLB_MODELS}
+                  activeIndex={index}
+                  navDuration={NAV_DURATION}
+                  spinDuration={SWING_IMPACT_DURATION}
+                  initialTilt={0}
+                  noScroll
+                  style={{ width: "100%", height: "100%", pointerEvents: "none" }}
+                />
+              </motion.div>
+            </div>
+          </div>
         </div>
 
         {/* Scene + text: the outgoing flavour swings out one way while this
@@ -487,7 +542,7 @@ export default function FlavorModal({
             <div style={PLANE_CONTENT_STYLE}>
               <div
                 className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 overflow-hidden w-full"
-                style={{ aspectRatio: "16 / 9", containerType: "inline-size", ["--u" as string]: "calc(100cqw / 1920)", height: "100svh" }}
+                style={{ containerType: "inline-size", ["--u" as string]: "calc(100cqw / 1920)", height: "100svh" }}
               >
                 <Scene f={f} />
               </div>

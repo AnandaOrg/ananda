@@ -48,6 +48,10 @@ type Props = {
    *  full scroll (frac 0→1) to ride the bands. The model stays centred, so it
    *  never leaves the framebuffer; the canvas moves instead. e.g. `u(965)`. */
   scrollTravel?: string;
+  /** Scroll-mode only. Fires on every scroll update with the current 0→1
+   *  progress (the same value driving the blend), so a caller can react to
+   *  crossing a particular model's transitionAt without re-deriving frac. */
+  onProgress?: (frac: number) => void;
   /** Index-select mode: seconds for the colour cross-fade on activeIndex
    *  change. Match the caller's modal transition so the bottle and the
    *  background/scene change in lockstep. Default 0.7. */
@@ -124,6 +128,7 @@ const GlbViewer = forwardRef<GlbViewerHandle, Props>(function GlbViewer({
   camZ,
   scrollRef,
   scrollTravel,
+  onProgress,
   navDuration,
   spinDuration,
   className,
@@ -135,6 +140,11 @@ const GlbViewer = forwardRef<GlbViewerHandle, Props>(function GlbViewer({
   const tiltRef = useRef({ value: -Math.PI / 2 });
   const tiltTlRef = useRef<gsap.core.Timeline | null>(null);
   const fracRef = useRef(0);
+  // Latest onProgress in a ref so the scroll-effect below (which must stay
+  // stable — re-running it reloads every GLB) can call a fresh callback
+  // without needing it in its own dependency array.
+  const onProgressRef = useRef(onProgress);
+  useEffect(() => { onProgressRef.current = onProgress; }, [onProgress]);
   // Index-select mode cross-fade: which model is active, which one we're fading
   // from, and the 0→1 blend progress (tweened on nav so it matches the modal).
   const activeRef = useRef(activeIndex ?? 0);
@@ -364,6 +374,7 @@ const GlbViewer = forwardRef<GlbViewerHandle, Props>(function GlbViewer({
           onUpdate() {
             const rect = scrollEl.getBoundingClientRect();
             frac = Math.max(0, Math.min(1, (window.innerHeight * 0.5 - rect.top) / rect.height));
+            onProgressRef.current?.(frac);
           },
         });
       }

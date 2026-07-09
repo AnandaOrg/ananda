@@ -195,23 +195,25 @@ export default function VerticalSlider({
   if (images.length === 0) return null;
 
   return (
-    <div className={className} style={{ position: "relative", overflow: "hidden", ...style }}>
+    // The curved frame mask lives on the OUTER container, not per-slide — two
+    // sliding photos are plain abutting rectangles (like RitualCards' photo
+    // window), so there's no gap where two independently-masked curved corners
+    // would otherwise fail to meet. The one mask just clips the whole stack.
+    <div className={className} style={{ position: "relative", overflow: "hidden", ...(frame ? FRAME_MASK : {}), ...style }}>
       {images.map((img, i) => (
         <div
           key={img.src}
           ref={el => { slideRefs.current[i] = el; }}
           style={{ position: "absolute", inset: 0 }}
         >
-          <div style={{ position: "absolute", inset: 0, ...(frame ? FRAME_MASK : {}) }}>
-            <Image
-              src={img.src}
-              alt={img.alt}
-              fill
-              sizes="75vw"
-              style={{ objectFit: "cover" }}
-              priority={i === 0}
-            />
-          </div>
+          <Image
+            src={img.src}
+            alt={img.alt}
+            fill
+            sizes="75vw"
+            style={{ objectFit: "cover" }}
+            priority={i === 0}
+          />
         </div>
       ))}
     </div>

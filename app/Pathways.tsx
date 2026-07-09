@@ -1,9 +1,13 @@
 "use client";
 
 import Image from "next/image";
-import { useCallback, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
+import gsap from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useFlavor } from "./FlavorProvider";
 import GlbViewer, { type GlbViewerHandle } from "./GlbViewer";
+
+gsap.registerPlugin(ScrollTrigger);
 
 /**
  * Section 4 — "The Pathways to Bliss" flavor poster (Figma node 76:9304, a
@@ -13,6 +17,10 @@ import GlbViewer, { type GlbViewerHandle } from "./GlbViewer";
  */
 
 const u = (n: number) => `calc(var(--u) * ${n})`;
+
+const prefersReducedMotion = () =>
+  typeof window !== "undefined" &&
+  window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 type Box = { left: number; top: number; width: number; height: number };
 type Center = { x: number; y: number; width: number; height: number };
@@ -103,8 +111,19 @@ export default function Pathways() {
   // Fixed band-region reference — drives cross-fade/turntable progress and stays
   // put while the GLB canvas itself translates to ride the bands.
   const scrollRef = useRef<HTMLDivElement>(null);
+  // Auto-open Kyoto once, the first time scroll carries the GLB to it — the
+  // page is fixed/overflow-hidden the moment the modal mounts (FlavorModal's
+  // own effect), so scroll is left sitting exactly where it crossed in.
+  const kyotoAutoOpenedRef = useRef(false);
+  // Entrance targets: the poster content (fades + drops down) and the GLB
+  // overlay (fades in with it, opacity-only so its handoff getRect is untouched).
+  const sectionRef = useRef<HTMLElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
+  const glbWrapRef = useRef<HTMLDivElement>(null);
 
-  const openWithSpin = useCallback((i: number) => {
+  // Optional extra onClose hook (used by the Kyoto auto-open below to lift its
+  // scroll block) merged into the modal's own close callback.
+  const openWithSpin = useCallback((i: number, onClosed?: () => void) => {
     // Beat 1: tilt to 90° AND start spinning at the same time.
     glbRef.current?.spin();
     glbRef.current?.spin360();
@@ -120,18 +139,66 @@ export default function Pathways() {
     // the modal scales out of the bottle's captured position and its own bottle
     // keeps spinning, so the spinning element hands off into the modal.
     setTimeout(() => open(i, origin,
-      () => glbRef.current?.resetTilt(),
+      () => { glbRef.current?.resetTilt(); onClosed?.(); },
       () => glbRef.current?.spin360(),
     ), 1000);
   }, [open]);
 
+  const KYOTO_INDEX = 3;
+  const kyotoTransitionAt = GLB_MODELS[KYOTO_INDEX].transitionAt;
+  const handleGlbProgress = useCallback((frac: number) => {
+    if (kyotoAutoOpenedRef.current || kyotoTransitionAt === undefined || frac < kyotoTransitionAt) return;
+    kyotoAutoOpenedRef.current = true;
+
+    // Fast/momentum scrolling can carry the page well past Kyoto before this
+    // ever fires (ScrollTrigger's update is rAF-throttled, and inertial
+    // scrolling coasts without further wheel/touch events to intercept) — snap
+    // back to exactly the Kyoto position first, while the page is still
+    // scrollable, THEN freeze it. Locks <html>, not <body> — FlavorModal owns
+    // body's own overflow lock/restore; pre-touching body here would make it
+    // capture "hidden" as the "original" value and restore to that forever.
+    const el = scrollRef.current;
+    if (el) {
+      const rect = el.getBoundingClientRect();
+      const absTop = rect.top + window.scrollY;
+      const targetY = kyotoTransitionAt * rect.height + absTop - window.innerHeight * 0.5;
+      window.scrollTo({ top: targetY, behavior: "auto" });
+    }
+    const html = document.documentElement;
+    const prevHtmlOverflow = html.style.overflow;
+    html.style.overflow = "hidden";
+
+    openWithSpin(KYOTO_INDEX, () => {
+      html.style.overflow = prevHtmlOverflow;
+    });
+  }, [kyotoTransitionAt, openWithSpin]);
+
+  // Entrance — once the pour above reveals this section, the poster fades and
+  // drops DOWN into place, and the GLB overlay fades in with it. One-shot when
+  // the section scrolls in; skipped under prefers-reduced-motion.
+  useEffect(() => {
+    const section = sectionRef.current;
+    const content = contentRef.current;
+    if (!section || !content || prefersReducedMotion()) return;
+    const ctx = gsap.context(() => {
+      const scrollTrigger = { trigger: section, start: "top 80%", once: true } as const;
+      gsap.from(content, { opacity: 0, y: -70, duration: 0.9, ease: "power3.out", scrollTrigger });
+      if (glbWrapRef.current) {
+        gsap.from(glbWrapRef.current, { opacity: 0, duration: 0.9, ease: "power3.out", scrollTrigger });
+      }
+    }, section);
+    return () => ctx.revert();
+  }, []);
+
   return (
     <section
+      ref={sectionRef}
       className="relative w-full bg-[#eb4638]"
       style={{ containerType: "inline-size", ["--u" as string]: "calc(100cqw / 1440)" }}
     >
       {/* Content layer — clipped to the section box (bands/text/fruit) */}
       <div
+        ref={contentRef}
         className="relative mx-auto overflow-hidden"
         style={{ width: u(1440), height: u(2000) }}
       >
@@ -265,6 +332,7 @@ export default function Pathways() {
           reaches the framebuffer edge); the canvas itself CSS-translates down to
           ride the bands (Santorini → Kyoto). */}
       <div
+        ref={glbWrapRef}
         className="pointer-events-none absolute left-1/2 top-0 -translate-x-1/2"
         style={{ width: u(1440), height: u(2000), zIndex: 50 }}
       >
@@ -274,6 +342,7 @@ export default function Pathways() {
           transitionDuration={0.04}
           scrollRef={scrollRef}
           scrollTravel={u(965)}
+          onProgress={handleGlbProgress}
           style={{
             position: "absolute",
             left: u(60),
