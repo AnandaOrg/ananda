@@ -6,7 +6,6 @@ import Ritual from "./Ritual";
 import DropList from "./DropList";
 import Footer from "./Footer";
 import MobileIntro from "./mobile/MobileIntro";
-import MobileCollage from "./mobile/MobileCollage";
 import MobileCollageMedia from "./mobile/MobileCollageMedia";
 import MobileKyoto from "./mobile/MobileKyoto";
 import MobilePathways from "./mobile/MobilePathways";
@@ -58,6 +57,9 @@ export default function Home() {
       <div className="hidden md:block">
         <AboutCollage />
       </div>
+      {/* Mobile twin of AboutCollage's media (pineapple + strawberries); the
+          pouch half of AboutCollage lives in MobileKyoto just below. */}
+      <MobileCollageMedia />
       <MobileKyoto />
 
       {/* Section 4 — The Pathways to Bliss */}
