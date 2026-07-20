@@ -32,8 +32,11 @@ const PHOTO_DUR = 0.7; // photo top-to-bottom slide duration
 const TEXT_DUR = 0.6; // text left-to-right reveal duration
 const TEXT_DELAY = 0.15; // reveal starts just after the photo begins moving
 
-const CLIP_HIDDEN = "inset(0% 100% 0% 0%)"; // fully clipped from the right
-const CLIP_SHOWN = "inset(0% 0% 0% 0%)";
+// Left→right wipe. Top/bottom insets are negative so the clip rectangle extends
+// beyond the text box vertically — otherwise the tight line-height 0.8 title
+// (whose caps overflow their own box) gets its tops clipped.
+const CLIP_HIDDEN = "inset(-50% 100% -50% 0%)"; // fully clipped from the right
+const CLIP_SHOWN = "inset(-50% 0% -50% 0%)";
 
 export default function MobileRitual() {
   const cardRef = useRef<HTMLDivElement | null>(null);

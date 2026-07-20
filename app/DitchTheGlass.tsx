@@ -63,6 +63,7 @@ export default function DitchTheGlass() {
     const copy = copyRef.current;
     if (!section || !placeholder || !travel || !inner || !gallery || !copy) return;
 
+    const video = inner.querySelector<HTMLVideoElement>("video");
     const words = Array.from(section.querySelectorAll<HTMLElement>(".dtg-word"));
 
     let K0: Box = { left: 0, top: 0, w: 0, h: 0 }; // diamond, inline in the heading
@@ -95,12 +96,27 @@ export default function DitchTheGlass() {
       travel.style.width = `${box.w}px`;
       travel.style.height = `${box.h}px`;
 
+      // hand-off conveyor: the pour video and the gallery's first photo run the
+      // SAME move as every later gallery step — no cross-dissolve. The video
+      // wipes downward out of the (fixed, masked) card window while photo #0
+      // descends into it from above, both eased together. direction="down" ⇒
+      // incoming enters from the top, outgoing exits the bottom.
+      const handoff = smooth(clamp((prog - 0.32) / 0.06, 0, 1));
+
       const rot = 45 * (1 - gP);
       travel.style.transform = `rotate(${rot}deg)`;
       inner.style.transform = `rotate(${-rot}deg) scale(${lerp(1.5, 1, gP)})`;
       // adopt the curved photo-card frame as it heads for the slot
       travel.style.maskImage = tP > 0 ? "url(/m-photo-card.svg)" : "none";
       travel.style.setProperty("-webkit-mask-image", tP > 0 ? "url(/m-photo-card.svg)" : "none");
+      // The video sits STILL beneath the incoming photo — it never slides. It
+      // freezes the instant the reveal starts (so it isn't playing behind the
+      // wipe) and is dropped once the photo has fully covered it.
+      if (video) {
+        if (handoff > 0) { if (!video.paused) video.pause(); }
+        else if (video.paused) { void video.play().catch(() => {}); }
+      }
+      travel.style.opacity = handoff >= 1 ? "0" : "1";
 
       // heading fades out as the image grows
       const textFade = 1 - clamp((prog - 0.08) / 0.12, 0, 1);
@@ -111,11 +127,11 @@ export default function DitchTheGlass() {
       copy.style.opacity = String(cP);
       copy.style.transform = `translateX(${lerp(-80, 0, cP)}px)`;
 
-      // hand-off: the diamond fades out as the gallery fades in at the same slot.
-      // Both show the pour image (PHOTOS[0]), so the swap is invisible.
-      const handoff = clamp((prog - 0.32) / 0.06, 0, 1);
-      travel.style.opacity = String(1 - handoff);
-      gallery.style.opacity = String(handoff);
+      // hand-off: the first photo is revealed IN PLACE over the frozen video,
+      // wiping top→bottom (the bottom inset shrinks to 0), so nothing floats
+      // above the slot and the video never moves — it is simply covered.
+      gallery.style.opacity = handoff > 0 ? "1" : "0";
+      gallery.style.clipPath = `inset(0 0 ${(1 - handoff) * 100}% 0)`;
 
       // step the gallery through its photos over the rest of the pin
       const step = clamp(Math.floor(((prog - 0.38) / 0.62) * PHOTOS.length), 0, PHOTOS.length - 1);
@@ -147,6 +163,7 @@ export default function DitchTheGlass() {
       words.forEach((w) => { w.style.opacity = "0"; });
       travel.style.opacity = "0";
       gallery.style.opacity = "1";
+      gallery.style.clipPath = "inset(0 0 0% 0)";
       copy.style.opacity = "1";
       copy.style.transform = "none";
       return () => {};
@@ -183,13 +200,24 @@ export default function DitchTheGlass() {
         </h2>
       </div>
 
-      {/* Gallery — pinned at the card slot; first photo is the pour image, so the
-          traveling diamond lands straight onto it. Steps through the rest.
-          duration={0.7} matches RitualCards' PHOTO_DUR — same conveyor reveal
-          (incoming enters from above, outgoing keeps moving down and exits
-          below, same power2.inOut ease) at the same speed. */}
-      <div ref={galleryRef} data-dtg="gallery" className="absolute" style={{ ...ABOUT_CARD, opacity: 0, zIndex: 4 }}>
-        <VerticalSlider images={PHOTOS} index={index} frame direction="down" conveyor duration={0.7} style={{ width: "100%", height: "100%" }} />
+      {/* Gallery — pinned at the card slot. The pour video is revealed over by
+          the first photo (top→bottom, see render), and every following photo
+          steps with the SAME top→bottom reveal (`reveal` mode): each new photo
+          is painted over the current one from the top edge down, current held
+          still beneath. duration={0.7} matches the hand-off feel. */}
+      <div
+        ref={galleryRef}
+        data-dtg="gallery"
+        className="absolute"
+        style={{
+          ...ABOUT_CARD,
+          opacity: 0,
+          zIndex: 6,
+          clipPath: "inset(0 0 100% 0)",
+          willChange: "clip-path, opacity",
+        }}
+      >
+        <VerticalSlider images={PHOTOS} index={index} frame reveal duration={0.7} style={{ width: "100%", height: "100%" }} />
       </div>
 
       {/* Copy — upper right; fades + slides in as the image travels to the slot. */}

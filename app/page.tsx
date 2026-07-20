@@ -46,8 +46,10 @@ export default function Home() {
       <div className="hidden md:block">
         <DitchTheGlass />
       </div>
-      {/* Same block-container rationale as DitchTheGlass: MobileIntro pins, and
-          pinning misbehaves for a direct flex child of <body>. */}
+      {/* Mobile sections 2 + 3 — pinned "Liquid Bliss. Mixed to Move." heading →
+          diamond grows into the framed gallery → "What we're about" copy. Wrapped
+          in a block container: ScrollTrigger's pin misbehaves for a direct flex
+          child of <body> (which is `flex flex-col`). */}
       <div className="md:hidden">
         <MobileIntro />
       </div>

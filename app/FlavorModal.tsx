@@ -14,6 +14,9 @@ import GlbViewer, { type GlbViewerHandle, type ModelEntry } from "./GlbViewer";
  */
 
 const u = (n: number) => `calc(var(--u) * ${n})`;
+// Mobile unit — the flavour-modal mobile frame is 390px wide (Figma 198:3492),
+// scaled via --mu = 100cqw / 390.
+const mu = (n: number) => `calc(var(--mu) * ${n})`;
 
 // Single source of truth for the prev/next transition length. The GLB spin +
 // colour cross-fade (navDuration), the background, and the scene all use this so
@@ -109,6 +112,9 @@ type Flavor = {
   pouch: { src: string; w: number; crop?: Crop };
   ingredients: [string, string];
   fruits: Fruit[];
+  /** Mobile-frame (390×680) fruit layout — positions/sizes in `--mu` units. When
+   *  present the mobile modal renders this instead of the desktop `fruits`. */
+  mobileFruits?: Fruit[];
 };
 
 // All flavour models, ordered to match FLAVORS / the modal index. Module-level so
@@ -207,13 +213,24 @@ export const FLAVORS: Flavor[] = [
       { src: "/fl-strawberry.png", box: { left: -91.69, top: 445.8, w: 502.246, h: 479.813 }, inner: { w: 339.982, h: 390.862 }, rotate: 116.83, blur: 3.25, crop: STRAW },
       { src: "/fl-yuzu.png", box: { left: 314.54, top: -119.19, w: 274.637, h: 278.811 }, crop: YUZU },
     ],
+    // Mobile frame 198:3492 (390×680). Positions/sizes are frame-absolute in mu.
+    mobileFruits: [
+      { src: "/fl-lychee.png", box: { left: 111.08, top: 8.71, w: 101.048, h: 100.958 }, inner: { w: 70.304, h: 72.592 }, rotate: 46.6 },
+      { src: "/fl-lychee.png", box: { left: 266.52, top: 279.5, w: 79.114, h: 80.31 }, inner: { w: 61.252, h: 63.246 }, rotate: -19.89 },
+      { src: "/fl-lychee.png", box: { left: -40.48, top: 179.6, w: 79.114, h: 80.31 }, inner: { w: 61.252, h: 63.246 }, rotate: -19.89 },
+      { src: "/fl-yuzu.png", box: { left: 318.66, top: 194.05, w: 132.729, h: 134.746 }, blur: 2.136, crop: YUZU },
+      { src: "/fl-strawberry.png", box: { left: 247.43, top: 21.27, w: 269.507, h: 282.333 }, inner: { w: 191.37, h: 220.009 }, rotate: 26.54, blur: 2.379, crop: STRAW },
+      { src: "/fl-strawberry.png", box: { left: 75.81, top: 37.05, w: 104.359, h: 110.379 }, inner: { w: 76.147, h: 87.543 }, rotate: -23.07, crop: STRAW },
+      { src: "/fl-strawberry.png", box: { left: -52.94, top: 241.65, w: 174.43, h: 166.64 }, inner: { w: 118.076, h: 135.747 }, rotate: 116.83, blur: 1.129, crop: STRAW },
+      { src: "/fl-yuzu.png", box: { left: 34.29, top: -40.46, w: 95.382, h: 96.831 }, crop: YUZU },
+    ],
   },
 ];
 
 // (Letter-by-letter reveal removed — ingredient text now renders statically.)
 
-function FruitImg({ f, i }: { f: Fruit; i: number }) {
-  const filter = f.blur ? { filter: `blur(${u(f.blur)})` } : undefined;
+function FruitImg({ f, i, unit = u }: { f: Fruit; i: number; unit?: (n: number) => string }) {
+  const filter = f.blur ? { filter: `blur(${unit(f.blur)})` } : undefined;
   const inner = f.inner ?? (f.box ? { w: f.box.w, h: f.box.h } : null);
 
   // Organic float (see .fl-float in globals.css) — amplitude, spin, speed and
@@ -248,10 +265,10 @@ function FruitImg({ f, i }: { f: Fruit; i: number }) {
 
   const b = f.box!;
   return (
-    <div className="pointer-events-none absolute flex items-center justify-center" style={{ left: u(b.left), top: u(b.top), width: u(b.w), height: u(b.h) }}>
+    <div className="pointer-events-none absolute flex items-center justify-center" style={{ left: unit(b.left), top: unit(b.top), width: unit(b.w), height: unit(b.h) }}>
       <div className="fl-float" style={floatStyle}>
         <div style={{ transform: f.rotate ? `rotate(${f.rotate}deg)` : undefined, ...filter }}>
-          <div className="relative overflow-hidden" style={{ width: u(inner!.w), height: u(inner!.h) }}>
+          <div className="relative overflow-hidden" style={{ width: unit(inner!.w), height: unit(inner!.h) }}>
             {media}
           </div>
         </div>
@@ -292,6 +309,40 @@ function Scene({ f }: { f: Flavor }) {
         <FruitImg key={i} f={fr} i={i} />
       ))}
     </>
+  );
+}
+
+/** The mobile decorative scene. Flavours with a `mobileFruits` layout (Figma
+ *  198:3492) render the mandala + fruits ringed around the pouch in the 390×680
+ *  frame via `--mu`. Flavours without one fall back to the desktop `Scene` scaled
+ *  to mobile width (as before the mobile redesign) so they keep their floating
+ *  fruit until their own mobile frames are wired in. */
+function MobileScene({ f }: { f: Flavor }) {
+  if (f.mobileFruits) {
+    return (
+      <div className="absolute bottom-0 left-0 w-full" style={{ height: mu(680) }}>
+        {/* Mandala — centred, bleeding off the top (Figma "BG Red"). */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={f.pattern}
+          alt=""
+          className="pointer-events-none absolute left-1/2 -translate-x-1/2"
+          style={{ top: mu(-42), width: mu(440), height: mu(439.92) }}
+        />
+        {f.mobileFruits.map((fr, i) => (
+          <FruitImg key={i} f={fr} i={i} unit={mu} />
+        ))}
+      </div>
+    );
+  }
+  // Legacy fallback — the desktop 1920×1080 scene scaled to mobile width, centred.
+  return (
+    <div
+      className="absolute left-1/2 top-1/2 w-full -translate-x-1/2 -translate-y-1/2 overflow-hidden"
+      style={{ containerType: "inline-size", ["--u" as string]: "calc(100cqw / 1920)", height: "100svh" }}
+    >
+      <Scene f={f} />
+    </div>
   );
 }
 
@@ -485,30 +536,22 @@ export default function FlavorModal({
         </div>
       </div>
 
-      {/* ───────── Mobile: scene covers the screen, controls fit the viewport ───────── */}
-      <div className="absolute inset-0 md:hidden">
-        {/* GLB: persistent viewer, stays put on screen — on nav it spins a full
-            360° left-to-right turntable timed to the modal's bounce-back.
-            Bobs gently at rest (glb-float) so it reads as hovering. */}
+      {/* ───────── Mobile: 390×680 frame (Figma 198:3492), width-scaled via --mu ───────── */}
+      <div className="absolute inset-0 md:hidden" style={{ containerType: "inline-size", ["--mu" as string]: "calc(100cqw / 390)" }}>
+        {/* GLB pouch — persistent, centred on the design pouch (137×360 @ top 96,
+            centre 404mu above the frame bottom). Bobs gently at rest. */}
         <div className="absolute inset-0" style={{ pointerEvents: "none", zIndex: 40 }}>
           <div
             style={{
               position: "absolute",
               left: "50%",
-              top: "42%",
+              top: `calc(100% - ${mu(404)})`,
               transform: "translate(-50%, -50%)",
-              // Wider than the bottle so the spin/tilt is never clipped by the canvas.
-              width: "72vh",
-              height: "84vh",
+              width: mu(360),
+              height: mu(560),
             }}
           >
-            {/* Float lives on its own layer — a CSS animation on `transform`
-                fully replaces (doesn't compose with) the parent's inline
-                translate(-50%,-50%) centring if put on the same element. */}
             <div className="glb-float size-full" style={{ perspective: 900 }}>
-              {/* Mouse-tilt: its own layer too, same reason as the float split
-                  above — rotateX/rotateY here, translate3d/rotate on the
-                  parent, no fighting over one element's transform. */}
               <motion.div className="size-full" style={{ rotateX: tiltX, rotateY: tiltY }}>
                 <GlbViewer
                   ref={mobileGlbRef}
@@ -525,8 +568,9 @@ export default function FlavorModal({
           </div>
         </div>
 
-        {/* Scene + text: the outgoing flavour swings out one way while this
-            one swings in from the other, crossfading — one edgeless wheel turn. */}
+        {/* Scene (mandala + fruits) + ingredients + wordmark: swing on nav. The
+            390×680 design is bottom-anchored to the viewport, so the wordmark sits
+            near the bottom while the mandala bleeds off the top. */}
         <AnimatePresence custom={layerDir} initial={false}>
           <motion.div
             key={f.key}
@@ -538,45 +582,50 @@ export default function FlavorModal({
             exit="exit"
             transition={SWING_TRANSITION}
           >
-            {/* Flavour content, re-aligned with the viewport inside the plane */}
             <div style={PLANE_CONTENT_STYLE}>
-              <div
-                className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 overflow-hidden w-full"
-                style={{ containerType: "inline-size", ["--u" as string]: "calc(100cqw / 1920)", height: "100svh" }}
-              >
-                <Scene f={f} />
-              </div>
-              <div className="absolute inset-x-0 bottom-0 flex flex-col items-center text-center px-6 pb-4" style={{ gap: "0.5rem", color: f.textColor }}>
-                <p aria-label="Ingredients" className="whitespace-nowrap uppercase" style={{ fontFamily: "var(--font-mono-label)", fontSize: 11, lineHeight: 0.87, letterSpacing: "0.8px" }}>
-                  Ingredients
-                </p>
-                <div style={{ fontFamily: "var(--font-body)", fontSize: 15, lineHeight: 1.5, maxWidth: "84vw" }}>
-                  <p className="mb-0" aria-label={f.ingredients[0]}>
-                    {f.ingredients[0]}
+              <MobileScene f={f} />
+
+              {/* Ingredients + wordmark — bottom-anchored 390×680 design row. */}
+              <div className="absolute bottom-0 left-0 w-full" style={{ height: mu(680) }}>
+                {/* Ingredients — centred under the pouch */}
+                <div
+                  className="absolute left-1/2 flex -translate-x-1/2 flex-col items-center text-center"
+                  style={{ top: mu(480), width: mu(221.76), gap: mu(8), color: f.textColor }}
+                >
+                  <p aria-label="Ingredients" className="whitespace-nowrap uppercase" style={{ fontFamily: "var(--font-mono-label)", fontSize: mu(12), lineHeight: 0.87, letterSpacing: mu(0.84) }}>
+                    Ingredients
                   </p>
-                  <p aria-label={f.ingredients[1]}>
-                    {f.ingredients[1]}
+                  <div style={{ fontFamily: "var(--font-body)", fontSize: mu(16), lineHeight: 1.2, letterSpacing: mu(0.16), width: mu(214.182) }}>
+                    <p className="mb-0" aria-label={f.ingredients[0]}>{f.ingredients[0]}</p>
+                    <p aria-label={f.ingredients[1]}>{f.ingredients[1]}</p>
+                  </div>
+                </div>
+
+                {/* Name wordmark — centred in the bottom row (arrows flank it) */}
+                <div className="absolute flex items-center justify-center" style={{ left: mu(21.67), top: mu(594.83), width: mu(346.667), height: mu(38) }}>
+                  <p className="text-center font-bold uppercase" style={{ fontFamily: "var(--font-display)", fontSize: mu(60), lineHeight: 0.8, letterSpacing: mu(-4.8), color: f.nameColor }}>
+                    {f.name}
                   </p>
                 </div>
-                <p
-                  className="text-center font-bold uppercase"
-                  style={{ fontFamily: "var(--font-display)", fontSize: "clamp(2.5rem, 13vw, 5.5rem)", lineHeight: 0.8, letterSpacing: "-0.06em", color: f.nameColor }}
-                >
-                  {f.name}
-                </p>
               </div>
             </div>
           </motion.div>
         </AnimatePresence>
 
-        <button type="button" aria-label="Previous flavour" onClick={(e) => { e.stopPropagation(); onNav(-1); }} className="absolute left-1 top-1/2 -translate-y-1/2 cursor-pointer p-3">
-          <Chevron color={f.nameColor} flip width="22px" height="43px" />
-        </button>
-        <button type="button" aria-label="Next flavour" onClick={(e) => { e.stopPropagation(); onNav(1); }} className="absolute right-1 top-1/2 -translate-y-1/2 cursor-pointer p-3">
-          <Chevron color={f.nameColor} width="22px" height="43px" />
-        </button>
+        {/* Prev/next arrows — persistent, flanking the wordmark row */}
+        <div className="absolute bottom-0 left-0 w-full" style={{ height: mu(680), pointerEvents: "none", zIndex: 50 }}>
+          <div className="absolute flex items-center justify-between" style={{ left: mu(21.67), top: mu(594.83), width: mu(346.667), height: mu(38) }}>
+            <button type="button" aria-label="Previous flavour" onClick={(e) => { e.stopPropagation(); onNav(-1); }} className="cursor-pointer" style={{ pointerEvents: "auto" }}>
+              <Chevron color={f.nameColor} flip width={mu(12.484)} height={mu(24.586)} />
+            </button>
+            <button type="button" aria-label="Next flavour" onClick={(e) => { e.stopPropagation(); onNav(1); }} className="cursor-pointer" style={{ pointerEvents: "auto" }}>
+              <Chevron color={f.nameColor} width={mu(12.484)} height={mu(24.586)} />
+            </button>
+          </div>
+        </div>
 
-        <button type="button" aria-label="Close" onClick={(e) => { e.stopPropagation(); onClose(); }} className="absolute right-4 top-4 size-10 cursor-pointer">
+        {/* Close — anchored to the viewport top-right */}
+        <button type="button" aria-label="Close" onClick={(e) => { e.stopPropagation(); onClose(); }} className="absolute cursor-pointer" style={{ right: mu(24.36), top: mu(26.72), width: mu(24), height: mu(24), zIndex: 50 }}>
           <CloseIcon color={f.textColor} />
         </button>
       </div>

@@ -174,14 +174,14 @@ export default function DropList() {
       {/* Mobile */}
       <div className="flex justify-center md:hidden">
         <div className="w-full" style={{ containerType: "inline-size" }}>
-          <div className="flex flex-col items-start" style={{ ...MU_VAR, padding: `${mu(60)} ${mu(24)}`, gap: mu(40) }}>
+          <div className="flex flex-col items-start" style={{ ...MU_VAR, padding: `${mu(60)} ${mu(24)} ${mu(4)} ${mu(24)}`, gap: mu(40) }}>
             <div className="flex flex-col items-start uppercase text-[#fff0e5]" style={{ gap: mu(16) }}>
               <p style={{ fontFamily: "var(--font-mono-label)", fontSize: mu(12), lineHeight: 0.87, letterSpacing: mu(0.84) }}>[05] Want in?</p>
               <p className="font-bold" style={{ fontFamily: "var(--font-display)", fontSize: mu(64), lineHeight: 0.8, letterSpacing: mu(-5.12), width: mu(276.93) }}>
                 Join the drop list
               </p>
             </div>
-            <div className="flex flex-col items-start" style={{ gap: mu(19.87), width: mu(256.65) }}>
+            <div className="flex flex-col items-start" style={{ gap: mu(19.87), width: '100%' }}>
               <DropForm s={mu} height={48.598} fontSize={14} padL={19.57} padR={56} radius={24.299} btnRight={8.1} btnSize={32.399} headingSize={24} headingLs={-1.68} msgSize={13} />
             </div>
           </div>

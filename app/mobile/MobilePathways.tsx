@@ -70,6 +70,10 @@ const GLB_MODELS = [
   { src: "/glb/kyoto.glb", transitionAt: 0.762 },
 ];
 
+// Scroll-fraction width of a model cross-fade. A model's transitionAt marks where
+// its fade-in STARTS; it's only fully on screen transitionAt + this later.
+const GLB_TRANSITION_DURATION = 0.04;
+
 export default function MobilePathways() {
   const { open } = useFlavor();
   const glbRef = useRef<GlbViewerHandle>(null);
@@ -80,6 +84,9 @@ export default function MobilePathways() {
   // page is fixed/overflow-hidden the moment the modal mounts (FlavorModal's
   // own effect), so scroll is left sitting exactly where it crossed in.
   const kyotoAutoOpenedRef = useRef(false);
+  // Set the first time ANY flavour modal is opened (manual tap or auto). Once a
+  // modal has been opened, scrolling into Kyoto must NOT auto-open it again.
+  const modalOpenedRef = useRef(false);
   // Entrance targets: the poster content (fades + drops down) and the GLB
   // overlay (fades in with it, opacity-only so its handoff getRect is untouched).
   const sectionRef = useRef<HTMLElement>(null);
@@ -92,6 +99,9 @@ export default function MobilePathways() {
   // hook (used by the Kyoto auto-open below to lift its scroll block) merged
   // into the modal's own close callback.
   const openWithSpin = useCallback((i: number, onClosed?: () => void) => {
+    // Mark that a modal has now been opened, so the Kyoto scroll auto-open below
+    // never fires once the user has already engaged with the flavour overlay.
+    modalOpenedRef.current = true;
     // Beat 1: tilt to 90° AND start spinning at the same time.
     glbRef.current?.spin();
     glbRef.current?.spin360();
@@ -112,8 +122,14 @@ export default function MobilePathways() {
 
   const KYOTO_INDEX = 3;
   const kyotoTransitionAt = GLB_MODELS[KYOTO_INDEX].transitionAt;
-  const handleGlbProgress = useCallback((frac: number) => {
-    if (kyotoAutoOpenedRef.current || kyotoTransitionAt === undefined || frac < kyotoTransitionAt) return;
+  const handleGlbProgress = useCallback(() => {
+    if (kyotoAutoOpenedRef.current || modalOpenedRef.current || kyotoTransitionAt === undefined) return;
+    // Gate on the GLB actually RENDERING Kyoto as its dominant (most-opaque)
+    // model, not on the scroll fraction alone. A frac threshold is fragile — a
+    // devtools-induced ScrollTrigger.refresh() (viewport shrinks) can spike frac
+    // past the crossing while the green Gaia pouch is still centred, opening the
+    // Kyoto modal over the wrong bottle. The live cross-fade never lies.
+    if (glbRef.current?.getDominantIndex() !== KYOTO_INDEX) return;
     kyotoAutoOpenedRef.current = true;
 
     // Fast/momentum scrolling (touch fling especially) can carry the page well
@@ -128,7 +144,11 @@ export default function MobilePathways() {
     if (el) {
       const rect = el.getBoundingClientRect();
       const absTop = rect.top + window.scrollY;
-      const targetY = kyotoTransitionAt * rect.height + absTop - window.innerHeight * 0.5;
+      // Snap to where Kyoto is FULLY faded in (end of the cross-fade), not its
+      // start — landing at kyotoTransitionAt would put the green Gaia pouch back
+      // on screen underneath the Kyoto modal.
+      const kyotoFrac = kyotoTransitionAt + GLB_TRANSITION_DURATION;
+      const targetY = kyotoFrac * rect.height + absTop - window.innerHeight * 0.5;
       window.scrollTo({ top: targetY, behavior: "auto" });
     }
     const html = document.documentElement;
@@ -223,7 +243,7 @@ export default function MobilePathways() {
         <GlbViewer
           ref={glbRef}
           models={GLB_MODELS}
-          transitionDuration={0.04}
+          transitionDuration={GLB_TRANSITION_DURATION}
           scrollRef={scrollRef}
           scrollTravel={mu(596.46)}
           onProgress={handleGlbProgress}

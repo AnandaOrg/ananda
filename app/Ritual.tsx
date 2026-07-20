@@ -12,7 +12,7 @@ import { CAROUSEL_AUTOPLAY_SPEED } from "./configs";
 const u = (n: number) => `calc(var(--u) * ${n})`;
 const RED = "#eb4638";
 
-const TAGS = ["Tropical", "Rich", "Sun-Drenched"];
+const TAGS = ["100% Pure joy", "Tag @AnandaCocktails to join the collective"];
 
 const WILD = [
   { src: "/s5-wild1.png", w: 525.269, h: 652.058, alt: "Friends enjoying ANANDA outdoors" },
@@ -27,7 +27,7 @@ export default function Ritual() {
     <section className="relative w-full overflow-hidden" style={{ containerType: "inline-size", backgroundColor: "#fff0e5" }}>
       <div
         className="relative mx-auto"
-        style={{ ["--u" as string]: "calc(100cqw / 1440)", width: u(1440), height: u(4024) }}
+        style={{ ["--u" as string]: "calc(100cqw / 1440)", width: u(1440), height: u(3942.548) }}
       >
         {/* Intro statement — letter-fill reveal on scroll */}
         <RevealStatement
@@ -85,8 +85,8 @@ export default function Ritual() {
         {/* Step cards — scroll-triggered rotation entrance */}
         <RitualCards />
 
-        {/* [04] HOW IT WORKS */}
-        <div className="absolute" style={{ left: u(67), top: u(2865.35), padding: `${u(10)} ${u(14)}` }}>
+        {/* [04] HOW IT WORKS — sits 400px below the card block (bottom at u(2381)) */}
+        <div className="absolute" style={{ left: u(67), top: u(2781), padding: `${u(10)} ${u(14)}` }}>
           <p
             className="whitespace-nowrap uppercase"
             style={{ fontFamily: "var(--font-mono-label)", fontSize: u(14), lineHeight: 0.87, letterSpacing: u(0.98), color: RED }}
@@ -100,7 +100,7 @@ export default function Ritual() {
           className="absolute font-bold uppercase"
           style={{
             left: u(78.23),
-            top: u(2942.53),
+            top: u(2858.18),
             width: u(886.654),
             fontFamily: "var(--font-display)",
             fontSize: u(180),
@@ -114,7 +114,7 @@ export default function Ritual() {
         </div>
 
         {/* Flavour tags */}
-        <div className="absolute flex items-center" style={{ left: u(81), top: u(3242.01), gap: u(14) }}>
+        <div className="absolute flex items-center" style={{ left: u(81), top: u(3157.66), gap: u(14) }}>
           {TAGS.map((t) => (
             <span
               key={t}
@@ -124,9 +124,10 @@ export default function Ritual() {
                 borderRadius: u(2),
                 padding: `${u(10)} ${u(14)}`,
                 fontFamily: "var(--font-mono-label)",
-                fontSize: u(10),
+                fontWeight: 500,
+                fontSize: u(20),
                 lineHeight: 0.87,
-                letterSpacing: u(0.7),
+                letterSpacing: u(1.4),
                 color: RED,
               }}
             >
@@ -136,7 +137,7 @@ export default function Ritual() {
         </div>
 
         {/* "In the wild" photo carousel — drag / scroll through the gallery */}
-        <div className="absolute" style={{ left: 0, top: u(3374.84), width: u(1440) }}>
+        <div className="absolute" style={{ left: 0, top: u(3290.49), width: u(1440) }}>
           <WildCarousel
             items={WILD}
             slideW={u(525.269)}

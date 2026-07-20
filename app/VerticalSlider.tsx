@@ -46,6 +46,15 @@ interface Props {
    * stationary outgoing one. Default false.
    */
   conveyor?: boolean;
+  /**
+   * Reveal transition (controlled mode only): the incoming slide is stacked ON
+   * TOP of the current one and wiped in from the top edge downward (clip-path
+   * inset) while the current slide stays perfectly still beneath it — the new
+   * photo is simply painted over the old, top→bottom. Reversing scrolls the
+   * wipe back up to uncover the previous slide. Overrides `conveyor`. Default
+   * false.
+   */
+  reveal?: boolean;
   className?: string;
   style?: React.CSSProperties;
 }
@@ -58,6 +67,7 @@ export default function VerticalSlider({
   direction = "up",
   index,
   conveyor = false,
+  reveal = false,
   className,
   style,
 }: Props) {
@@ -69,10 +79,12 @@ export default function VerticalSlider({
   const durationRef = useRef(duration);
   const directionRef = useRef(direction);
   const conveyorRef = useRef(conveyor);
+  const revealRef = useRef(reveal);
   useEffect(() => { intervalRef.current = interval; }, [interval]);
   useEffect(() => { durationRef.current = duration; }, [duration]);
   useEffect(() => { directionRef.current = direction; }, [direction]);
   useEffect(() => { conveyorRef.current = conveyor; }, [conveyor]);
+  useEffect(() => { revealRef.current = reveal; }, [reveal]);
 
   // Off-screen parking spot for hidden slides: below for "up", above for "down".
   const off = () => (directionRef.current === "down" ? "-100%" : "100%");
@@ -87,8 +99,14 @@ export default function VerticalSlider({
   useEffect(() => {
     const els = slideRefs.current.filter((el): el is HTMLDivElement => el !== null);
     if (els.length < 1) return;
-    gsap.set(els[0], { y: "0%", zIndex: 1 });
-    els.slice(1).forEach(el => gsap.set(el, { y: off(), zIndex: 0 }));
+    if (revealRef.current) {
+      // Reveal mode: every slide sits in place, fully drawn; slide 0 on top.
+      gsap.set(els, { y: "0%", clipPath: "inset(0 0 0% 0)", zIndex: 0 });
+      gsap.set(els[0], { zIndex: 1 });
+    } else {
+      gsap.set(els[0], { y: "0%", zIndex: 1 });
+      els.slice(1).forEach(el => gsap.set(el, { y: off(), zIndex: 0 }));
+    }
     curRef.current = 0;
   }, []);
 
@@ -144,6 +162,34 @@ export default function VerticalSlider({
     const curEl = els[cur];
     const nxtEl = els[next];
     const forward = next > cur;
+
+    if (revealRef.current) {
+      // Reveal: the current slide never moves. Going forward, the incoming
+      // slide sits on top and is wiped in from the top edge downward (its
+      // bottom inset shrinks to 0). Going back, the current slide is wiped
+      // away downward-to-up to uncover the previous one beneath.
+      if (forward) {
+        gsap.set(nxtEl, { y: "0%", clipPath: "inset(0 0 100% 0)", zIndex: 2 });
+        gsap.set(curEl, { zIndex: 1 });
+        gsap.to(nxtEl, {
+          clipPath: "inset(0 0 0% 0)",
+          duration: durationRef.current,
+          ease: "power2.inOut",
+          onComplete() { gsap.set(nxtEl, { zIndex: 1 }); gsap.set(curEl, { zIndex: 0 }); },
+        });
+      } else {
+        gsap.set(nxtEl, { y: "0%", clipPath: "inset(0 0 0% 0)", zIndex: 1 });
+        gsap.set(curEl, { zIndex: 2 });
+        gsap.to(curEl, {
+          clipPath: "inset(0 0 100% 0)",
+          duration: durationRef.current,
+          ease: "power2.inOut",
+          onComplete() { gsap.set(curEl, { zIndex: 0 }); },
+        });
+      }
+      curRef.current = next;
+      return;
+    }
 
     if (conveyorRef.current) {
       // Conveyor: incoming enters from this step's entry side while the

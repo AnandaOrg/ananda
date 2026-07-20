@@ -14,6 +14,10 @@ export type GlbViewerHandle = {
   /** Set the Z-tilt immediately (no tween) — for scroll-scrubbed control. */
   setTilt: (v: number) => void;
   getRect: () => DOMRect;
+  /** Index of the model currently rendered most opaque (the one actually on
+   *  screen). Reflects the live cross-fade, not the scroll fraction — use it to
+   *  act only once a specific model is really visible. */
+  getDominantIndex: () => number;
 };
 
 export type ModelEntry = {
@@ -140,6 +144,9 @@ const GlbViewer = forwardRef<GlbViewerHandle, Props>(function GlbViewer({
   const tiltRef = useRef({ value: -Math.PI / 2 });
   const tiltTlRef = useRef<gsap.core.Timeline | null>(null);
   const fracRef = useRef(0);
+  // Index of the model rendered most opaque this frame (the one actually on
+  // screen). Updated in the render loop; surfaced via getDominantIndex().
+  const dominantIndexRef = useRef(activeIndex ?? 0);
   // Latest onProgress in a ref so the scroll-effect below (which must stay
   // stable — re-running it reloads every GLB) can call a fresh callback
   // without needing it in its own dependency array.
@@ -175,6 +182,9 @@ const GlbViewer = forwardRef<GlbViewerHandle, Props>(function GlbViewer({
     },
     getRect() {
       return mountRef.current?.getBoundingClientRect() ?? new DOMRect();
+    },
+    getDominantIndex() {
+      return dominantIndexRef.current;
     },
   }));
 
@@ -412,6 +422,8 @@ const GlbViewer = forwardRef<GlbViewerHandle, Props>(function GlbViewer({
           mount.style.transform = `translateY(calc(${scrollTravel} * ${frac}))`;
         }
 
+        let dominantI = dominantIndexRef.current;
+        let dominantOpacity = -1;
         groups.forEach((g, i) => {
           const mats = allMats[i];
           if (!g || !mats) return; // not loaded yet (streaming in the background)
@@ -437,6 +449,11 @@ const GlbViewer = forwardRef<GlbViewerHandle, Props>(function GlbViewer({
             opacity = blendIn * (1 - blendOut);
           }
 
+          if (opacity > dominantOpacity) {
+            dominantOpacity = opacity;
+            dominantI = i;
+          }
+
           g.position.y = 0;
           g.rotation.y = spinY + turntableY;
           g.rotation.z = tiltRef.current.value;
@@ -450,6 +467,7 @@ const GlbViewer = forwardRef<GlbViewerHandle, Props>(function GlbViewer({
           const flip = flipGroups[i];
           if (flip) flip.rotation.y = useSelect ? flipOffsetRef.current.value : 0;
         });
+        dominantIndexRef.current = dominantI;
 
         renderer!.render(scene, camera);
       };

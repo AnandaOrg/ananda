@@ -47,6 +47,7 @@ export default function MobileCollageMedia() {
               frameBase="/frames/kyoto-strawberries/"
               frameCount={120}
               alt="An ANANDA pouch nestled in fresh strawberries"
+              autoLoop
               style={{
                 width: mu(STRAW.h),
                 height: mu(STRAW.w),
