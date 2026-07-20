@@ -39,8 +39,8 @@ export default function ScrollVideoCanvas({
     if (!ctx) return;
 
     const dpr = window.devicePixelRatio || 1;
-    const frames: HTMLImageElement[] = new Array(frameCount);
-    let loadedCount = 0;
+    const frames: (HTMLImageElement | undefined)[] = new Array(frameCount);
+    let loaded = false;
     const obj = { frame: 0 };
 
     function sizeCanvas() {
@@ -69,22 +69,47 @@ export default function ScrollVideoCanvas({
     });
     ro.observe(wrap);
 
-    // Lazy-load frames once section nears viewport
+    // Decode every frame into an HTMLImageElement. Held only while the section is
+    // near the viewport (see the observer below).
+    function loadFrames() {
+      if (loaded) return;
+      loaded = true;
+      for (let i = 0; i < frameCount; i++) {
+        const n = String(i + 1).padStart(3, "0");
+        const img = new Image();
+        img.src = `${frameBase}${n}.jpg`;
+        // Redraw only the frame we're currently parked on as it arrives, so a
+        // reload after an unload doesn't snap the canvas back to frame 0.
+        img.onload = () => {
+          if (Math.round(obj.frame) === i) drawFrame(i);
+        };
+        frames[i] = img;
+      }
+    }
+
+    // Free the decoded bitmaps. iOS Safari counts these against the tab's memory
+    // budget; two frame sequences (240 bitmaps) held at once is enough to crash
+    // it. The last-drawn frame stays painted on the canvas, so unloading is
+    // invisible until re-entry reloads.
+    function unloadFrames() {
+      if (!loaded) return;
+      loaded = false;
+      for (let i = 0; i < frameCount; i++) {
+        const img = frames[i];
+        if (img) {
+          img.onload = null;
+          img.src = "";
+        }
+        frames[i] = undefined;
+      }
+    }
+
+    // Load when near the viewport, release when it leaves — keeps at most the
+    // active section's frames resident.
     const io = new IntersectionObserver(
       (entries) => {
-        if (!entries[0].isIntersecting) return;
-        io.disconnect();
-
-        for (let i = 0; i < frameCount; i++) {
-          const n = String(i + 1).padStart(3, "0");
-          const img = new Image();
-          img.src = `${frameBase}${n}.jpg`;
-          img.onload = () => {
-            loadedCount++;
-            if (loadedCount === 1) drawFrame(0);
-          };
-          frames[i] = img;
-        }
+        if (entries[0].isIntersecting) loadFrames();
+        else unloadFrames();
       },
       { rootMargin: "300px" }
     );

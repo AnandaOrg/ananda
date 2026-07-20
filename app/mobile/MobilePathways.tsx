@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { mu, MU_VAR } from "./scale";
@@ -92,6 +92,11 @@ export default function MobilePathways() {
   const sectionRef = useRef<HTMLElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const glbWrapRef = useRef<HTMLDivElement>(null);
+  // Defer mounting the (heavy, four-model) GLB viewer until the section nears the
+  // viewport. Mounting it eagerly on page load stacks 110MB of GLB parsing on top
+  // of the hero video + frame sequences and crashes iOS Safari; by the time the
+  // user scrolls here, the earlier sections' memory pressure has eased.
+  const [glbReady, setGlbReady] = useState(false);
 
   // Mirror desktop Pathways: spin the bottle, then open the modal from the
   // bottle's centre once the spin reads, wiring the modal's nav/close back to
@@ -159,6 +164,23 @@ export default function MobilePathways() {
       html.style.overflow = prevHtmlOverflow;
     });
   }, [kyotoTransitionAt, openWithSpin]);
+
+  // Mount the GLB viewer once the section is within ~a screen of the viewport.
+  // One-shot — once loaded it stays mounted for the cross-fade/turntable.
+  useEffect(() => {
+    const section = sectionRef.current;
+    if (!section) return;
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (!entries[0].isIntersecting) return;
+        io.disconnect();
+        setGlbReady(true);
+      },
+      { rootMargin: "600px" }
+    );
+    io.observe(section);
+    return () => io.disconnect();
+  }, []);
 
   // Entrance — once the pour above reveals this section, the poster fades and
   // drops DOWN into place, and the GLB overlay fades in with it. One-shot when
@@ -240,22 +262,25 @@ export default function MobilePathways() {
         className="pointer-events-none absolute left-1/2 top-0 -translate-x-1/2"
         style={{ width: mu(390), height: mu(1176), zIndex: 50 }}
       >
-        <GlbViewer
-          ref={glbRef}
-          models={GLB_MODELS}
-          transitionDuration={GLB_TRANSITION_DURATION}
-          scrollRef={scrollRef}
-          scrollTravel={mu(596.46)}
-          onProgress={handleGlbProgress}
-          style={{
-            position: "absolute",
-            left: `calc(50% - ${mu(408)})`,
-            top: mu(72),
-            width: mu(816),
-            height: mu(816),
-            pointerEvents: "none",
-          }}
-        />
+        {glbReady && (
+          <GlbViewer
+            ref={glbRef}
+            models={GLB_MODELS}
+            transitionDuration={GLB_TRANSITION_DURATION}
+            scrollRef={scrollRef}
+            scrollTravel={mu(596.46)}
+            onProgress={handleGlbProgress}
+            dropCacheAfterParse
+            style={{
+              position: "absolute",
+              left: `calc(50% - ${mu(408)})`,
+              top: mu(72),
+              width: mu(816),
+              height: mu(816),
+              pointerEvents: "none",
+            }}
+          />
+        )}
       </div>
     </section>
   );

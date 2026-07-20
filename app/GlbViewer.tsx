@@ -65,6 +65,11 @@ type Props = {
    *  bounce-back duration so the bottle finishes its spin exactly as the
    *  wheel swing settles. */
   spinDuration?: number;
+  /** Free each GLB's downloaded bytes from THREE.Cache once it's parsed into the
+   *  scene. Set on memory-constrained (mobile) viewers so the ~30MB/model
+   *  ArrayBuffers don't linger after upload. Leave off where the modal reuses
+   *  the same cached bytes (desktop). */
+  dropCacheAfterParse?: boolean;
   className?: string;
   style?: React.CSSProperties;
 };
@@ -135,6 +140,7 @@ const GlbViewer = forwardRef<GlbViewerHandle, Props>(function GlbViewer({
   onProgress,
   navDuration,
   spinDuration,
+  dropCacheAfterParse,
   className,
   style,
 }, ref) {
@@ -241,7 +247,12 @@ const GlbViewer = forwardRef<GlbViewerHandle, Props>(function GlbViewer({
       if (dead) return;
 
       renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      // Cap DPR lower on phones: at 2× the framebuffer + every uploaded texture
+      // doubles in memory, which is what tips iOS Safari over its per-tab budget
+      // when four models are resident at once. 1.5× is visually indistinguishable
+      // on the small pouch.
+      const maxDpr = window.matchMedia("(max-width: 767px)").matches ? 1.5 : 2;
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, maxDpr));
       renderer.setSize(mount.clientWidth, mount.clientHeight);
       renderer.outputColorSpace = THREE.SRGBColorSpace;
       renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -353,14 +364,21 @@ const GlbViewer = forwardRef<GlbViewerHandle, Props>(function GlbViewer({
           }
         })();
       } else {
-        // Scroll-blend (Pathways): every model must be ready before blending, so
-        // load them all up front and warm each as it's installed.
-        const gltfs = await Promise.all(models.map((m) => loader.loadAsync(m.src)));
-        if (dead) return;
-        if (spinOnMount) spin();
-        for (let i = 0; i < gltfs.length; i++) {
-          await install(gltfs[i].scene as THREE_TYPES.Group, i, i === startIndex);
+        // Scroll-blend (Pathways): every model must be ready before blending.
+        // Load + install them ONE AT A TIME rather than Promise.all — the latter
+        // holds all four (~110MB) of ArrayBuffers in flight at once, spiking peak
+        // memory past iOS Safari's ceiling. Sequential keeps only one download
+        // buffer live, and dropCacheAfterParse frees each once it's on the GPU.
+        for (let i = 0; i < models.length; i++) {
+          const gltf = await loader.loadAsync(models[i].src);
           if (dead) return;
+          if (i === startIndex && spinOnMount) spin();
+          await install(gltf.scene as THREE_TYPES.Group, i, i === startIndex);
+          if (dead) return;
+          if (dropCacheAfterParse) THREE.Cache.remove(models[i].src);
+          // Paint as soon as the first (shown) model is ready so the section
+          // isn't blank while the rest stream in behind it.
+          if (i === startIndex) renderer.render(scene, camera);
         }
         renderer.render(scene, camera);
       }
@@ -502,7 +520,7 @@ const GlbViewer = forwardRef<GlbViewerHandle, Props>(function GlbViewer({
     // models/initialTilt/noScroll must be stable (module-level constants or literals) from the caller.
     // spinOnMount is intentionally omitted — it's a one-shot flag captured at mount time.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [models, transitionDuration, initialTilt, noScroll, camZ, scrollRef, scrollTravel]);
+  }, [models, transitionDuration, initialTilt, noScroll, camZ, scrollRef, scrollTravel, dropCacheAfterParse]);
 
   return (
     <div

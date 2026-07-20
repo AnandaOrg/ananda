@@ -23,9 +23,18 @@ export default function FlavorProvider({ children }: { children: React.ReactNode
   // several sections before reaching the flavours, giving this time to finish.
   // Skipped on metered / very slow connections so we don't hammer their data.
   useEffect(() => {
-    const nav = navigator as Navigator & { connection?: { saveData?: boolean; effectiveType?: string } };
+    const nav = navigator as Navigator & {
+      connection?: { saveData?: boolean; effectiveType?: string };
+      deviceMemory?: number;
+    };
     const c = nav.connection;
     if (c?.saveData || (c?.effectiveType && /(^|-)2g$/.test(c.effectiveType))) return;
+    // Don't warm all four ~30MB models on phones / low-RAM devices: THREE.Cache
+    // never frees these ArrayBuffers, and holding ~110MB resident is what tips
+    // iOS Safari over its per-tab memory ceiling. On mobile the modal streams its
+    // active model on open instead (GlbViewer's active-first useSelect path).
+    const isSmall = window.matchMedia("(max-width: 767px)").matches;
+    if (isSmall || (nav.deviceMemory !== undefined && nav.deviceMemory <= 4)) return;
     const run = () => { preloadGlb(MODAL_GLB_SRCS); };
     if (typeof requestIdleCallback === "function") {
       const id = requestIdleCallback(run, { timeout: 3000 });
