@@ -1,4 +1,5 @@
 import Image from "next/image";
+import AutoplayRescue from "./AutoplayRescue";
 import DitchTheGlass from "./DitchTheGlass";
 import AboutCollage from "./AboutCollage";
 import Pathways from "./Pathways";
@@ -17,16 +18,23 @@ import FlavorProvider from "./FlavorProvider";
 export default function Home() {
   return (
     <FlavorProvider>
+      {/* iOS: retry blocked autoplays on first touch (Low Power Mode) */}
+      <AutoplayRescue />
+
       {/* Section 1 — splash (shared) */}
       <section className="relative flex h-screen items-center justify-center overflow-hidden">
+        {/* Source picked per breakpoint at load: phones get the 720p encode
+            (a fraction of the decode cost), md+ keeps the full 1080p file. */}
         <video
-          src="/videos/hero.mp4"
           autoPlay
           muted
           loop
           playsInline
           className="absolute inset-0 h-full w-full object-cover"
-        />
+        >
+          <source src="/videos/hero-mobile.mp4" media="(max-width: 767px)" />
+          <source src="/videos/hero.mp4" />
+        </video>
         <Image
           src="/ananda-logo.svg"
           alt="ANANDA Cocktails"

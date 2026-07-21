@@ -53,7 +53,7 @@ export default function MobileCollageMedia() {
               }}
             >
               <video
-                src="/videos/kyoto-strawberries.mp4"
+                src="/videos/kyoto-strawberries-mobile.mp4"
                 autoPlay
                 muted
                 loop

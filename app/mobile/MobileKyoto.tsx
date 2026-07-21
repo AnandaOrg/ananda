@@ -39,7 +39,9 @@ const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
 const smoothstep = (t: number) => t * t * (3 - 2 * t);
 
 // ── Assets ─────────────────────────────────────────────────────────────────
-const VIDEO_SRC = "/videos/kyoto.mp4";
+// Mobile-sized encode (720×960) of the desktop kyoto.mp4 — same footage,
+// a fraction of the decode cost on phones.
+const VIDEO_SRC = "/videos/kyoto-mobile.mp4";
 
 // ── Tunables (desktop KyotoLiftoff values × 0.494 where they are lengths) ──
 // Scroll window: the motion runs as the scene's centre travels FROM→TO of vh.

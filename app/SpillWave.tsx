@@ -140,9 +140,27 @@ export default function SpillWave() {
 
     let raf = 0;
     let running = false;
+    let last = 0;
+    let sizeCheckAt = 0;
+    let painted = false;
+    // Mobile perf: cap the morph at 30fps on phones (halves the per-frame
+    // style/paint cost; imperceptible for liquid). Desktop keeps 60fps.
+    const frameMs = window.matchMedia("(max-width: 767px)").matches ? 1000 / 30 : 0;
     const t0 = performance.now();
     const tick = (now: number) => {
       raf = requestAnimationFrame(tick);
+      // The spill spends most of its life at scale(0) (pre-pour), where the
+      // IntersectionObserver below still reports it on screen (a zero-area
+      // rect intersects). Morphing then would dirty style/layout/paint every
+      // frame for nothing and starve the page's other animations — skip ALL
+      // work while the svg has no real on-screen size, re-checking a couple
+      // of times a second.
+      if (now >= sizeCheckAt) {
+        sizeCheckAt = now + 400;
+        painted = svg.getBoundingClientRect().width > 4;
+      }
+      if (!painted || now - last < frameMs) return;
+      last = now;
       path.setAttribute("d", waveD((now - t0) / 1000));
     };
     // Ripple only while on screen — two instances (desktop + mobile twin) are
