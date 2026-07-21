@@ -7,6 +7,7 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { mu, MU_VAR } from "./scale";
 import { useFlavor } from "../FlavorProvider";
 import GlbViewer, { type GlbViewerHandle } from "../GlbViewer";
+import LiquidText from "../LiquidText";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -227,9 +228,13 @@ export default function MobilePathways() {
             <p className="whitespace-nowrap" style={{ fontFamily: "var(--font-mono-label)", fontSize: mu(12), lineHeight: 0.87, letterSpacing: mu(0.84) }}>
               [02] Choose your ANANDA
             </p>
-            <p className="font-bold" style={{ fontFamily: "var(--font-display)", fontSize: mu(64), lineHeight: 0.8, letterSpacing: mu(-5.12), width: mu(276.93) }}>
-              The Pathways to Bliss
-            </p>
+            {/* Headline — splashes into place like liquid (LiquidText: elastic
+                word rise + ghost trail), matching the desktop reveal */}
+            <LiquidText
+              text="The Pathways to Bliss"
+              className="relative font-bold"
+              style={{ fontFamily: "var(--font-display)", fontSize: mu(64), lineHeight: 0.8, letterSpacing: mu(-5.12), width: mu(276.93) }}
+            />
           </div>
           <button type="button" onClick={() => openWithSpin(0)} className="flex cursor-pointer appearance-none items-center justify-center overflow-hidden border-0 bg-[#fff0e5]" style={{ padding: `${mu(8)} ${mu(12)}`, borderRadius: mu(25.016) }}>
             <div className="flex items-center" style={{ gap: mu(7.505) }}>

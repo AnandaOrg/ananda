@@ -2,8 +2,9 @@ import ScrollVideoCanvas from "../ScrollVideoCanvas";
 import { mu, MU_VAR, maskStyle } from "./scale";
 
 /**
- * Mobile twin of the AboutCollage media (desktop): the pineapple and
- * strawberries scroll-scrubbed frame sequences with their organic masks.
+ * Mobile twin of the AboutCollage media (desktop): the scroll-scrubbed
+ * pineapple frame sequence and the strawberries looping video (autoplays on
+ * load) with their organic masks.
  * Layout per the mobile Figma: the pineapple column hugs and bleeds off the
  * right edge; the strawberries photo (rotated −90° like desktop so the KYOTO
  * pouch stands upright) sits lower-left. All lengths are desktop values
@@ -37,23 +38,31 @@ export default function MobileCollageMedia() {
           }}
         />
 
-        {/* Strawberries — scroll-scrubbed video */}
+        {/* Strawberries — ambient looping video, autoplays on load (NOT
+            scroll-driven, unlike the pineapple) */}
         <div
           className="absolute flex items-center justify-center"
           style={{ left: mu(STRAW.left), top: mu(STRAW.top), width: mu(STRAW.w), height: mu(STRAW.h) }}
         >
           <div style={{ transform: "rotate(-90deg)" }}>
-            <ScrollVideoCanvas
-              frameBase="/frames/kyoto-strawberries/"
-              frameCount={120}
-              alt="An ANANDA pouch nestled in fresh strawberries"
-              autoLoop
+            <div
               style={{
                 width: mu(STRAW.h),
                 height: mu(STRAW.w),
                 ...maskStyle("/m-14.svg", 229.72, 182.27, 0.3, 1.64),
               }}
-            />
+            >
+              <video
+                src="/videos/kyoto-strawberries.mp4"
+                autoPlay
+                muted
+                loop
+                playsInline
+                preload="auto"
+                aria-label="An ANANDA pouch nestled in fresh strawberries"
+                className="block size-full object-cover"
+              />
+            </div>
           </div>
         </div>
       </div>

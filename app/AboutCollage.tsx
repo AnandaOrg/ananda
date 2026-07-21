@@ -20,9 +20,10 @@ function maskStyle(src: string, [mw, mh]: [number, number], [mx, my]: [number, n
 }
 
 /**
- * Section 3 (collage) — the "What we're about" extras: a pineapple frame-video,
- * a strawberries frame-video, the kyoto pour video that hands off to the 3-D
- * KYOTO pouch (see KyotoLiftoff), and the red wave. The gallery + copy now live
+ * Section 3 (collage) — the "What we're about" extras: a pineapple frame-video
+ * (scroll-scrubbed), a strawberries looping video (autoplays on load), the
+ * kyoto pour video that hands off to the 3-D KYOTO pouch (see KyotoLiftoff),
+ * and the red wave. The gallery + copy now live
  * in DitchTheGlass (the pinned intro), so this canvas only holds the collage
  * media. Width-scaling canvas: `--u = 100cqw / 1440`. Desktop only (md+);
  * mobile uses MobileCollage.
@@ -57,22 +58,31 @@ export default function AboutCollage() {
           }}
         />
 
-        {/* Strawberries — scroll-scrubbed video */}
+        {/* Strawberries — ambient looping video, autoplays on load (NOT
+            scroll-driven, unlike the pineapple) */}
         <div
           className="absolute flex items-center justify-center"
           style={{ left: u(-21.5), top: u(1072.53 - SHIFT), width: u(750.69), height: u(604.722) }}
         >
           <div style={{ transform: "rotate(-90deg)" }}>
-            <ScrollVideoCanvas
-              frameBase="/frames/kyoto-strawberries/"
-              frameCount={120}
-              alt="An ANANDA pouch nestled in fresh strawberries"
+            <div
               style={{
                 width: u(604.722),
                 height: u(750.69),
                 ...maskStyle("/m-14.svg", [746.535, 592.314], [0.979, 5.315]),
               }}
-            />
+            >
+              <video
+                src="/videos/kyoto-strawberries.mp4"
+                autoPlay
+                muted
+                loop
+                playsInline
+                preload="auto"
+                aria-label="An ANANDA pouch nestled in fresh strawberries"
+                className="block size-full object-cover"
+              />
+            </div>
           </div>
         </div>
 

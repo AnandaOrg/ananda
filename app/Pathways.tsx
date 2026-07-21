@@ -6,6 +6,7 @@ import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useFlavor } from "./FlavorProvider";
 import GlbViewer, { type GlbViewerHandle } from "./GlbViewer";
+import LiquidText from "./LiquidText";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -232,8 +233,10 @@ export default function Pathways() {
           </p>
         </div>
 
-        {/* Headline */}
-        <p
+        {/* Headline — splashes into place like liquid once the pour above
+            reveals the section (LiquidText: elastic word rise + ghost trail) */}
+        <LiquidText
+          text="The Pathways to Bliss"
           className="absolute font-bold uppercase text-[#fff0e5]"
           style={{
             left: u(95.75),
@@ -244,9 +247,7 @@ export default function Pathways() {
             lineHeight: 0.8,
             letterSpacing: u(-14.4),
           }}
-        >
-          The Pathways to Bliss
-        </p>
+        />
 
         {/* Colour bands (click to open flavour) */}
         {BANDS.map((b, i) => (

@@ -239,6 +239,7 @@ const GlbViewer = forwardRef<GlbViewerHandle, Props>(function GlbViewer({
     let ro: ResizeObserver | null = null;
     let st: ReturnType<typeof ScrollTrigger.create> | null = null;
     let startRo: ResizeObserver | null = null;
+    let nearIo: IntersectionObserver | null = null;
 
     const init = async () => {
       const THREE = await import("three");
@@ -320,6 +321,12 @@ const GlbViewer = forwardRef<GlbViewerHandle, Props>(function GlbViewer({
       // is doing.
       const flipGroups: (THREE_TYPES.Group | undefined)[] = new Array(models.length);
 
+      // Render-on-change bookkeeping (see tick): how many models are live, and a
+      // one-shot repaint flag for events that change the image without a tween
+      // running (a resize, or a model finishing its load).
+      let loadedCount = 0;
+      let forceRender = true;
+
       // Fit, clone materials (opaque only for the shown model), add to the scene,
       // then warm the GPU for it (compile shaders + upload geometry/textures) so
       // its first visible frame never hitches. Registered in `groups` last, so
@@ -339,6 +346,8 @@ const GlbViewer = forwardRef<GlbViewerHandle, Props>(function GlbViewer({
         scn.visible = opaque; // the tick loop manages visibility from opacity hereafter
         groups[i] = scn;
         flipGroups[i] = flipGroup;
+        loadedCount++;
+        forceRender = true; // repaint once so the newly-loaded model appears at rest
       };
 
       if (useSelect) {
@@ -414,9 +423,21 @@ const GlbViewer = forwardRef<GlbViewerHandle, Props>(function GlbViewer({
         camera.aspect = w / h;
         camera.updateProjectionMatrix();
         renderer.setSize(w, h);
+        forceRender = true; // canvas resized — repaint even if nothing is animating
         if (!noScroll) ScrollTrigger.refresh();
       });
       ro.observe(mount);
+
+      // Render-on-change: the model is static unless scroll, a spin/flip/blend/
+      // tilt tween, a resize, or a newly-loaded model changes the image. Repaint
+      // only then — submitting identical frames every rAF wastes GPU/CPU and
+      // steals the headroom the two-model cross-fades need on a cold first load.
+      let lastFrac = NaN;
+      let lastSpin = NaN;
+      let lastFlip = NaN;
+      let lastTilt = NaN;
+      let lastBlend = NaN;
+      let lastLoaded = -1;
 
       const tick = () => {
         rafId = requestAnimationFrame(tick);
@@ -430,6 +451,29 @@ const GlbViewer = forwardRef<GlbViewerHandle, Props>(function GlbViewer({
         const rotFrac = noScroll ? 0 : frac;
         const turntableY = rotFrac * Math.PI * 2;
         const spinY = spinOffsetRef.current.value;
+        const flipY = flipOffsetRef.current.value;
+        const tilt = tiltRef.current.value;
+        const blend = blendRef.current.value;
+
+        // Nothing moved this frame → skip the render entirely.
+        if (
+          !forceRender &&
+          frac === lastFrac &&
+          spinY === lastSpin &&
+          flipY === lastFlip &&
+          tilt === lastTilt &&
+          blend === lastBlend &&
+          loadedCount === lastLoaded
+        ) {
+          return;
+        }
+        forceRender = false;
+        lastFrac = frac;
+        lastSpin = spinY;
+        lastFlip = flipY;
+        lastTilt = tilt;
+        lastBlend = blend;
+        lastLoaded = loadedCount;
 
         // Ride the bands by moving the canvas, not the model. Only rewrite the
         // transform when the scroll position actually changes — writing the
@@ -450,8 +494,7 @@ const GlbViewer = forwardRef<GlbViewerHandle, Props>(function GlbViewer({
             // Cross-fade driven by the blend tween: new model fades in, the one
             // we left fades out, everything else stays hidden. Same eased curve
             // and duration as the modal's bg/scene → they change together.
-            const b = blendRef.current.value;
-            opacity = i === activeRef.current ? b : (i === prevActiveRef.current ? 1 - b : 0);
+            opacity = i === activeRef.current ? blend : (i === prevActiveRef.current ? 1 - blend : 0);
           } else {
             // blendIn: 1 for first model; for others, ramps from 0→1 as frac crosses its transitionAt
             const blendIn =
@@ -474,7 +517,7 @@ const GlbViewer = forwardRef<GlbViewerHandle, Props>(function GlbViewer({
 
           g.position.y = 0;
           g.rotation.y = spinY + turntableY;
-          g.rotation.z = tiltRef.current.value;
+          g.rotation.z = tilt;
           g.visible = opacity > 0.01;
           mats.forEach((m) => { m.opacity = opacity; });
 
@@ -483,7 +526,7 @@ const GlbViewer = forwardRef<GlbViewerHandle, Props>(function GlbViewer({
           // guaranteed true left-to-right turntable, regardless of g's own
           // rotation/order.
           const flip = flipGroups[i];
-          if (flip) flip.rotation.y = useSelect ? flipOffsetRef.current.value : 0;
+          if (flip) flip.rotation.y = useSelect ? flipY : 0;
         });
         dominantIndexRef.current = dominantI;
 
@@ -495,12 +538,37 @@ const GlbViewer = forwardRef<GlbViewerHandle, Props>(function GlbViewer({
     // Don't allocate a WebGL context or parse the (large) GLBs while the mount
     // is hidden (display:none → 0×0). Both the desktop and mobile Pathways/modal
     // viewers live in the DOM at once; this lets only the visible one load.
+    // Scroll-mode viewers (Pathways) sit in normal flow, so their mount is
+    // non-zero the instant the page loads — parsing all four ~30MB GLBs then
+    // collides with initial-load work and janks the first scroll. Wait until the
+    // section is within ~2 viewports before doing that heavy parse; the bytes are
+    // already warmed by preloadGlb, so this only defers the main-thread parse off
+    // the critical path. The modal (noScroll) always loads immediately on open.
+    const startWhenNear = () => {
+      if (dead) return;
+      if (noScroll || typeof IntersectionObserver === "undefined") {
+        init();
+        return;
+      }
+      nearIo = new IntersectionObserver(
+        (entries) => {
+          if (entries.some((e) => e.isIntersecting)) {
+            nearIo?.disconnect();
+            nearIo = null;
+            init();
+          }
+        },
+        { rootMargin: "200% 0px" },
+      );
+      nearIo.observe(mount);
+    };
+
     const tryStart = () => {
       if (dead) return;
       if (mount.clientWidth > 0 && mount.clientHeight > 0) {
         startRo?.disconnect();
         startRo = null;
-        init();
+        startWhenNear();
       } else if (!startRo) {
         startRo = new ResizeObserver(() => tryStart());
         startRo.observe(mount);
@@ -514,6 +582,7 @@ const GlbViewer = forwardRef<GlbViewerHandle, Props>(function GlbViewer({
       st?.kill();
       ro?.disconnect();
       startRo?.disconnect();
+      nearIo?.disconnect();
       renderer?.dispose();
       renderer?.domElement.remove();
     };

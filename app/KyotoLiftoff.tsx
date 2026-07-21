@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import gsap from "gsap";
+import SpillWave from "./SpillWave";
 
 /**
  * Section 3 — the KYOTO pouch scene. One scroll-scrubbed choreography:
@@ -19,12 +20,13 @@ import gsap from "gsap";
  *    the sides — until its full-width base reaches the seam and laps into the
  *    red Pathways section below, so the pour reads as continuous: the next
  *    section IS the poured liquid. The spill is a long, scrubbed grow (keyed to
- *    the pouch's tip), so it's visibly seen spreading, not snapped. Once its
- *    base reaches the seam it keeps a slow, subtle flow/wobble loop (killed and
- *    reset the moment you scroll back out of the settled zone) so it keeps
- *    reading as liquid still moving. Everything but that idle loop is scrubbed
- *    (reverses on scroll-up), and scrolling fully back to rest resumes the
- *    video loop.
+ *    the pouch's tip), so it's visibly seen spreading, not snapped. From early
+ *    in the pour the spill is ALIVE: the c-wave silhouette itself rolls like
+ *    an ocean swell (SpillWave morphs the path per frame, peak pinned to the
+ *    cap) and the whole shape keeps a slow flow/wobble loop pivoting on the
+ *    peak (killed and reset the moment you scroll back before the pour).
+ *    Everything but those loops is scrubbed (reverses on scroll-up), and
+ *    scrolling fully back to rest resumes the video loop.
  *
  * All layers stay mounted so the cross-fade can scrub in both directions —
  * there is no phase swap / remount any more.
@@ -88,7 +90,11 @@ const CAP_D = 342; // cap-tip distance from the pouch image centre (design px) �
 // (spills past both edges → no cream gap at the seam). Its height is geometry
 // (cap → seam), so it always reaches Pathways at full pour.
 const WAVE_PEAK_X = 0.4241; // fraction of the spill width where the pointy peak sits
-const SPILL_W = CANVAS_W * 1.7; // fanned spill width (design px) — bigger = spreads wider to the sides
+// Fanned spill width. 1.45 is just past the ~1.33 minimum that still spans the
+// full canvas from the settled cap — kept tight on purpose: the wider this box,
+// the flatter the c-wave's humps get stretched and the less the pour ripple
+// reads (1.7 squashed it into a near-flat hill).
+const SPILL_W = CANVAS_W * 1.45;
 // Settled cap + spill box: computed once at full tip so the spill can live at a
 // FIXED size/position and be driven purely by `transform` (translate + scale) —
 // GPU-composited, so the grow stays smooth (no per-frame layout from resizing).
@@ -97,10 +103,11 @@ const CAP_X_SETTLED = POUCH_CX + CAP_D * Math.sin(CAP_RAD_SETTLED);
 const CAP_Y_SETTLED = POUCH_CY - LIFT_U - CAP_D * Math.cos(CAP_RAD_SETTLED);
 const SPILL_LEFT = CAP_X_SETTLED - WAVE_PEAK_X * SPILL_W; // fixed box left (wrap coords)
 const SPILL_H = Math.max(0, WAVE_FLOOR_Y - CAP_Y_SETTLED); // fixed box height (cap → seam)
-// The spill grows over this scroll-progress range. A single smoothstep (not the
-// old compounded easing) gives one clean ease-in/out, so it spreads gradually.
-const POUR_P_START = 0.6;
-const POUR_P_END = 1;
+// The pour is keyed to the TIP ANGLE, not raw scroll progress: it only starts
+// once the cap has swung past POUR_ROT_START (≈ pointing down — as close as
+// ROT_END=160 allows) and completes at full tip, so liquid never leaves a cap
+// that's still sideways. A single smoothstep gives one clean ease-in/out.
+const POUR_ROT_START = 135; // deg — spill starts here (cap near-down)
 
 const prefersReducedMotion = () =>
   typeof window !== "undefined" &&
@@ -122,7 +129,7 @@ export default function KyotoLiftoff({
   const videoRef = useRef<HTMLVideoElement>(null);
   const bgRef = useRef<HTMLImageElement>(null);
   const engagedRef = useRef(false);
-  const spillSettledRef = useRef(false);
+  const spillAliveRef = useRef(false);
   const spillIdleRef = useRef<gsap.core.Tween | null>(null);
 
   useEffect(() => {
@@ -198,13 +205,13 @@ export default function KyotoLiftoff({
 
       // Stage 4 — the spill. The c-wave's pointy peak is pinned to the cap and
       // the shape GROWS from that peak (fanning down + out) as the pour
-      // progresses, its base landing full-width on the seam. Driven by a long,
-      // scrubbed pour progress (rp past POUR_FROM_RP → full tip), so it's
-      // visibly seen spreading and reverses cleanly on scroll-up.
+      // progresses, its base landing full-width on the seam. Keyed to the TIP
+      // ANGLE (POUR_ROT_START → ROT_END), so nothing pours until the cap is
+      // near-down; scrubbed, so it reverses cleanly on scroll-up.
       const spill = spillRef.current;
       if (spill) {
         const pourProg = smoothstep(
-          clamp((p - POUR_P_START) / (POUR_P_END - POUR_P_START), 0, 1)
+          clamp((rot - POUR_ROT_START) / (ROT_END - POUR_ROT_START), 0, 1)
         );
         const pourOpacity = clamp(pourProg / 0.1, 0, 1);
         // Cap (spout) position — the fixed spill box is TRANSLATED so its peak
@@ -218,27 +225,28 @@ export default function KyotoLiftoff({
         spill.style.opacity = pourOpacity.toFixed(3);
         spill.style.transform = `translate(${u(dx)}, ${u(dy)}) scale(${pourProg.toFixed(4)})`;
 
-        // Idle loop: once the spill has essentially finished spreading, keep it
-        // subtly alive (gentle flow/wobble) instead of going static. Scrolling
-        // back out of the settled zone stops it and resets the inner wrapper —
-        // the idle animation lives there, never touching the outer div's
-        // scroll-driven transform, so the two never fight over the same prop.
-        const settled = pourProg >= 0.98;
-        if (settled && !spillSettledRef.current) {
-          spillSettledRef.current = true;
+        // Liquid-alive loop: from early in the pour the crest undulates (a
+        // gentle scaleX/skew pivoting on the PEAK, so it stays pinned to the
+        // cap) — the wave reads as moving liquid the whole time it spreads,
+        // not just once settled. Scrolling back before the pour stops it and
+        // resets the inner wrapper — the loop lives there, never touching the
+        // outer div's scroll-driven transform, so the two never fight.
+        const alive = pourProg >= 0.15;
+        if (alive && !spillAliveRef.current) {
+          spillAliveRef.current = true;
           const inner = spillInnerRef.current;
           if (inner) {
             spillIdleRef.current = gsap.to(inner, {
-              scaleX: 1.014,
-              skewX: 0.8,
-              duration: 2.6,
+              scaleX: 1.02,
+              skewX: 1.1,
+              duration: 2.4,
               ease: "sine.inOut",
               yoyo: true,
               repeat: -1,
             });
           }
-        } else if (!settled && spillSettledRef.current) {
-          spillSettledRef.current = false;
+        } else if (!alive && spillAliveRef.current) {
+          spillAliveRef.current = false;
           spillIdleRef.current?.kill();
           spillIdleRef.current = null;
           if (spillInnerRef.current) gsap.set(spillInnerRef.current, { scaleX: 1, skewX: 0 });
@@ -306,6 +314,7 @@ export default function KyotoLiftoff({
           src={VIDEO_SRC}
           className="pointer-events-none absolute inset-0 size-full object-cover"
           style={{ opacity: 1, willChange: "opacity" }}
+          autoPlay
           muted
           loop
           playsInline
@@ -360,9 +369,12 @@ export default function KyotoLiftoff({
           willChange: "transform, opacity",
         }}
       >
-        <div ref={spillInnerRef} className="size-full">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/c-wave.svg" alt="" aria-hidden="true" className="block size-full" />
+        <div
+          ref={spillInnerRef}
+          className="size-full"
+          style={{ transformOrigin: `${(WAVE_PEAK_X * 100).toFixed(2)}% 0%` }}
+        >
+          <SpillWave />
         </div>
       </div>
     </div>

@@ -14,6 +14,13 @@ import GlbViewer, { type GlbViewerHandle, type ModelEntry } from "./GlbViewer";
  */
 
 const u = (n: number) => `calc(var(--u) * ${n})`;
+// Vertical-safe unit for the desktop GLB canvas. At the 1920×1080 design ratio
+// 1u of width (100cqw/1920) equals 100svh/1080 of height, so the pouch fits with
+// clearance above the ingredient text. On wider-than-16:9 (or short) viewports
+// the width-based --u outgrows the height and the pouch — sized in u — inflates
+// until it overlaps the text. Capping its unit at the height-derived value pins
+// the pouch to its 16:9 size; it's a no-op at ≤16:9.
+const uCap = (n: number) => `calc(min(var(--u), 100svh / 1080) * ${n})`;
 // Mobile unit — the flavour-modal mobile frame is 390px wide (Figma 198:3492),
 // scaled via --mu = 100cqw / 390.
 const mu = (n: number) => `calc(var(--mu) * ${n})`;
@@ -446,9 +453,11 @@ export default function FlavorModal({
                 top: `calc(50% - ${u(150)})`,
                 transform: "translate(-50%, -50%)",
                 // Wider than the bottle so the spin/tilt is never clipped by the
-                // canvas. Same camera FOV → identical on-screen size.
-                width: u(1200),
-                height: u(1440),
+                // canvas. Same camera FOV → identical on-screen size. Sized in the
+                // height-capped unit (uCap) so an over-wide/short viewport can't
+                // inflate the pouch into the ingredient text below.
+                width: uCap(1200),
+                height: uCap(1440),
               }}
             >
               {/* Float lives on its own layer — a CSS animation on `transform`
