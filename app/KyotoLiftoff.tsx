@@ -293,10 +293,10 @@ export default function KyotoLiftoff({
     >
       {/* Clips the video + pouch to the red scene box — the pouch must stay
           inside this frame at every rotation, never spilling past its edges.
-          The spill is a SIBLING below with a LOWER z-index, so the box (and
-          the pouch/cap in it) renders in FRONT of the wave — the spout reads
-          as plunging INTO the liquid — while the spill still fans past the
-          box into the section below. */}
+          The spill is a SIBLING with a HIGHER z-index, so the liquid renders
+          ON TOP of the red background box (it stays visible for the whole
+          pour instead of hiding behind the panel) while still fanning past
+          the box into the section below. */}
       <div className="absolute inset-0 overflow-hidden" style={{ zIndex: 2 }}>
         {/* Soft red background — revealed under the video as it fades out */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -364,7 +364,7 @@ export default function KyotoLiftoff({
           top: u(CAP_Y_SETTLED),
           width: u(SPILL_W),
           height: u(SPILL_H),
-          zIndex: 1,
+          zIndex: 3,
           opacity: 0,
           transform: "scale(0)",
           transformOrigin: `${(WAVE_PEAK_X * 100).toFixed(2)}% 0%`,

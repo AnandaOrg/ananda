@@ -100,7 +100,12 @@ export default function WildCarousel({
     window.addEventListener("resize", onResize);
 
     // Autoplay: drift forward at `autoplay` px/s; pause while the user interacts
-    // and reset the clock so there's no position jump on resume.
+    // and reset the clock so there's no position jump on resume. The rAF loop
+    // runs ONLY while the carousel is on screen — a strip near the bottom of
+    // the page otherwise scrolls itself (rAF + scrollLeft write + scroll event)
+    // every frame for the whole session, stealing main-thread time from the
+    // scroll-driven animations the user is actually looking at.
+    let io: IntersectionObserver | undefined;
     if (autoplay) {
       autoTime.current = 0;
       const loop = (t: number) => {
@@ -117,12 +122,24 @@ export default function WildCarousel({
         }
         autoRaf.current = requestAnimationFrame(loop);
       };
-      autoRaf.current = requestAnimationFrame(loop);
+      let running = false;
+      io = new IntersectionObserver(([entry]) => {
+        if (entry.isIntersecting && !running) {
+          running = true;
+          autoTime.current = 0; // fresh clock — no position jump on re-entry
+          autoRaf.current = requestAnimationFrame(loop);
+        } else if (!entry.isIntersecting && running) {
+          running = false;
+          cancelAnimationFrame(autoRaf.current);
+        }
+      });
+      io.observe(c);
     }
 
     return () => {
       c.removeEventListener("scroll", onScroll);
       window.removeEventListener("resize", onResize);
+      io?.disconnect();
       if (raf.current) cancelAnimationFrame(raf.current);
       if (momentum.current) cancelAnimationFrame(momentum.current);
       if (autoRaf.current) cancelAnimationFrame(autoRaf.current);

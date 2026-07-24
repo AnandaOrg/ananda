@@ -247,7 +247,11 @@ const GlbViewer = forwardRef<GlbViewerHandle, Props>(function GlbViewer({
 
       if (dead) return;
 
-      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+      renderer = new THREE.WebGLRenderer({
+        antialias: true,
+        alpha: true,
+        powerPreference: "high-performance",
+      });
       // Cap DPR lower on phones: at 2× the framebuffer + every uploaded texture
       // doubles in memory, which is what tips iOS Safari over its per-tab budget
       // when four models are resident at once. 1.5× is visually indistinguishable
@@ -343,6 +347,16 @@ const GlbViewer = forwardRef<GlbViewerHandle, Props>(function GlbViewer({
         } else {
           renderer!.compile(scene, camera);
         }
+        if (dead) return;
+        // compile() links the shaders but uploads NO buffers — the first frame
+        // that actually DRAWS this model would still pay its full geometry +
+        // texture upload, felt as a hitch right when a cross-fade starts (the
+        // moment `visible` flips true in the tick loop). Draw one warm-up frame
+        // now instead: a hidden model's materials are still at opacity 0, so
+        // the frame is pixel-identical to the last one, but the draw call
+        // pushes every buffer/texture onto the GPU while we're still loading.
+        // (For the shown model this doubles as its first paint.)
+        renderer!.render(scene, camera);
         scn.visible = opaque; // the tick loop manages visibility from opacity hereafter
         groups[i] = scn;
         flipGroups[i] = flipGroup;
@@ -357,9 +371,9 @@ const GlbViewer = forwardRef<GlbViewerHandle, Props>(function GlbViewer({
         const activeGltf = await loader.loadAsync(models[startIndex].src);
         if (dead) return;
         if (spinOnMount) spin();
+        // install() paints the opened pouch as part of its warm-up draw.
         await install(activeGltf.scene as THREE_TYPES.Group, startIndex, true);
         if (dead) return;
-        renderer.render(scene, camera); // first paint: the opened pouch
         void (async () => {
           for (let i = 0; i < models.length; i++) {
             if (i === startIndex || dead) continue;
@@ -382,14 +396,12 @@ const GlbViewer = forwardRef<GlbViewerHandle, Props>(function GlbViewer({
           const gltf = await loader.loadAsync(models[i].src);
           if (dead) return;
           if (i === startIndex && spinOnMount) spin();
+          // install()'s warm-up draw paints the first (shown) model as soon as
+          // it's ready, so the section isn't blank while the rest stream in.
           await install(gltf.scene as THREE_TYPES.Group, i, i === startIndex);
           if (dead) return;
           if (dropCacheAfterParse) THREE.Cache.remove(models[i].src);
-          // Paint as soon as the first (shown) model is ready so the section
-          // isn't blank while the rest stream in behind it.
-          if (i === startIndex) renderer.render(scene, camera);
         }
-        renderer.render(scene, camera);
       }
 
       // Transition points for models[1], models[2], … (no entry for models[0])

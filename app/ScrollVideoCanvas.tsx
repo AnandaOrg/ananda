@@ -38,7 +38,10 @@ export default function ScrollVideoCanvas({
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    const dpr = window.devicePixelRatio || 1;
+    // Cap at 2×: the source frames are video stills that never carry 3×-phone
+    // detail, and every drawImage fills the whole backing store — at 3× that's
+    // 2.25× the pixels of 2× for no visible gain.
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
     const frames: (HTMLImageElement | undefined)[] = new Array(frameCount);
     let loaded = false;
     const obj = { frame: 0 };

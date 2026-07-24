@@ -1,4 +1,5 @@
 import Image from "next/image";
+import AmbientVideo from "./AmbientVideo";
 import AutoplayRescue from "./AutoplayRescue";
 import DitchTheGlass from "./DitchTheGlass";
 import AboutCollage from "./AboutCollage";
@@ -24,17 +25,12 @@ export default function Home() {
       {/* Section 1 — splash (shared) */}
       <section className="relative flex h-screen items-center justify-center overflow-hidden">
         {/* Source picked per breakpoint at load: phones get the 720p encode
-            (a fraction of the decode cost), md+ keeps the full 1080p file. */}
-        <video
-          autoPlay
-          muted
-          loop
-          playsInline
-          className="absolute inset-0 h-full w-full object-cover"
-        >
+            (a fraction of the decode cost), md+ keeps the full 1080p file.
+            AmbientVideo pauses the loop while the hero is scrolled away. */}
+        <AmbientVideo className="absolute inset-0 h-full w-full object-cover">
           <source src="/videos/hero-mobile.mp4" media="(max-width: 767px)" />
           <source src="/videos/hero.mp4" />
-        </video>
+        </AmbientVideo>
         <Image
           src="/ananda-logo.svg"
           alt="ANANDA Cocktails"

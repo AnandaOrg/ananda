@@ -39,7 +39,7 @@ function Floating({ src, alt, rotate, inner, box, center, crop, shadow }: Floati
         <div className="relative overflow-hidden" style={{ width: mu(inner.width), height: mu(inner.height), boxShadow: shadow ? `${mu(4.911)} ${mu(3.571)} ${mu(12.812)} 0 rgba(0,0,0,0.25)` : undefined }}>
           {crop ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={src} alt={alt} className="absolute max-w-none" style={{ width: crop.width, height: crop.height, left: crop.left, top: crop.top }} />
+            <img src={src} alt={alt} loading="lazy" decoding="async" className="absolute max-w-none" style={{ width: crop.width, height: crop.height, left: crop.left, top: crop.top }} />
           ) : (
             <Image src={src} alt={alt} fill sizes="50vw" className="object-cover" />
           )}

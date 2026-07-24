@@ -72,6 +72,8 @@ function Floating({ src, alt, rotate, inner, box, center, crop, shadow, sizes }:
             <img
               src={src}
               alt={alt}
+              loading="lazy"
+              decoding="async"
               className="absolute max-w-none"
               style={{ width: crop.width, height: crop.height, left: crop.left, top: crop.top }}
             />

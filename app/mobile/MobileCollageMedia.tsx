@@ -1,3 +1,4 @@
+import AmbientVideo from "../AmbientVideo";
 import ScrollVideoCanvas from "../ScrollVideoCanvas";
 import { mu, MU_VAR, maskStyle } from "./scale";
 
@@ -39,7 +40,7 @@ export default function MobileCollageMedia() {
         />
 
         {/* Strawberries — ambient looping video, autoplays on load (NOT
-            scroll-driven, unlike the pineapple) */}
+            scroll-driven, unlike the pineapple); paused while off screen */}
         <div
           className="absolute flex items-center justify-center"
           style={{ left: mu(STRAW.left), top: mu(STRAW.top), width: mu(STRAW.w), height: mu(STRAW.h) }}
@@ -52,12 +53,8 @@ export default function MobileCollageMedia() {
                 ...maskStyle("/m-14.svg", 229.72, 182.27, 0.3, 1.64),
               }}
             >
-              <video
+              <AmbientVideo
                 src="/videos/kyoto-strawberries-mobile.mp4"
-                autoPlay
-                muted
-                loop
-                playsInline
                 preload="auto"
                 aria-label="An ANANDA pouch nestled in fresh strawberries"
                 className="block size-full object-cover"
