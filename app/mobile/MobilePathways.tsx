@@ -229,7 +229,7 @@ export default function MobilePathways() {
               [02] Choose your ANANDA
             </p>
             {/* Headline — splashes into place like liquid (LiquidText: elastic
-                word rise + ghost trail), matching the desktop reveal */}
+                word rise), matching the desktop reveal */}
             <LiquidText
               text="The Pathways to Bliss"
               className="relative font-bold"

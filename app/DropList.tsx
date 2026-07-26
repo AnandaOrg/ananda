@@ -144,7 +144,6 @@ function DropForm({ s, height, fontSize, padL, padR, radius, btnRight, btnSize, 
               <input
                 type="email"
                 name="email"
-                required
                 placeholder="Your email"
                 aria-label="Your email"
                 className="absolute inset-0 w-full bg-[#fff0e5] text-[#0a142f] outline-none placeholder:text-[#eb4638]"

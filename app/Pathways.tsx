@@ -236,7 +236,7 @@ export default function Pathways() {
         </div>
 
         {/* Headline — splashes into place like liquid once the pour above
-            reveals the section (LiquidText: elastic word rise + ghost trail) */}
+            reveals the section (LiquidText: elastic word rise) */}
         <LiquidText
           text="The Pathways to Bliss"
           className="absolute font-bold uppercase text-[#fff0e5]"

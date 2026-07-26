@@ -23,6 +23,16 @@ const RED = "#eb4638";
 const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 const smooth = (t: number) => t * t * (3 - 2 * t);
+// Minimum scale for counter-rotated content to fully COVER its w×h frame at
+// `rotDeg`: cosθ + (long/short ratio)·sinθ, padded a hair so antialiasing never
+// shows a hairline at the corners (same fix as desktop DitchTheGlass — the
+// aesthetic 1.5→1 zoom alone dips below this mid-transition and exposed the
+// clip's flat edges inside the rotated frame as "cut corners").
+const coverScale = (w: number, h: number, rotDeg: number) => {
+  const rad = (rotDeg * Math.PI) / 180;
+  const ratio = w > 0 && h > 0 ? Math.max(w / h, h / w) : 1;
+  return Math.cos(rad) + (ratio + 0.02) * Math.sin(rad);
+};
 
 // Gallery slides — the diamond grows into slide 0, so the hand-off is seamless.
 const GALLERY = [
@@ -103,7 +113,8 @@ export default function MobileIntro() {
       frame.style.left = `${left}px`;
       frame.style.top = `${top}px`;
       frame.style.transform = `rotate(${rot}deg)`;
-      inner.style.transform = `rotate(${-rot}deg) scale(${lerp(1.5, 1, pg).toFixed(3)})`;
+      const fill = Math.max(lerp(1.5, 1, pg), coverScale(w, h, rot));
+      inner.style.transform = `rotate(${-rot}deg) scale(${fill.toFixed(3)})`;
 
       // 2) Heading fades out as the image takes over.
       const fade = 1 - clamp(prog / 0.2, 0, 1);

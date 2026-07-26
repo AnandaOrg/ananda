@@ -33,6 +33,16 @@ const lerpBox = (a: Box, b: Box, t: number): Box => ({
 });
 const vToPx = (v: string, w: number, h: number) =>
   v.endsWith("vw") ? (parseFloat(v) / 100) * w : (parseFloat(v) / 100) * h;
+// Minimum scale for counter-rotated content to fully COVER its w×h frame at
+// `rotDeg`: cosθ + (long/short ratio)·sinθ, padded a hair so antialiasing never
+// shows a hairline at the corners. The aesthetic 1.5→1 zoom dips below this
+// mid-transition (≈1.25 at 22.5° where ≥1.31 is required), which exposed the
+// video's flat edges inside the rotated frame as "cut corners".
+const coverScale = (w: number, h: number, rotDeg: number) => {
+  const rad = (rotDeg * Math.PI) / 180;
+  const ratio = w > 0 && h > 0 ? Math.max(w / h, h / w) : 1;
+  return Math.cos(rad) + (ratio + 0.02) * Math.sin(rad);
+};
 
 /**
  * Sections 2 + 3 as ONE pinned stage (desktop). The pour image holds inline as a
@@ -105,7 +115,8 @@ export default function DitchTheGlass() {
 
       const rot = 45 * (1 - gP);
       travel.style.transform = `rotate(${rot}deg)`;
-      inner.style.transform = `rotate(${-rot}deg) scale(${lerp(1.5, 1, gP)})`;
+      const fill = Math.max(lerp(1.5, 1, gP), coverScale(box.w, box.h, rot));
+      inner.style.transform = `rotate(${-rot}deg) scale(${fill.toFixed(4)})`;
       // adopt the curved photo-card frame as it heads for the slot
       travel.style.maskImage = tP > 0 ? "url(/m-photo-card.svg)" : "none";
       travel.style.setProperty("-webkit-mask-image", tP > 0 ? "url(/m-photo-card.svg)" : "none");

@@ -287,12 +287,12 @@ export default function MobileKyoto() {
         className="absolute left-0 top-0"
         style={{ width: mu(SCENE_W), height: mu(SCENE_H) }}
       >
-        {/* Clips the video + pouch to the red scene box — the pouch must stay
-            inside this frame at every rotation, never spilling past its edges.
-            The spill is a SIBLING with a HIGHER z-index, so the liquid renders
-            ON TOP of the red background box (it stays visible for the whole
-            pour instead of hiding behind the panel) while still fanning past
-            the box into the section below. */}
+        {/* Layer stack (bottom → top): video/background box (z2) → spill (z3)
+            → pouch (z4). The spill must stay ABOVE the red background box so
+            the liquid is visible for the whole pour (not hidden behind the
+            panel) while still fanning past the box into the section below —
+            and the pouch sits above the spill so the cap renders ON TOP of
+            the liquid pouring out of it. */}
         <div className="absolute inset-0 overflow-hidden" style={{ zIndex: 2 }}>
         {/* Soft red background — revealed under the video as it fades out */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -319,31 +319,6 @@ export default function MobileKyoto() {
           aria-hidden="true"
         />
 
-        {/* KYOTO pouch — emerges out of the video (fade + grow), then tips over on scroll */}
-        <div
-          ref={pouchRef}
-          className="pointer-events-none absolute"
-          style={{
-            left: POUCH_X,
-            top: POUCH_Y,
-            width: mu(POUCH_W),
-            height: mu(POUCH_W),
-            opacity: 0,
-            transform: `translate(-50%, -50%) translate(${mu(EMERGE_DX)}, ${mu(
-              EMERGE_DY
-            )}) scale(${EMERGE_SCALE})`,
-            transformOrigin: "50% 50%",
-            willChange: "transform, opacity",
-          }}
-        >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="/kyoto/kyoto-image.png"
-            alt="ANANDA KYOTO cocktail pouch — Strawberry / Lychee · Yuzu"
-            decoding="async"
-            className="block size-full select-none"
-          />
-        </div>
         </div>
 
         {/* Spill — `/c-wave.svg` in natural orientation (pointy peak up). Its
@@ -374,6 +349,41 @@ export default function MobileKyoto() {
             style={{ transformOrigin: `${(WAVE_PEAK_X * 100).toFixed(2)}% 0%` }}
           >
             <SpillWave />
+          </div>
+        </div>
+
+        {/* KYOTO pouch — emerges out of the video (fade + grow), then tips
+            over on scroll. It lives in its own clip layer (same bounds as the
+            scene box — the pouch must never escape it mid-rotation) stacked
+            ABOVE the spill, so the cap renders on top of the liquid pouring
+            out of it. */}
+        <div
+          className="pointer-events-none absolute inset-0 overflow-hidden"
+          style={{ zIndex: 4 }}
+        >
+          <div
+            ref={pouchRef}
+            className="pointer-events-none absolute"
+            style={{
+              left: POUCH_X,
+              top: POUCH_Y,
+              width: mu(POUCH_W),
+              height: mu(POUCH_W),
+              opacity: 0,
+              transform: `translate(-50%, -50%) translate(${mu(EMERGE_DX)}, ${mu(
+                EMERGE_DY
+              )}) scale(${EMERGE_SCALE})`,
+              transformOrigin: "50% 50%",
+              willChange: "transform, opacity",
+            }}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/kyoto/kyoto-image.png"
+              alt="ANANDA KYOTO cocktail pouch — Strawberry / Lychee · Yuzu"
+              decoding="async"
+              className="block size-full select-none"
+            />
           </div>
         </div>
       </div>

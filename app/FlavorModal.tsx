@@ -57,6 +57,12 @@ const SWING_ROTATE_TRANSITION: Transition = {
 // straight to the pointer.
 const GLB_TILT_MAX = 15;
 const GLB_TILT_SPRING = { stiffness: 120, damping: 20, mass: 0.4 } as const;
+
+// Mobile swipe nav: minimum horizontal travel (px) before a touch counts as a
+// swipe, and how dominantly horizontal it must be (|dx| ≥ |dy| × dominance) so
+// vertical finger drift never misfires a nav.
+const SWIPE_MIN_X = 50;
+const SWIPE_DOMINANCE = 1.5;
 const LAYER_VARIANTS: Variants = {
   enter: (dir: number) => ({ rotate: 90 * dir, opacity: 0 }),
   center: {
@@ -410,6 +416,25 @@ export default function FlavorModal({
     };
   }, [onClose, onNav]);
 
+  // Swipe nav (mobile): a dominantly-horizontal swipe anywhere on the overlay
+  // drives the same onNav path as the chevrons — swipe left → next, swipe
+  // right → previous — so it plays the standard swing + GLB spin. Multi-touch
+  // (pinch) clears the start point and never navigates.
+  const swipeStart = useRef<{ x: number; y: number } | null>(null);
+  const onSwipeTouchStart = (e: React.TouchEvent) => {
+    swipeStart.current =
+      e.touches.length === 1 ? { x: e.touches[0].clientX, y: e.touches[0].clientY } : null;
+  };
+  const onSwipeTouchEnd = (e: React.TouchEvent) => {
+    const start = swipeStart.current;
+    swipeStart.current = null;
+    if (!start) return;
+    const dx = e.changedTouches[0].clientX - start.x;
+    const dy = e.changedTouches[0].clientY - start.y;
+    if (Math.abs(dx) < SWIPE_MIN_X || Math.abs(dx) < Math.abs(dy) * SWIPE_DOMINANCE) return;
+    onNav(dx < 0 ? 1 : -1);
+  };
+
   const f = FLAVORS[index];
 
   return (
@@ -546,7 +571,12 @@ export default function FlavorModal({
       </div>
 
       {/* ───────── Mobile: 390×680 frame (Figma 198:3492), width-scaled via --mu ───────── */}
-      <div className="absolute inset-0 md:hidden" style={{ containerType: "inline-size", ["--mu" as string]: "calc(100cqw / 390)" }}>
+      <div
+        className="absolute inset-0 md:hidden"
+        style={{ containerType: "inline-size", ["--mu" as string]: "calc(100cqw / 390)" }}
+        onTouchStart={onSwipeTouchStart}
+        onTouchEnd={onSwipeTouchEnd}
+      >
         {/* GLB pouch — persistent, centred on the design pouch (137×360 @ top 96,
             centre 404mu above the frame bottom). Bobs gently at rest. */}
         <div className="absolute inset-0" style={{ pointerEvents: "none", zIndex: 40 }}>

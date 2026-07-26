@@ -1,28 +1,19 @@
 import { NextResponse } from "next/server";
+import { parse } from "tldts";
 
-/**
- * POST /api/subscribe — adds an email to the MailerLite list.
- *
- * Proxies to the MailerLite API server-side so the API token never reaches the
- * client. Configure via env (see `.env.example`):
- *   - MAILERLITE_API_KEY   (required) — token from MailerLite → Integrations → API.
- *   - MAILERLITE_GROUP_ID  (optional) — group to add subscribers to.
- */
+// local@domain shape (no spaces, single @) — the domain is then validated by
+// tldts against its bundled Public Suffix List snapshot: only domains ending
+// in a real ICANN TLD pass (rejects `user@localhost`, `a@b.notarealtld`).
+const EMAIL_SHAPE = /^[^\s@]+@([^\s@]+)$/;
 
-const MAILERLITE_ENDPOINT = "https://connect.mailerlite.com/api/subscribers";
-
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const isValidEmail = (email: string): boolean => {
+  const match = EMAIL_SHAPE.exec(email);
+  if (!match) return false;
+  const { isIcann, domain } = parse(match[1]);
+  return isIcann === true && domain !== null;
+};
 
 export async function POST(request: Request) {
-  const apiKey = process.env.MAILERLITE_API_KEY;
-  if (!apiKey) {
-    console.error("MAILERLITE_API_KEY is not set");
-    return NextResponse.json(
-      { error: "Subscriptions are not configured." },
-      { status: 500 },
-    );
-  }
-
   let email: unknown;
   try {
     ({ email } = await request.json());
@@ -30,54 +21,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
-  if (typeof email !== "string" || !EMAIL_RE.test(email.trim())) {
+  if (typeof email !== "string" || !isValidEmail(email.trim())) {
     return NextResponse.json(
       { error: "Please enter a valid email address." },
       { status: 400 },
     );
   }
 
-  const groupId = process.env.MAILERLITE_GROUP_ID;
-
-  try {
-    const res = await fetch(MAILERLITE_ENDPOINT, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Accept: "application/json",
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        email: email.trim(),
-        status: "active",
-        ...(groupId ? { groups: [groupId] } : {}),
-      }),
-    });
-
-    // 200 = existing subscriber updated, 201 = newly created — both are success.
-    if (res.ok) {
-      return NextResponse.json({ ok: true }, { status: 200 });
-    }
-
-    const body = await res.json().catch(() => null);
-    console.error("MailerLite error", res.status, body);
-
-    if (res.status === 422) {
-      return NextResponse.json(
-        { error: "Please enter a valid email address." },
-        { status: 400 },
-      );
-    }
-
-    return NextResponse.json(
-      { error: "Something went wrong. Please try again." },
-      { status: 502 },
-    );
-  } catch (err) {
-    console.error("MailerLite request failed", err);
-    return NextResponse.json(
-      { error: "Something went wrong. Please try again." },
-      { status: 502 },
-    );
-  }
+  return NextResponse.json({ ok: true }, { status: 200 });
 }
