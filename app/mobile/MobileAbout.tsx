@@ -6,8 +6,10 @@ export default function MobileAbout() {
   return (
     <section className="flex w-full justify-center bg-[#fff0e5] md:hidden">
       <div className="w-full" style={{ containerType: "inline-size" }}>
-        <div style={{ ...MU_VAR, padding: `${mu(60)} ${mu(24)} ${mu(80)}` }}>
-          {/* gap = 80mu above the mandala; padding-bottom = 80mu below it. */}
+        <div style={{ ...MU_VAR, padding: `${mu(60)} ${mu(24)} ${mu(40)}` }}>
+          {/* gap = 80mu above the mandala; padding-bottom = 40mu below it
+              (tightened with MobileRitual's top padding — the mandala →
+              "THE RITUAL" seam read as too much empty space). */}
           <div className="flex flex-col items-center" style={{ gap: mu(80) }}>
             <RevealStatement
               paras={STATEMENT_PARAS}

@@ -62,7 +62,7 @@ const LIFT_MU = 74; // how far (mobile design px) it rises
 const GROW = 0.12; // extra scale as it pops out
 // Rotation (flat 2-D, deg), scrubbed over the back of the window.
 const ROT_START = 0; // at rest
-const ROT_END = 200; // full scroll-down (positive = tips to the right / clockwise)
+const ROT_END = 160; // full scroll-down (positive = tips to the right / clockwise) — matches desktop KyotoLiftoff
 // Scene box (desktop 789.24×905.94 → full mobile frame width).
 const SCENE_W = 390;
 const SCENE_H = 447.7;
@@ -78,6 +78,7 @@ const POUCH_Y = "70%";
 // full-width base reaches the seam and laps into Pathways' identical red. The
 // area below the pouch stays cream, so the red spill is clearly visible.
 const WAVE_FLOOR_Y = 559.2; // = old WAVE_TOP(399.5) + WAVE_H(159.7): the seam the base lands on
+const SPILL_OVERLAP = 40; // how far (mobile design px) the base laps past the seam onto Pathways' red
 // Cap (spout) geometry — the pouch's centre plus the cap's rotated offset gives
 // the cap's (x, y) every frame; the spill's peak is pinned there.
 const POUCH_CX = (parseFloat(POUCH_X) / 100) * SCENE_W; // pouch centre x (design px)
@@ -95,12 +96,12 @@ const CAP_RAD_SETTLED = (ROT_END * Math.PI) / 180;
 const CAP_X_SETTLED = POUCH_CX + CAP_D * Math.sin(CAP_RAD_SETTLED);
 const CAP_Y_SETTLED = POUCH_CY - LIFT_MU - CAP_D * Math.cos(CAP_RAD_SETTLED);
 const SPILL_LEFT = CAP_X_SETTLED - WAVE_PEAK_X * SPILL_W; // fixed box left (design px)
-const SPILL_H = Math.max(0, WAVE_FLOOR_Y - CAP_Y_SETTLED); // fixed box height (cap → seam)
+const SPILL_H = Math.max(0, WAVE_FLOOR_Y + SPILL_OVERLAP - CAP_Y_SETTLED); // fixed box height (cap → past the seam)
 // The pour is keyed to the TIP ANGLE, not raw scroll progress: it only starts
-// once the cap has swung past POUR_ROT_START (past pointing straight down,
-// 180°) and completes at full tip (ROT_END=200), so liquid never leaves a cap
+// once the cap has swung past POUR_ROT_START (≈ pointing down — as close as
+// ROT_END=160 allows) and completes at full tip, so liquid never leaves a cap
 // that's still sideways. A single smoothstep gives one clean ease-in/out.
-const POUR_ROT_START = 170; // deg — spill starts here (cap near-down)
+const POUR_ROT_START = 135; // deg — spill starts here (cap near-down) — matches desktop
 
 const prefersReducedMotion = () =>
   typeof window !== "undefined" &&
@@ -190,9 +191,9 @@ export default function MobileKyoto() {
 
       // Stage 4 — the spill. The c-wave's pointy peak is pinned to the cap and
       // the shape GROWS from that peak (fanning down + out) as the pour
-      // progresses, its base landing full-width on the seam. Keyed to the TIP
+      // progresses, its base landing full-width past the seam. Keyed to the TIP
       // ANGLE (POUR_ROT_START → ROT_END), so nothing pours until the cap is
-      // past straight-down; scrubbed, so it reverses cleanly on scroll-up.
+      // near-down; scrubbed, so it reverses cleanly on scroll-up.
       const spill = spillRef.current;
       if (spill) {
         const pourProg = smoothstep(
@@ -272,14 +273,17 @@ export default function MobileKyoto() {
 
   return (
     <section
-      /* overflow-clip: the spill fans past the scene box down to the seam (this
-         section's bottom, height = WAVE_FLOOR_Y) and laps just past it —
-         clipping here contains that spill so Pathways' identical red carries the
-         pour on. The pouch is separately clipped to the scene box (it must never
-         spill past the red square, even mid-rotation) — see the inner
-         overflow-hidden wrapper. */
-      className="relative w-full overflow-clip bg-[#fff0e5] md:hidden"
-      style={{ containerType: "inline-size", ...MU_VAR, height: mu(WAVE_FLOOR_Y) }}
+      /* overflow-x-clip: the spill fans WIDER than the frame (SPILL_W), so
+         sideways overflow is clipped (no horizontal page scroll) — but
+         vertical overflow stays visible: the spill's base runs SPILL_OVERLAP
+         past this section's bottom (height = WAVE_FLOOR_Y), lapping ON TOP of
+         the Pathways container below (zIndex 1 paints it over Pathways'
+         identical red — same fill, so the lap is invisible and no cream
+         hairline can ever show at the seam). The pouch is separately clipped
+         to the scene box (it must never spill past the red square, even
+         mid-rotation) — see the inner overflow-hidden wrapper. */
+      className="relative w-full overflow-x-clip bg-[#fff0e5] md:hidden"
+      style={{ containerType: "inline-size", ...MU_VAR, height: mu(WAVE_FLOOR_Y), zIndex: 1 }}
     >
       {/* Scene box — the video / pouch stage */}
       <div

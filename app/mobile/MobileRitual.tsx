@@ -117,7 +117,10 @@ export default function MobileRitual() {
   return (
     <section className="flex w-full justify-center overflow-hidden bg-[#fff0e5] md:hidden">
       <div className="w-full" style={{ containerType: "inline-size" }}>
-        <div className="flex flex-col items-start" style={{ ...MU_VAR, padding: `${mu(60)} ${mu(24)}`, gap: mu(43.333) }}>
+        {/* Top padding 30mu (was 60) — tightened with MobileAbout's bottom
+            padding so the mandala → "THE RITUAL" seam isn't a dead zone;
+            bottom stays 60mu. */}
+        <div className="flex flex-col items-start" style={{ ...MU_VAR, padding: `${mu(30)} ${mu(24)} ${mu(60)}`, gap: mu(43.333) }}>
           {/* Heading */}
           <div className="flex flex-col items-start uppercase text-[#eb4638]" style={{ gap: mu(16) }}>
             <p

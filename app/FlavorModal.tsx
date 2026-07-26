@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { AnimatePresence, motion, useMotionValue, useReducedMotion, useSpring, type Transition, type Variants } from "framer-motion";
 import GlbViewer, { type GlbViewerHandle, type ModelEntry } from "./GlbViewer";
 
@@ -63,6 +63,14 @@ const GLB_TILT_SPRING = { stiffness: 120, damping: 20, mass: 0.4 } as const;
 // vertical finger drift never misfires a nav.
 const SWIPE_MIN_X = 50;
 const SWIPE_DOMINANCE = 1.5;
+
+// Minimum gap between navs (all sources: swipe, chevrons, arrow keys). Every
+// nav mounts a fresh full-screen swing plane while AnimatePresence keeps the
+// outgoing one alive until its ~0.58s exit spring ends — unthrottled rapid
+// swiping stacks several of those huge (260vmax²) composited layers on top of
+// the GLB canvas and crashes iOS Safari with a WebKit memory kill ("A problem
+// repeatedly occurred"). One nav per swing keeps it to two layers max.
+const NAV_LOCK_MS = NAV_DURATION * 1000 + 150;
 const LAYER_VARIANTS: Variants = {
   enter: (dir: number) => ({ rotate: 90 * dir, opacity: 0 }),
   center: {
@@ -348,14 +356,33 @@ function MobileScene({ f }: { f: Flavor }) {
       </div>
     );
   }
-  // Legacy fallback — the desktop 1920×1080 scene scaled to mobile width, centred.
+  // Legacy fallback — flavours without a designed mobile frame yet (Figma only
+  // specifies 198:3492 for KYOTO). The mandala gets the SAME treatment as the
+  // designed frame — full circle, centred, bleeding off the top of the
+  // bottom-anchored 680 frame — because the desktop Scene's scaled crop showed
+  // only a band of the huge circle (flat chord cut + side margins), which read
+  // as a rendering bug on phones. The fruits keep the desktop 1920-space
+  // layout scaled to mobile width until their own mobile frames are wired in.
   return (
-    <div
-      className="absolute left-1/2 top-1/2 w-full -translate-x-1/2 -translate-y-1/2 overflow-hidden"
-      style={{ containerType: "inline-size", ["--u" as string]: "calc(100cqw / 1920)", height: "100svh" }}
-    >
-      <Scene f={f} />
-    </div>
+    <>
+      <div className="absolute bottom-0 left-0 w-full" style={{ height: mu(680) }}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={f.pattern}
+          alt=""
+          className="pointer-events-none absolute left-1/2 -translate-x-1/2"
+          style={{ top: mu(-42), width: mu(440), height: mu(439.92) }}
+        />
+      </div>
+      <div
+        className="absolute left-1/2 top-1/2 w-full -translate-x-1/2 -translate-y-1/2 overflow-hidden"
+        style={{ containerType: "inline-size", ["--u" as string]: "calc(100cqw / 1920)", height: "100svh" }}
+      >
+        {f.fruits.map((fr, i) => (
+          <FruitImg key={i} f={fr} i={i} />
+        ))}
+      </div>
+    </>
   );
 }
 
@@ -400,12 +427,25 @@ export default function FlavorModal({
     return () => window.removeEventListener("mousemove", onMove);
   }, [reduceMotion, tiltRawX, tiltRawY]);
 
+  // All nav sources funnel through this lock (see NAV_LOCK_MS): a new nav is
+  // ignored until the previous swing has finished, so transitions never stack.
+  const lastNavRef = useRef(0);
+  const guardedNav = useCallback(
+    (dir: number) => {
+      const now = Date.now();
+      if (now - lastNavRef.current < NAV_LOCK_MS) return;
+      lastNavRef.current = now;
+      onNav(dir);
+    },
+    [onNav]
+  );
+
   useEffect(() => {
     // Spin is handled by the viewer's spinOnMount as the new model loads.
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
-      else if (e.key === "ArrowRight") onNav(1);
-      else if (e.key === "ArrowLeft") onNav(-1);
+      else if (e.key === "ArrowRight") guardedNav(1);
+      else if (e.key === "ArrowLeft") guardedNav(-1);
     };
     window.addEventListener("keydown", onKey);
     const prev = document.body.style.overflow;
@@ -414,7 +454,7 @@ export default function FlavorModal({
       window.removeEventListener("keydown", onKey);
       document.body.style.overflow = prev;
     };
-  }, [onClose, onNav]);
+  }, [onClose, guardedNav]);
 
   // Swipe nav (mobile): a dominantly-horizontal swipe anywhere on the overlay
   // drives the same onNav path as the chevrons — swipe left → next, swipe
@@ -432,7 +472,7 @@ export default function FlavorModal({
     const dx = e.changedTouches[0].clientX - start.x;
     const dy = e.changedTouches[0].clientY - start.y;
     if (Math.abs(dx) < SWIPE_MIN_X || Math.abs(dx) < Math.abs(dy) * SWIPE_DOMINANCE) return;
-    onNav(dx < 0 ? 1 : -1);
+    guardedNav(dx < 0 ? 1 : -1);
   };
 
   const f = FLAVORS[index];
@@ -556,10 +596,10 @@ export default function FlavorModal({
 
           {/* Nav row: persistent controls — always visible, never swing */}
           <div className="absolute inset-x-0 flex items-center justify-between" style={{ bottom: u(40), padding: `0 ${u(60)}`, height: u(128) }}>
-            <button type="button" aria-label="Previous flavour" onClick={(e) => { e.stopPropagation(); onNav(-1); }} className="cursor-pointer">
+            <button type="button" aria-label="Previous flavour" onClick={(e) => { e.stopPropagation(); guardedNav(-1); }} className="cursor-pointer">
               <Chevron color={f.nameColor} flip />
             </button>
-            <button type="button" aria-label="Next flavour" onClick={(e) => { e.stopPropagation(); onNav(1); }} className="cursor-pointer">
+            <button type="button" aria-label="Next flavour" onClick={(e) => { e.stopPropagation(); guardedNav(1); }} className="cursor-pointer">
               <Chevron color={f.nameColor} />
             </button>
           </div>
@@ -654,10 +694,10 @@ export default function FlavorModal({
         {/* Prev/next arrows — persistent, flanking the wordmark row */}
         <div className="absolute bottom-0 left-0 w-full" style={{ height: mu(680), pointerEvents: "none", zIndex: 50 }}>
           <div className="absolute flex items-center justify-between" style={{ left: mu(21.67), top: mu(594.83), width: mu(346.667), height: mu(38) }}>
-            <button type="button" aria-label="Previous flavour" onClick={(e) => { e.stopPropagation(); onNav(-1); }} className="cursor-pointer" style={{ pointerEvents: "auto" }}>
+            <button type="button" aria-label="Previous flavour" onClick={(e) => { e.stopPropagation(); guardedNav(-1); }} className="cursor-pointer" style={{ pointerEvents: "auto" }}>
               <Chevron color={f.nameColor} flip width={mu(12.484)} height={mu(24.586)} />
             </button>
-            <button type="button" aria-label="Next flavour" onClick={(e) => { e.stopPropagation(); onNav(1); }} className="cursor-pointer" style={{ pointerEvents: "auto" }}>
+            <button type="button" aria-label="Next flavour" onClick={(e) => { e.stopPropagation(); guardedNav(1); }} className="cursor-pointer" style={{ pointerEvents: "auto" }}>
               <Chevron color={f.nameColor} width={mu(12.484)} height={mu(24.586)} />
             </button>
           </div>
