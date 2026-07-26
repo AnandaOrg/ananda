@@ -27,6 +27,11 @@ import { mu, MU_VAR } from "./scale";
  *    pinned to the cap) and the whole shape keeps a slow flow/wobble loop
  *    pivoting on the peak. Everything but those loops is scrubbed (reverses
  *    on scroll-up), and scrolling fully back to rest resumes the video loop.
+ * 3. The stage is PINNED while all this runs: it sticks with its base (the
+ *    Pathways seam) on the viewport bottom and the choreography scrubs over
+ *    the section's extra height — so nothing of the red section below is
+ *    visible until the wave has fully landed, matching the desktop read
+ *    (there the tall scene keeps the seam below the fold until the pour ends).
  *
  * All layers stay mounted so the cross-fade can scrub in both directions —
  * there is no phase swap / remount any more.
@@ -44,9 +49,14 @@ const smoothstep = (t: number) => t * t * (3 - 2 * t);
 const VIDEO_SRC = "/videos/kyoto-mobile.mp4";
 
 // ── Tunables (desktop KyotoLiftoff values × 0.494 where they are lengths) ──
-// Scroll window: the motion runs as the scene's centre travels FROM→TO of vh.
-const FROM = 0.55; // ~scene fully shown
-const TO = 0.12;
+// Scroll window: unlike desktop (whose scene is tall enough that the Pathways
+// seam stays below the fold until the pour lands), the mobile scene is short —
+// keyed to raw viewport travel, half the screen would be flat Pathways red
+// while the wave is still growing. So the stage pins instead (sticky base on
+// the viewport bottom) and the whole choreography scrubs over this much
+// scroll. Nothing pours "onto" a red that's already there — the red section
+// only rises once the wave has fully landed, same read as desktop.
+const SCRUB_SVH = 60; // scroll distance (svh) the pinned choreography scrubs over
 // Stage boundaries, as fractions of the scroll window.
 const FADE_END = 0.3; // video → red background cross-fade completes here
 const EMERGE_END = 0.35; // pouch fully "out of the video" here
@@ -108,6 +118,8 @@ const prefersReducedMotion = () =>
   window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 export default function MobileKyoto() {
+  const sectionRef = useRef<HTMLElement>(null);
+  const stageRef = useRef<HTMLDivElement>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
   const pouchRef = useRef<HTMLDivElement>(null);
   const spillRef = useRef<HTMLDivElement>(null);
@@ -120,10 +132,16 @@ export default function MobileKyoto() {
 
   useEffect(() => {
     const wrap = wrapRef.current;
-    if (!wrap) return;
+    const section = sectionRef.current;
+    const stage = stageRef.current;
+    if (!wrap || !section || !stage) return;
 
     if (prefersReducedMotion()) {
-      // Static fallback: no video, pouch at rest, spill fully spread.
+      // Static fallback: no video, pouch at rest, spill fully spread — and no
+      // pin (collapse the scrub height so there's no dead scroll distance).
+      section.style.height = mu(WAVE_FLOOR_Y);
+      stage.style.position = "relative";
+      stage.style.top = "0";
       const video = videoRef.current;
       if (video) {
         video.pause();
@@ -148,10 +166,14 @@ export default function MobileKyoto() {
 
     const update = () => {
       raf = 0;
-      const rect = wrap.getBoundingClientRect();
+      const rect = section.getBoundingClientRect();
       const vh = window.innerHeight;
-      const centerY = rect.top + rect.height / 2;
-      const p = clamp((FROM * vh - centerY) / ((FROM - TO) * vh), 0, 1);
+      // Pin maths: the stage sticks once its base reaches the viewport bottom
+      // (section top at vh - stageH) and stays put while the section's extra
+      // height (the scrub) scrolls by — that travel drives the choreography.
+      const stageH = stage.offsetHeight;
+      const scrub = rect.height - stageH;
+      const p = scrub > 0 ? clamp((vh - stageH - rect.top) / scrub, 0, 1) : 1;
 
       // Scroll-down: freeze the video on its current frame (the pouch pops
       // out of it). Scroll fully back to rest: resume the loop.
@@ -273,18 +295,37 @@ export default function MobileKyoto() {
 
   return (
     <section
+      ref={sectionRef}
       /* overflow-x-clip: the spill fans WIDER than the frame (SPILL_W), so
          sideways overflow is clipped (no horizontal page scroll) — but
          vertical overflow stays visible: the spill's base runs SPILL_OVERLAP
-         past this section's bottom (height = WAVE_FLOOR_Y), lapping ON TOP of
-         the Pathways container below (zIndex 1 paints it over Pathways'
-         identical red — same fill, so the lap is invisible and no cream
-         hairline can ever show at the seam). The pouch is separately clipped
-         to the scene box (it must never spill past the red square, even
-         mid-rotation) — see the inner overflow-hidden wrapper. */
+         past this section's bottom, lapping ON TOP of the Pathways container
+         below (zIndex 1 paints it over Pathways' identical red — same fill,
+         so the lap is invisible and no cream hairline can ever show at the
+         seam). overflow-x-clip (NOT hidden) also matters for the pin: hidden
+         would make this a scroll container and break the sticky stage. The
+         pouch is separately clipped to the scene box (it must never spill
+         past the red square, even mid-rotation) — see the inner
+         overflow-hidden wrapper. Height = stage + scrub: the extra SCRUB_SVH
+         is the scroll distance the pinned choreography consumes. */
       className="relative w-full overflow-x-clip bg-[#fff0e5] md:hidden"
-      style={{ containerType: "inline-size", ...MU_VAR, height: mu(WAVE_FLOOR_Y), zIndex: 1 }}
+      style={{
+        containerType: "inline-size",
+        ...MU_VAR,
+        height: `calc(${mu(WAVE_FLOOR_Y)} + ${SCRUB_SVH}svh)`,
+        zIndex: 1,
+      }}
     >
+      {/* Pinned stage — sticks with its base (the Pathways seam) on the
+          viewport bottom while the choreography scrubs, so the red section
+          below can't appear until the pour has fully landed. 100dvh (not svh)
+          so the base hugs the true viewport edge even with the URL bar
+          collapsed — an svh top would float the seam up and leak red below. */}
+      <div
+        ref={stageRef}
+        className="sticky w-full"
+        style={{ top: `calc(100dvh - ${mu(WAVE_FLOOR_Y)})`, height: mu(WAVE_FLOOR_Y) }}
+      >
       {/* Scene box — the video / pouch stage */}
       <div
         ref={wrapRef}
@@ -390,6 +431,7 @@ export default function MobileKyoto() {
             />
           </div>
         </div>
+      </div>
       </div>
     </section>
   );
