@@ -4,7 +4,7 @@ import Image from "next/image";
 import { useCallback, useEffect, useRef } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { useFlavor } from "./FlavorProvider";
+import { useFlavor, wasFlavorModalOpened } from "./FlavorProvider";
 import GlbViewer, { type GlbViewerHandle } from "./GlbViewer";
 import LiquidText from "./LiquidText";
 
@@ -195,6 +195,14 @@ export default function Pathways() {
       html.style.overflow = prevHtmlOverflow;
     });
   }, [kyotoTransitionAt, openWithSpin]);
+
+  // A reload resets the in-memory one-shot refs — restore the persisted "a
+  // modal was already shown" flag so the Kyoto auto-open can't re-fire after
+  // the automatic reload that follows an iOS Safari memory kill (scroll
+  // restore lands right back on Kyoto — see FlavorProvider's MODAL_OPENED_KEY).
+  useEffect(() => {
+    if (wasFlavorModalOpened()) modalOpenedRef.current = true;
+  }, []);
 
   // Entrance — once the pour above reveals this section, the poster fades and
   // drops DOWN into place, and the GLB overlay fades in with it. One-shot when

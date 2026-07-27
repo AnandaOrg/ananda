@@ -5,7 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { mu, MU_VAR } from "./scale";
-import { useFlavor } from "../FlavorProvider";
+import { useFlavor, wasFlavorModalOpened } from "../FlavorProvider";
 import GlbViewer, { type GlbViewerHandle } from "../GlbViewer";
 import LiquidText from "../LiquidText";
 
@@ -165,6 +165,14 @@ export default function MobilePathways() {
       html.style.overflow = prevHtmlOverflow;
     });
   }, [kyotoTransitionAt, openWithSpin]);
+
+  // A reload resets the in-memory one-shot refs — restore the persisted "a
+  // modal was already shown" flag so the Kyoto auto-open can't re-fire after
+  // the automatic reload that follows an iOS Safari memory kill (scroll
+  // restore lands right back on Kyoto — see FlavorProvider's MODAL_OPENED_KEY).
+  useEffect(() => {
+    if (wasFlavorModalOpened()) modalOpenedRef.current = true;
+  }, []);
 
   // Mount the GLB viewer once the section is within ~a screen of the viewport.
   // One-shot — once loaded it stays mounted for the cross-fade/turntable.

@@ -70,6 +70,17 @@ type Props = {
    *  ArrayBuffers don't linger after upload. Leave off where the modal reuses
    *  the same cached bytes (desktop). */
   dropCacheAfterParse?: boolean;
+  /** Index-select mode: skip the background streaming of the non-active models
+   *  and load each one on demand the first time `activeIndex` lands on it. Set
+   *  on the modal's MOBILE viewer: streaming all four models on open — on top
+   *  of the page's Pathways viewer, which already holds all four — is what tips
+   *  iOS Safari over its per-tab memory ceiling (WebKit kills the page ~a
+   *  second after the modal opens; the Kyoto auto-open then re-fires after the
+   *  crash reload and Safari dead-ends with "A problem repeatedly occurred").
+   *  On nav the incoming pouch pops in when its load lands instead of
+   *  cross-fading; the bytes revalidate from HTTP cache (the page viewer
+   *  already fetched them), so the gap is parse/upload time only. */
+  deferInactiveLoads?: boolean;
   className?: string;
   style?: React.CSSProperties;
 };
@@ -141,6 +152,7 @@ const GlbViewer = forwardRef<GlbViewerHandle, Props>(function GlbViewer({
   navDuration,
   spinDuration,
   dropCacheAfterParse,
+  deferInactiveLoads,
   className,
   style,
 }, ref) {
@@ -163,6 +175,10 @@ const GlbViewer = forwardRef<GlbViewerHandle, Props>(function GlbViewer({
   const activeRef = useRef(activeIndex ?? 0);
   const prevActiveRef = useRef(activeIndex ?? 0);
   const blendRef = useRef({ value: 1 });
+  // deferInactiveLoads only: init() parks its on-demand loader here so the
+  // activeIndex effect can pull a not-yet-loaded model in when a nav lands on
+  // it. Null until the viewer has initialised (and again after teardown).
+  const ensureModelRef = useRef<((i: number) => void) | null>(null);
 
   useImperativeHandle(ref, () => ({
     spin() {
@@ -211,6 +227,10 @@ const GlbViewer = forwardRef<GlbViewerHandle, Props>(function GlbViewer({
       activeRef.current = activeIndex;
       blendRef.current.value = 0;
       gsap.to(blendRef.current, { value: 1, duration: dur, ease: "power1.inOut" });
+      // deferInactiveLoads: the target model may not be resident yet — load it
+      // now (no-op when already loaded/loading, or when the viewer streams all
+      // models eagerly).
+      ensureModelRef.current?.(activeIndex);
     } else {
       // First mount: already showing the right model — no cross-fade.
       activeRef.current = activeIndex;
@@ -374,18 +394,41 @@ const GlbViewer = forwardRef<GlbViewerHandle, Props>(function GlbViewer({
         // install() paints the opened pouch as part of its warm-up draw.
         await install(activeGltf.scene as THREE_TYPES.Group, startIndex, true);
         if (dead) return;
-        void (async () => {
-          for (let i = 0; i < models.length; i++) {
-            if (i === startIndex || dead) continue;
-            try {
-              const g = await loader.loadAsync(models[i].src);
-              if (dead) return;
-              await install(g.scene as THREE_TYPES.Group, i, false);
-            } catch {
-              /* leave a hole — navigating to it will just show nothing */
-            }
+        if (dropCacheAfterParse) THREE.Cache.remove(models[startIndex].src);
+        // Loads models[i] if it isn't resident or in flight. Failures leave a
+        // hole (the render loop skips it) but aren't latched — a later nav
+        // back to the model simply retries.
+        const inFlight = new Set<number>();
+        const ensure = async (i: number) => {
+          if (dead || groups[i] || inFlight.has(i)) return;
+          inFlight.add(i);
+          try {
+            const g = await loader.loadAsync(models[i].src);
+            if (dead) return;
+            await install(g.scene as THREE_TYPES.Group, i, false);
+            if (dropCacheAfterParse) THREE.Cache.remove(models[i].src);
+          } catch {
+            /* leave a hole — navigating to it will just show nothing */
+          } finally {
+            inFlight.delete(i);
           }
-        })();
+        };
+        if (deferInactiveLoads) {
+          // Memory-constrained (mobile modal): nothing else loads until a nav
+          // actually lands on it — see the prop doc.
+          ensureModelRef.current = (i) => { void ensure(i); };
+          // A nav may already have retargeted while the first model was still
+          // loading (the activeIndex effect found ensureModelRef null then) —
+          // catch up now.
+          if (activeRef.current !== startIndex) void ensure(activeRef.current);
+        } else {
+          void (async () => {
+            for (let i = 0; i < models.length; i++) {
+              if (i === startIndex || dead) continue;
+              await ensure(i);
+            }
+          })();
+        }
       } else {
         // Scroll-blend (Pathways): every model must be ready before blending.
         // Load + install them ONE AT A TIME rather than Promise.all — the latter
@@ -590,18 +633,24 @@ const GlbViewer = forwardRef<GlbViewerHandle, Props>(function GlbViewer({
 
     return () => {
       dead = true;
+      ensureModelRef.current = null;
       cancelAnimationFrame(rafId);
       st?.kill();
       ro?.disconnect();
       startRo?.disconnect();
       nearIo?.disconnect();
       renderer?.dispose();
+      // dispose() alone leaves the GL context (and every uploaded buffer/
+      // texture) alive until the browser garbage-collects it — on iOS Safari
+      // that lag is real memory pressure while the modal re-opens. Losing the
+      // context explicitly hands the GPU memory back immediately.
+      renderer?.forceContextLoss();
       renderer?.domElement.remove();
     };
     // models/initialTilt/noScroll must be stable (module-level constants or literals) from the caller.
     // spinOnMount is intentionally omitted — it's a one-shot flag captured at mount time.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [models, transitionDuration, initialTilt, noScroll, camZ, scrollRef, scrollTravel, dropCacheAfterParse]);
+  }, [models, transitionDuration, initialTilt, noScroll, camZ, scrollRef, scrollTravel, dropCacheAfterParse, deferInactiveLoads]);
 
   return (
     <div

@@ -640,6 +640,16 @@ export default function FlavorModal({
                   spinDuration={SWING_IMPACT_DURATION}
                   initialTilt={0}
                   noScroll
+                  // Memory diet — the page's Pathways viewer already holds all
+                  // four models; this viewer streaming four MORE on open is
+                  // what tipped iOS Safari over its per-tab ceiling (WebKit
+                  // killed the page seconds after the Kyoto auto-open, and the
+                  // crash-reload loop ended in "A problem repeatedly
+                  // occurred"). Load only the opened flavour, pull the others
+                  // in on nav, and free each model's downloaded bytes once
+                  // parsed.
+                  deferInactiveLoads
+                  dropCacheAfterParse
                   style={{ width: "100%", height: "100%", pointerEvents: "none" }}
                 />
               </motion.div>

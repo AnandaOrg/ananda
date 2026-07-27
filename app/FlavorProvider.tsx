@@ -8,6 +8,34 @@ type Origin = { x: number; y: number };
 type Ctx = { open: (index: number, e?: React.MouseEvent | Origin, onClose?: () => void, onNav?: () => void) => void };
 const FlavorContext = createContext<Ctx>({ open: () => {} });
 
+// "Has a flavour modal been opened this tab session?" — persisted so the
+// Pathways Kyoto auto-open stays once per visit even across reloads. iOS Safari
+// auto-reloads the page after a WebKit memory kill and restores scroll right
+// back onto the Kyoto band; the twins' in-memory one-shot refs reset on that
+// reload, so the auto-open would re-fire straight into the same kill — after
+// the second one Safari dead-ends the tab with "A problem repeatedly occurred".
+// sessionStorage is per-tab and survives those reloads. try/catch: storage
+// access can throw (private mode / storage disabled).
+const MODAL_OPENED_KEY = "ananda-flavor-modal-opened";
+
+/** True once any flavour modal has been opened in this tab session (survives
+ *  reloads — see MODAL_OPENED_KEY). The Pathways Kyoto auto-open gates on it. */
+export function wasFlavorModalOpened(): boolean {
+  try {
+    return sessionStorage.getItem(MODAL_OPENED_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+const markFlavorModalOpened = () => {
+  try {
+    sessionStorage.setItem(MODAL_OPENED_KEY, "1");
+  } catch {
+    /* best-effort */
+  }
+};
+
 /** Open a flavour detail overlay by index (0=Santorini … 3=Kyoto). */
 export const useFlavor = () => useContext(FlavorContext);
 
@@ -45,6 +73,7 @@ export default function FlavorProvider({ children }: { children: React.ReactNode
   }, []);
 
   const open = useCallback((i: number, e?: React.MouseEvent | Origin, onClose?: () => void, onNav?: () => void) => {
+    markFlavorModalOpened();
     closeCallbackRef.current = onClose ?? null;
     navCallbackRef.current = onNav ?? null;
     if (e) {
