@@ -220,6 +220,7 @@ const GlbViewer = forwardRef<GlbViewerHandle, Props>(function GlbViewer({
     tiltTlRef.current?.kill();
     tiltRef.current.value = initialTilt ?? -Math.PI / 2;
     const dur = navDuration ?? 0.7;
+    let loadTimer: ReturnType<typeof setTimeout> | undefined;
     if (prev !== activeIndex) {
       // Nav: cross-fade prev→new with the SAME duration + easing as the modal's
       // background/scene, so the bottle colour changes in lockstep (not early).
@@ -227,10 +228,16 @@ const GlbViewer = forwardRef<GlbViewerHandle, Props>(function GlbViewer({
       activeRef.current = activeIndex;
       blendRef.current.value = 0;
       gsap.to(blendRef.current, { value: 1, duration: dur, ease: "power1.inOut" });
-      // deferInactiveLoads: the target model may not be resident yet — load it
-      // now (no-op when already loaded/loading, or when the viewer streams all
-      // models eagerly).
-      ensureModelRef.current?.(activeIndex);
+      // deferInactiveLoads: the target model may not be resident yet. Don't
+      // load it mid-swing — the nav already runs two full-screen composited
+      // planes, a spring and the spinning canvas, and stacking the GLB parse +
+      // GPU upload on top of that transient is what memory-kills iOS Safari on
+      // swipe. Hold the load until the swing has settled; a newer nav clears
+      // the pending one (ensure() also dedupes in-flight loads).
+      loadTimer = setTimeout(
+        () => ensureModelRef.current?.(activeIndex),
+        dur * 1000 + 250
+      );
     } else {
       // First mount: already showing the right model — no cross-fade.
       activeRef.current = activeIndex;
@@ -245,6 +252,7 @@ const GlbViewer = forwardRef<GlbViewerHandle, Props>(function GlbViewer({
       duration: spinDuration ?? dur,
       ease: "power2.inOut",
     });
+    return () => { if (loadTimer) clearTimeout(loadTimer); };
   }, [activeIndex, initialTilt, navDuration, spinDuration]);
 
   useEffect(() => {
@@ -395,6 +403,39 @@ const GlbViewer = forwardRef<GlbViewerHandle, Props>(function GlbViewer({
         await install(activeGltf.scene as THREE_TYPES.Group, startIndex, true);
         if (dead) return;
         if (dropCacheAfterParse) THREE.Cache.remove(models[startIndex].src);
+        // deferInactiveLoads only: drop every resident model except the active
+        // one and the one it is cross-fading from. Without this, each swipe
+        // adds a model until all four sit in GPU memory on top of the page
+        // viewer's four — the steady-state footprint that memory-kills iOS
+        // Safari a few swipes in. Evicted models reload on demand (HTTP cache
+        // + parse) when navigated back to.
+        const evictFar = () => {
+          for (let i = 0; i < models.length; i++) {
+            const g = groups[i];
+            if (!g || i === activeRef.current || i === prevActiveRef.current) continue;
+            const flip = flipGroups[i];
+            if (flip) scene.remove(flip);
+            g.traverse((child) => {
+              const mesh = child as THREE_TYPES.Mesh;
+              if (mesh.isMesh) mesh.geometry?.dispose();
+            });
+            allMats[i]?.forEach((m) => {
+              m.map?.dispose();
+              m.normalMap?.dispose();
+              m.roughnessMap?.dispose();
+              m.metalnessMap?.dispose();
+              m.aoMap?.dispose();
+              m.emissiveMap?.dispose();
+              m.dispose();
+            });
+            groups[i] = undefined;
+            allMats[i] = undefined;
+            flipGroups[i] = undefined;
+            loadedCount--;
+            forceRender = true;
+          }
+        };
+
         // Loads models[i] if it isn't resident or in flight. Failures leave a
         // hole (the render loop skips it) but aren't latched — a later nav
         // back to the model simply retries.
@@ -407,6 +448,7 @@ const GlbViewer = forwardRef<GlbViewerHandle, Props>(function GlbViewer({
             if (dead) return;
             await install(g.scene as THREE_TYPES.Group, i, false);
             if (dropCacheAfterParse) THREE.Cache.remove(models[i].src);
+            if (deferInactiveLoads) evictFar();
           } catch {
             /* leave a hole — navigating to it will just show nothing */
           } finally {

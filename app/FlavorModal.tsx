@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion, useMotionValue, useReducedMotion, useSpring, type Transition, type Variants } from "framer-motion";
 import GlbViewer, { type GlbViewerHandle, type ModelEntry } from "./GlbViewer";
 
@@ -67,7 +67,7 @@ const SWIPE_DOMINANCE = 1.5;
 // Minimum gap between navs (all sources: swipe, chevrons, arrow keys). Every
 // nav mounts a fresh full-screen swing plane while AnimatePresence keeps the
 // outgoing one alive until its ~0.58s exit spring ends — unthrottled rapid
-// swiping stacks several of those huge (260vmax²) composited layers on top of
+// swiping stacks several of those huge composited layers on top of
 // the GLB canvas and crashes iOS Safari with a WebKit memory kill ("A problem
 // repeatedly occurred"). One nav per swing keeps it to two layers max.
 const NAV_LOCK_MS = NAV_DURATION * 1000 + 150;
@@ -84,33 +84,53 @@ const LAYER_VARIANTS: Variants = {
     transition: { ...SWING_TRANSITION, rotate: SWING_ROTATE_TRANSITION },
   }),
 };
-// The rotating plane: a 260vmax square whose centre sits exactly on the hinge
-// (bottom-centre of the viewport). 130vmax always exceeds the distance from the
-// hinge to the farthest viewport corner, so the plane covers the screen at any
-// rotation. The margin trick centres it without a translate that would fight
-// the animated transform.
-const PLANE_STYLE = {
+// The rotating plane: a square whose centre sits exactly on the hinge
+// (bottom-centre of the viewport). A square rotating about its own centre
+// covers every point within its INRADIUS (half its side), so the minimal safe
+// square has half-side = the hinge→farthest-viewport-corner distance —
+// computed per viewport in useSwingPlane below (+2% slack). The old constant
+// 260vmax square massively over-allocated (~2.2k px on phones, ~5k px on
+// desktop; TWO planes composite during every nav), and those backing stores
+// are a big share of what WebKit memory-kills the tab over on phones. The
+// margin trick centres the plane without a translate that would fight the
+// animated transform.
+const PLANE_BASE = {
   position: "absolute",
   left: "50%",
   top: "100%",
-  width: "260vmax",
-  height: "260vmax",
-  margin: "-130vmax",
   transformOrigin: "50% 50%",
 } as const;
-// Re-aligns the flavour content with the viewport inside the oversized plane.
-// Uses svh (small viewport height), not vh, so the box matches the guaranteed-
-// visible area even while a mobile browser's address bar is showing — the
-// modal locks body scroll on mount, so the toolbar never gets a chance to
-// auto-collapse, and bottom-anchored content (ingredients/name) sized to the
-// taller vh box would sit below the actually-visible viewport.
-const PLANE_CONTENT_STYLE = {
-  position: "absolute",
-  left: "calc(130vmax - 50vw)",
-  top: "calc(130vmax - 100svh)",
-  width: "100vw",
-  height: "100svh",
-} as const;
+
+/** Per-viewport swing-plane geometry: `plane` is the minimal hinge-centred
+ *  covering square (see PLANE_BASE); `content` re-aligns the flavour content
+ *  with the viewport inside that oversized plane. The content box uses svh
+ *  (small viewport height), not vh, so it matches the guaranteed-visible area
+ *  even while a mobile browser's address bar is showing — the modal locks body
+ *  scroll on mount, so the toolbar never gets a chance to auto-collapse, and
+ *  bottom-anchored content (ingredients/name) sized to the taller vh box would
+ *  sit below the actually-visible viewport. */
+function useSwingPlane(): { plane: React.CSSProperties; content: React.CSSProperties } {
+  const measure = () =>
+    typeof window === "undefined"
+      ? 2400
+      : Math.ceil(Math.hypot(window.innerWidth / 2, window.innerHeight) * 1.02);
+  const [r, setR] = useState(measure);
+  useEffect(() => {
+    const update = () => setR(measure());
+    window.addEventListener("resize", update);
+    return () => window.removeEventListener("resize", update);
+  }, []);
+  return {
+    plane: { ...PLANE_BASE, width: r * 2, height: r * 2, margin: -r },
+    content: {
+      position: "absolute",
+      left: `calc(${r}px - 50vw)`,
+      top: `calc(${r}px - 100svh)`,
+      width: "100vw",
+      height: "100svh",
+    },
+  };
+}
 
 type Crop = { w: string; h: string; left: string; top: string };
 type Fruit = {
@@ -433,6 +453,7 @@ export default function FlavorModal({
   onNav: (dir: number) => void;
 }) {
   const reduceMotion = useReducedMotion();
+  const swing = useSwingPlane();
 
   const desktopGlbRef = useRef<GlbViewerHandle>(null);
   const mobileGlbRef  = useRef<GlbViewerHandle>(null);
@@ -582,11 +603,11 @@ export default function FlavorModal({
 
           {/* Scene + ingredients + name: the outgoing flavour swings out one
               way while this one swings in from the other, crossfading — one
-              edgeless wheel turn (see PLANE_STYLE). */}
+              edgeless wheel turn (see PLANE_BASE). */}
           <AnimatePresence custom={layerDir} initial={false}>
             <motion.div
               key={f.key}
-              style={{ ...PLANE_STYLE, backgroundColor: f.bg }}
+              style={{ ...swing.plane, backgroundColor: f.bg }}
               custom={layerDir}
               variants={LAYER_VARIANTS}
               initial="enter"
@@ -595,7 +616,7 @@ export default function FlavorModal({
               transition={SWING_TRANSITION}
             >
               {/* Flavour content, re-aligned with the viewport inside the plane */}
-              <div style={PLANE_CONTENT_STYLE}>
+              <div style={swing.content}>
                 {/* Scene band — the 1920×1080u composition, vertically centered on
                     taller screens; fruits may spill past the band, unclipped. */}
                 <div className="absolute inset-x-0 top-1/2 -translate-y-1/2" style={{ height: u(1080) }}>
@@ -698,7 +719,7 @@ export default function FlavorModal({
         <AnimatePresence custom={layerDir} initial={false}>
           <motion.div
             key={f.key}
-            style={{ ...PLANE_STYLE, backgroundColor: f.bg }}
+            style={{ ...swing.plane, backgroundColor: f.bg }}
             custom={layerDir}
             variants={LAYER_VARIANTS}
             initial="enter"
@@ -706,7 +727,7 @@ export default function FlavorModal({
             exit="exit"
             transition={SWING_TRANSITION}
           >
-            <div style={PLANE_CONTENT_STYLE}>
+            <div style={swing.content}>
               <MobileScene f={f} />
 
               {/* Ingredients + wordmark — bottom-anchored 390×680 design row. */}
