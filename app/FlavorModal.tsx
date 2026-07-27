@@ -121,6 +121,12 @@ type Fruit = {
   rotate?: number;
   blur?: number;
   crop?: Crop;
+  /** Mobile frames only: anchor this fruit to the SCREEN top instead of the
+   *  bottom-anchored 680 frame. Used by the top-corner decorations — on the
+   *  680 design artboard the frame top IS the screen top, but on taller
+   *  viewports the frame slides down and these must keep hugging the real
+   *  top edge (the pouch-ring fruits stay bottom-anchored). */
+  anchor?: "top";
 };
 type Flavor = {
   key: string;
@@ -178,6 +184,25 @@ export const FLAVORS: Flavor[] = [
       { src: "/fl-mint2.png", inset: { left: "36.07%", top: "20.98%", w: "12.42%", h: "17.75%" }, rotate: -168.51 },
       { src: "/fl-mint1.png", inset: { left: "68.69%", top: "12.32%", w: "16.38%", h: "26.41%" }, rotate: -47.15 },
     ],
+    // Mobile frame (Product_Santorini_Mobile, 390×680). Sizes are the desktop
+    // fruits × 0.3473 (the same factor the designed Kyoto frame uses, blur
+    // included); positions calibrated against the design frame — each box is
+    // placed so the RENDERED fruit body (measured, incl. its offset inside the
+    // PNG/crop) lands on the design's measured position.
+    mobileFruits: [
+      { src: "/fl-lemon.png", box: { left: 261, top: 16.1, w: 173.06, h: 177.52 }, inner: { w: 112.88, h: 137.14 }, rotate: 37.53, crop: LEMON, anchor: "top" },
+      { src: "/fl-lemon.png", box: { left: -137.6, top: 196.6, w: 298.86, h: 308.14 }, inner: { w: 196.18, h: 238.33 }, rotate: -36.05, blur: 1.441, crop: LEMON },
+      { src: "/fl-lemon.png", box: { left: 24, top: -1.5, w: 126.84, h: 135.89 }, inner: { w: 89.01, h: 108.13 }, rotate: -25.45, crop: LEMON, anchor: "top" },
+      { src: "/fl-anis.png", box: { left: 256.9, top: 302.8, w: 40.34, h: 37.99 }, crop: ANIS },
+      { src: "/fl-anis.png", box: { left: 34.7, top: 159.6, w: 53.2, h: 53.4 }, inner: { w: 38.89, h: 36.63 }, rotate: -48.52, crop: ANIS },
+      { src: "/fl-mint2.png", box: { left: 60.3, top: 154.1, w: 82.82, h: 66.58 }, rotate: -168.51 },
+      // Design slot of the top-right mint. fl-mint1.png is a BROKEN export —
+      // every pixel is fully transparent (it has never rendered anywhere,
+      // desktop included) — so this reuses the working fl-mint2 sprig, whose
+      // natural orientation already fans up-left like the design's sprig.
+      // TODO: re-export fl-mint1.png from Figma and restore it here.
+      { src: "/fl-mint2.png", box: { left: 242.9, top: 44.7, w: 82.82, h: 66.58 }, rotate: -20, anchor: "top" },
+    ],
   },
   {
     key: "aloha",
@@ -196,6 +221,18 @@ export const FLAVORS: Flavor[] = [
       { src: "/fl-pineapple.png", box: { left: 1139.75, top: -64.16, w: 386.372, h: 290.367 }, inner: { w: 208.857, h: 344.235 }, rotate: 75.1, crop: PINE },
       { src: "/fl-passion-a.png", inset: { left: "7.23%", top: "52.09%", w: "9.68%", h: "16.52%" } },
     ],
+    // Mobile frame (Product_Aloha_Mobile, 390×680). Desktop × 0.3473 sizes,
+    // except the bottom-left passion (the design blows it up to ~140mu) and a
+    // third small passion the mobile frame adds at the right edge.
+    mobileFruits: [
+      { src: "/fl-passion-a.png", box: { left: 307.2, top: 65.7, w: 75.71, h: 72.55 }, blur: 1.407, anchor: "top" },
+      { src: "/fl-mango.png", box: { left: 34.2, top: 58.6, w: 125.57, h: 142.73 }, inner: { w: 109.52, h: 129.47 }, rotate: -7.55, crop: MANGO, anchor: "top" },
+      { src: "/fl-mango.png", box: { left: 246.9, top: 138, w: 296.12, h: 279.66 }, inner: { w: 197.21, h: 233.13 }, rotate: 63.9, blur: 2.344, crop: MANGO },
+      { src: "/fl-pineapple.png", box: { left: -39, top: 205, w: 198.13, h: 189.86 }, inner: { w: 103.99, h: 171.4 }, rotate: -49.97, crop: PINE },
+      { src: "/fl-pineapple.png", box: { left: 192.9, top: -28.4, w: 134.19, h: 100.84 }, inner: { w: 72.54, h: 119.55 }, rotate: 75.1, crop: PINE, anchor: "top" },
+      { src: "/fl-passion-a.png", box: { left: 40, top: 321, w: 140, h: 134.4 } },
+      { src: "/fl-passion-a.png", box: { left: 329.7, top: 307, w: 64.56, h: 61.96 } },
+    ],
   },
   {
     key: "gaia",
@@ -213,6 +250,16 @@ export const FLAVORS: Flavor[] = [
       { src: "/fl-passion-g4.png", inset: { left: "56.87%", top: "18.7%", w: "12.15%", h: "21.18%" }, rotate: 18.79 },
       { src: "/fl-passion-g4.png", inset: { left: "-3.07%", top: "46.26%", w: "19.24%", h: "32.82%" }, blur: 4.85 },
       { src: "/fl-passion-g1.png", inset: { left: "82.66%", top: "5.53%", w: "23.23%", h: "41.11%" }, rotate: -43.6, blur: 3.9 },
+    ],
+    // Mobile frame (Product_Gaia_Mobile, 390×680). Desktop × 0.3473 sizes
+    // (blur included); positions measured off the design frame.
+    mobileFruits: [
+      { src: "/fl-elderflower.png", box: { left: 210.3, top: 263.2, w: 159.41, h: 163.58 }, rotate: 34.04 },
+      { src: "/fl-elderflower.png", box: { left: -144.9, top: 95.8, w: 399.74, h: 408.42 }, rotate: 35.61, blur: 1.372 },
+      { src: "/fl-passion-g4.png", box: { left: 102.9, top: -7.7, w: 74.28, h: 71.37 }, anchor: "top" },
+      { src: "/fl-passion-g4.png", box: { left: 227.5, top: 215.3, w: 81.02, h: 79.42 }, rotate: 18.79 },
+      { src: "/fl-passion-g4.png", box: { left: -54, top: 338, w: 128.29, h: 123.11 }, blur: 1.684 },
+      { src: "/fl-passion-g1.png", box: { left: 287.6, top: 44.9, w: 154.89, h: 154.19 }, rotate: -43.6, blur: 1.354, anchor: "top" },
     ],
   },
   {
@@ -236,14 +283,14 @@ export const FLAVORS: Flavor[] = [
     ],
     // Mobile frame 198:3492 (390×680). Positions/sizes are frame-absolute in mu.
     mobileFruits: [
-      { src: "/fl-lychee.png", box: { left: 111.08, top: 8.71, w: 101.048, h: 100.958 }, inner: { w: 70.304, h: 72.592 }, rotate: 46.6 },
+      { src: "/fl-lychee.png", box: { left: 111.08, top: 8.71, w: 101.048, h: 100.958 }, inner: { w: 70.304, h: 72.592 }, rotate: 46.6, anchor: "top" },
       { src: "/fl-lychee.png", box: { left: 266.52, top: 279.5, w: 79.114, h: 80.31 }, inner: { w: 61.252, h: 63.246 }, rotate: -19.89 },
       { src: "/fl-lychee.png", box: { left: -40.48, top: 179.6, w: 79.114, h: 80.31 }, inner: { w: 61.252, h: 63.246 }, rotate: -19.89 },
       { src: "/fl-yuzu.png", box: { left: 318.66, top: 194.05, w: 132.729, h: 134.746 }, blur: 2.136, crop: YUZU },
-      { src: "/fl-strawberry.png", box: { left: 247.43, top: 21.27, w: 269.507, h: 282.333 }, inner: { w: 191.37, h: 220.009 }, rotate: 26.54, blur: 2.379, crop: STRAW },
-      { src: "/fl-strawberry.png", box: { left: 75.81, top: 37.05, w: 104.359, h: 110.379 }, inner: { w: 76.147, h: 87.543 }, rotate: -23.07, crop: STRAW },
+      { src: "/fl-strawberry.png", box: { left: 247.43, top: 21.27, w: 269.507, h: 282.333 }, inner: { w: 191.37, h: 220.009 }, rotate: 26.54, blur: 2.379, crop: STRAW, anchor: "top" },
+      { src: "/fl-strawberry.png", box: { left: 75.81, top: 37.05, w: 104.359, h: 110.379 }, inner: { w: 76.147, h: 87.543 }, rotate: -23.07, crop: STRAW, anchor: "top" },
       { src: "/fl-strawberry.png", box: { left: -52.94, top: 241.65, w: 174.43, h: 166.64 }, inner: { w: 118.076, h: 135.747 }, rotate: 116.83, blur: 1.129, crop: STRAW },
-      { src: "/fl-yuzu.png", box: { left: 34.29, top: -40.46, w: 95.382, h: 96.831 }, crop: YUZU },
+      { src: "/fl-yuzu.png", box: { left: 34.29, top: -40.46, w: 95.382, h: 96.831 }, crop: YUZU, anchor: "top" },
     ],
   },
 ];
@@ -333,54 +380,39 @@ function Scene({ f }: { f: Flavor }) {
   );
 }
 
-/** The mobile decorative scene. Flavours with a `mobileFruits` layout (Figma
- *  198:3492) render the mandala + fruits ringed around the pouch in the 390×680
- *  frame via `--mu`. Flavours without one fall back to the desktop `Scene` scaled
- *  to mobile width (as before the mobile redesign) so they keep their floating
- *  fruit until their own mobile frames are wired in. */
+/** The mobile decorative scene. Every flavour has a designed `mobileFruits`
+ *  layout (the Product_<Flavor>_Mobile 390×680 frames): the mandala + fruits
+ *  ring the pouch, positioned via `--mu`. */
 function MobileScene({ f }: { f: Flavor }) {
-  if (f.mobileFruits) {
-    return (
-      <div className="absolute bottom-0 left-0 w-full" style={{ height: mu(680) }}>
-        {/* Mandala — centred, bleeding off the top (Figma "BG Red"). */}
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={f.pattern}
-          alt=""
-          className="pointer-events-none absolute left-1/2 -translate-x-1/2"
-          style={{ top: mu(-42), width: mu(440), height: mu(439.92) }}
-        />
-        {f.mobileFruits.map((fr, i) => (
-          <FruitImg key={i} f={fr} i={i} unit={mu} />
-        ))}
-      </div>
-    );
-  }
-  // Legacy fallback — flavours without a designed mobile frame yet (Figma only
-  // specifies 198:3492 for KYOTO). The mandala gets the SAME treatment as the
-  // designed frame — full circle, centred, bleeding off the top of the
-  // bottom-anchored 680 frame — because the desktop Scene's scaled crop showed
-  // only a band of the huge circle (flat chord cut + side margins), which read
-  // as a rendering bug on phones. The fruits keep the desktop 1920-space
-  // layout scaled to mobile width until their own mobile frames are wired in.
   return (
     <>
-      <div className="absolute bottom-0 left-0 w-full" style={{ height: mu(680) }}>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={f.pattern}
-          alt=""
-          className="pointer-events-none absolute left-1/2 -translate-x-1/2"
-          style={{ top: mu(-42), width: mu(440), height: mu(439.92) }}
-        />
+      {/* Mandala — measured off the Product_Santorini_Mobile frame: a 465mu
+          circle anchored to the SCREEN top at −107, i.e. sized so the circle
+          just covers both top corners (centre (195,126), r≈233) and its bottom
+          arc lands at design y≈357, leaving flat colour behind the
+          ingredients. Screen-anchored (not the bottom-anchored fruit frame) so
+          taller viewports keep the top bleed instead of sliding it down. */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={f.pattern}
+        alt=""
+        className="pointer-events-none absolute left-1/2 -translate-x-1/2"
+        style={{ top: mu(-107), width: mu(465), height: mu(465) }}
+      />
+      {/* Top-anchored fruits — the corner decorations along the artboard's top
+          edge. Same 680 mu space, pinned to the screen top so the design
+          coordinates read unchanged (see Fruit.anchor). */}
+      <div className="absolute left-0 top-0 w-full" style={{ height: mu(680) }}>
+        {(f.mobileFruits ?? []).map((fr, i) =>
+          fr.anchor === "top" ? <FruitImg key={i} f={fr} i={i} unit={mu} /> : null
+        )}
       </div>
-      <div
-        className="absolute left-1/2 top-1/2 w-full -translate-x-1/2 -translate-y-1/2 overflow-hidden"
-        style={{ containerType: "inline-size", ["--u" as string]: "calc(100cqw / 1920)", height: "100svh" }}
-      >
-        {f.fruits.map((fr, i) => (
-          <FruitImg key={i} f={fr} i={i} />
-        ))}
+      {/* Bottom-anchored fruits — the ring around the pouch, which is itself
+          anchored to the viewport bottom. */}
+      <div className="absolute bottom-0 left-0 w-full" style={{ height: mu(680) }}>
+        {(f.mobileFruits ?? []).map((fr, i) =>
+          fr.anchor === "top" ? null : <FruitImg key={i} f={fr} i={i} unit={mu} />
+        )}
       </div>
     </>
   );
@@ -617,17 +649,20 @@ export default function FlavorModal({
         onTouchStart={onSwipeTouchStart}
         onTouchEnd={onSwipeTouchEnd}
       >
-        {/* GLB pouch — persistent, centred on the design pouch (137×360 @ top 96,
-            centre 404mu above the frame bottom). Bobs gently at rest. */}
+        {/* GLB pouch — persistent, centred 386mu above the frame bottom (the
+            measured cap-top→print-bottom span in Product_Santorini_Mobile is
+            98→490, centre 294). The canvas is sized so the fitted model reads
+            ~392mu tall — the visible pouch spans ~41.5% of the canvas height
+            at the default camera. Bobs gently at rest. */}
         <div className="absolute inset-0" style={{ pointerEvents: "none", zIndex: 40 }}>
           <div
             style={{
               position: "absolute",
               left: "50%",
-              top: `calc(100% - ${mu(404)})`,
+              top: `calc(100% - ${mu(386)})`,
               transform: "translate(-50%, -50%)",
-              width: mu(360),
-              height: mu(560),
+              width: mu(607),
+              height: mu(945),
             }}
           >
             <div className="glb-float size-full" style={{ perspective: 900 }}>
