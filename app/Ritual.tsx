@@ -42,7 +42,9 @@ export default function Ritual() {
             fontSize: u(59.247),
             lineHeight: 1.15,
             letterSpacing: u(-2.3699),
-            color: RED,
+            // Statement-specific muted terracotta (design), not the brand RED
+            // used by the rest of this section.
+            color: "var(--terracotta)",
           }}
         />
 

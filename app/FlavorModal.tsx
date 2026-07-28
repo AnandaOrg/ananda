@@ -637,9 +637,12 @@ export default function FlavorModal({
                 </div>
 
                 {/* Name — rides the swing with the rest of the flavour content */}
+                {/* translateY: same 0.14em caps-centring compensation as the
+                    mobile wordmark (AnekKannada's tall ascent), scaled to the
+                    160px size so the caps sit centred on the chevrons. */}
                 <p
                   className="absolute inset-x-0 text-center font-bold uppercase"
-                  style={{ bottom: u(40), fontFamily: "var(--font-display)", fontSize: u(160), lineHeight: 0.8, letterSpacing: u(-12.8), color: f.nameColor }}
+                  style={{ bottom: u(40), fontFamily: "var(--font-display)", fontSize: u(160), lineHeight: 0.8, letterSpacing: u(-12.8), color: f.nameColor, transform: `translateY(${u(22.4)})` }}
                 >
                   {f.name}
                 </p>
@@ -743,9 +746,13 @@ export default function FlavorModal({
                   </div>
                 </div>
 
-                {/* Name wordmark — centred in the bottom row (arrows flank it) */}
+                {/* Name wordmark — centred in the bottom row (arrows flank it).
+                    translateY compensates AnekKannada's Kannada-script vertical
+                    metrics (ascent 2030 vs capHeight 1278 @2000upem): flex
+                    centres the LINE BOX, which leaves the Latin caps 8.4mu
+                    (0.14em) above the row's true centre. */}
                 <div className="absolute flex items-center justify-center" style={{ left: mu(21.67), top: mu(594.83), width: mu(346.667), height: mu(38) }}>
-                  <p className="text-center font-bold uppercase" style={{ fontFamily: "var(--font-display)", fontSize: mu(60), lineHeight: 0.8, letterSpacing: mu(-4.8), color: f.nameColor }}>
+                  <p className="text-center font-bold uppercase" style={{ fontFamily: "var(--font-display)", fontSize: mu(60), lineHeight: 0.8, letterSpacing: mu(-4.8), color: f.nameColor, transform: `translateY(${mu(8.4)})` }}>
                     {f.name}
                   </p>
                 </div>

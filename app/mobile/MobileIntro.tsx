@@ -265,7 +265,7 @@ export default function MobileIntro() {
           left: mu(GALLERY_LEFT_MU),
           top: `calc(${GALLERY_H_SVH * 100}svh + ${mu(GALLERY_TOP_MU * 2)})`,
           width: mu(GALLERY_W_MU),
-          gap: mu(10),
+          gap: mu(19),
           opacity: 0,
           zIndex: 4,
           willChange: "opacity",
@@ -273,13 +273,14 @@ export default function MobileIntro() {
       >
         <p
           className="uppercase"
-          style={{ fontFamily: "var(--font-mono-label)", fontSize: mu(13), lineHeight: 0.87, letterSpacing: mu(1) }}
+          style={{ fontFamily: "var(--font-mono-label)", fontSize: mu(13), lineHeight: 0.87, letterSpacing: mu(1), color: "var(--terracotta)" }}
         >
           What we&apos;re about
         </p>
-        <div style={{ fontFamily: "var(--font-body)", fontSize: mu(20), lineHeight: 1.45, letterSpacing: mu(0.2) }}>
-          <p className="mb-0">Premium, bar-strength cocktails mixed for the makers, the movers, and the midnight sun.</p>
-          <p>No glass, no pretense. Just pure, uninhibited joy - ready whenever and wherever you are.</p>
+        {/* 250mu box reproduces the design's six-line rag at 16/1.3. */}
+        <div style={{ fontFamily: "var(--font-body)", fontWeight: 500, fontSize: mu(16), lineHeight: 1.3, letterSpacing: mu(0.2), color: "var(--terracotta)", maxWidth: mu(250) }}>
+          <p className="mb-0">Premium, bar&ndash;strength cocktails mixed for the makers, the movers, and the midnight sun.</p>
+          <p>No glass, no pretense. Just pure, uninhibited joy &ndash; ready whenever and wherever you are.</p>
         </div>
       </div>
     </section>

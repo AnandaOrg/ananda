@@ -113,7 +113,18 @@ export default function RevealStatement({
       {paras.map((runs, pi) => (
         <p key={pi} className={pi < paras.length - 1 ? "mb-0" : undefined}>
           {runs.map((run, ri) => (
-            <span key={ri} className={run.underline ? "underline" : undefined} style={run.underline ? { fontSize: smallFontSize } : undefined}>
+            <span
+              key={ri}
+              className={run.underline ? "underline" : undefined}
+              // Underlined runs switch to the mono label font (per design) —
+              // explicit weight + tracking so they don't inherit the statement's
+              // bold and negative letterspacing.
+              style={
+                run.underline
+                  ? { fontSize: smallFontSize, fontFamily: "var(--font-mono-label)", fontWeight: 500, letterSpacing: "0.07em" }
+                  : undefined
+              }
+            >
               {renderRun(run.text, `${pi}-${ri}`)}
             </span>
           ))}

@@ -74,6 +74,7 @@ export default function AboutCopyBlock({
             fontSize: u(10),
             lineHeight: 0.87,
             letterSpacing: u(0.7),
+            color: "var(--terracotta)",
           }}
         >
           What we&apos;re about
@@ -84,17 +85,19 @@ export default function AboutCopyBlock({
         <div
           style={{
             fontFamily: "var(--font-body)",
+            fontWeight: 500,
             fontSize: u(16),
-            lineHeight: 1.6,
+            lineHeight: 1.3,
             letterSpacing: u(0.16),
+            color: "var(--terracotta)",
           }}
         >
           <p className="mb-0">
-            Premium, bar-strength cocktails mixed for the makers, the movers, and the
-            midnight sun.
+            Premium, bar&ndash;strength cocktails mixed for the makers, the movers, and
+            the midnight sun.
           </p>
           <p>
-            No glass, no pretense. Just pure, uninhibited joy - ready whenever and
+            No glass, no pretense. Just pure, uninhibited joy &ndash; ready whenever and
             wherever you are.
           </p>
         </div>

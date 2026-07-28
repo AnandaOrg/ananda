@@ -3,11 +3,15 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  /* Muted terracotta used by the body-copy blocks ("What we're about", the
+     ANANDA statement) — deliberately softer than the brand red #eb4638. */
+  --terracotta: #d15841;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-terracotta: var(--terracotta);
   --font-sans: var(--font-display);
   --font-mono: var(--font-geist-mono);
 }

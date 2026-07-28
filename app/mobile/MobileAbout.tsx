@@ -1,5 +1,5 @@
 import { mu, MU_VAR } from "./scale";
-import RevealStatement, { STATEMENT_PARAS } from "../RevealStatement";
+import RevealStatement, { STATEMENT_FLAT } from "../RevealStatement";
 
 /** Mobile section — "ANANDA is the supreme joy…" statement + mandala (Figma 184:2755). */
 export default function MobileAbout() {
@@ -12,10 +12,10 @@ export default function MobileAbout() {
               "THE RITUAL" seam read as too much empty space). */}
           <div className="flex flex-col items-center" style={{ gap: mu(80) }}>
             <RevealStatement
-              paras={STATEMENT_PARAS}
+              paras={STATEMENT_FLAT}
               smallFontSize={mu(15.48)}
               className="font-bold"
-              style={{ fontFamily: "var(--font-display)", color: "#eb4638", letterSpacing: mu(-0.96), fontSize: mu(24), lineHeight: 1.15 }}
+              style={{ fontFamily: "var(--font-display)", color: "var(--terracotta)", letterSpacing: mu(-0.96), fontSize: mu(24), lineHeight: 1.15 }}
             />
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/s5-mandala.svg" alt="" style={{ width: mu(140.075), height: mu(146.594) }} />
