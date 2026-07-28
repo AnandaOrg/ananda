@@ -5,7 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { mu, MU_VAR } from "./scale";
-import { useFlavor, wasFlavorModalOpened } from "../FlavorProvider";
+import { useFlavor, wasFlavorModalOpenAtDeath } from "../FlavorProvider";
 import GlbViewer, { type GlbViewerHandle } from "../GlbViewer";
 import LiquidText from "../LiquidText";
 
@@ -118,10 +118,24 @@ export default function MobilePathways() {
     };
     // Keep it spinning through the tilt so it's still spinning when it hits 90°.
     setTimeout(() => glbRef.current?.spin360(), 650);
+    // Once the modal fully covers the viewport (opens at 1000ms + ~700ms entry
+    // transition), release this viewer's GPU memory: its four resident models
+    // sit invisible under the modal yet count against the same WebKit per-tab
+    // budget the modal needs to stream its own pouches — the combined footprint
+    // is what still memory-killed the tab when toggling between flavours.
+    // Cancelled if the modal closes before the timer lands.
+    const suspendTimer = setTimeout(() => glbRef.current?.suspend(), 2200);
     // Beat 2: at ~90° the still-spinning bottle becomes the modal — the modal
     // scales out of the captured position, its own bottle continuing the spin.
     setTimeout(() => open(i, origin,
-      () => { glbRef.current?.resetTilt(); onClosed?.(); },
+      () => {
+        // Close starts: bring the GPU side back (re-upload hitch hidden behind
+        // the modal's exit animation) BEFORE the tilt-reset needs to render.
+        clearTimeout(suspendTimer);
+        glbRef.current?.resume();
+        glbRef.current?.resetTilt();
+        onClosed?.();
+      },
       () => glbRef.current?.spin360(),
     ), 1000);
   }, [open]);
@@ -166,12 +180,13 @@ export default function MobilePathways() {
     });
   }, [kyotoTransitionAt, openWithSpin]);
 
-  // A reload resets the in-memory one-shot refs — restore the persisted "a
-  // modal was already shown" flag so the Kyoto auto-open can't re-fire after
-  // the automatic reload that follows an iOS Safari memory kill (scroll
-  // restore lands right back on Kyoto — see FlavorProvider's MODAL_OPENED_KEY).
+  // A reload resets the in-memory one-shot refs — if the previous page
+  // instance died WITH a modal open (iOS Safari memory kill mid-modal; its
+  // auto-reload restores scroll right back onto Kyoto), suppress the auto-open
+  // for this recovery load. FlavorProvider consumes the flag right after, so a
+  // later clean load auto-opens normally (see MODAL_OPENED_KEY).
   useEffect(() => {
-    if (wasFlavorModalOpened()) modalOpenedRef.current = true;
+    if (wasFlavorModalOpenAtDeath()) modalOpenedRef.current = true;
   }, []);
 
   // Mount the GLB viewer once the section is within ~a screen of the viewport.

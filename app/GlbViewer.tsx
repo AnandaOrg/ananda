@@ -18,6 +18,18 @@ export type GlbViewerHandle = {
    *  screen). Reflects the live cross-fade, not the scroll fraction — use it to
    *  act only once a specific model is really visible. */
   getDominantIndex: () => number;
+  /** Stop rendering and hand EVERY GPU allocation (framebuffer, textures,
+   *  geometry, shader programs) back to the OS via a forced context loss.
+   *  Call when the canvas is fully covered (e.g. the flavour modal is up) —
+   *  its resident models otherwise count against the same WebKit per-tab
+   *  memory budget the overlay needs. CPU-side model data is kept, so resume()
+   *  needs no re-download or re-parse. No-op before init / while suspended. */
+  suspend: () => void;
+  /** Undo suspend(): restore the GL context and repaint — three re-uploads
+   *  buffers/textures lazily on that first render. Call at the START of the
+   *  covering overlay's exit animation so the one-frame upload hitch happens
+   *  while the canvas is still hidden. No-op unless suspended. */
+  resume: () => void;
 };
 
 export type ModelEntry = {
@@ -179,6 +191,11 @@ const GlbViewer = forwardRef<GlbViewerHandle, Props>(function GlbViewer({
   // activeIndex effect can pull a not-yet-loaded model in when a nav lands on
   // it. Null until the viewer has initialised (and again after teardown).
   const ensureModelRef = useRef<((i: number) => void) | null>(null);
+  // init() parks the live suspend/resume closures here (they need the closure
+  // over renderer/tick). Null until init and again after teardown — the handle
+  // methods degrade to no-ops outside that window.
+  const suspendRef = useRef<(() => void) | null>(null);
+  const resumeRef = useRef<(() => void) | null>(null);
 
   useImperativeHandle(ref, () => ({
     spin() {
@@ -207,6 +224,12 @@ const GlbViewer = forwardRef<GlbViewerHandle, Props>(function GlbViewer({
     },
     getDominantIndex() {
       return dominantIndexRef.current;
+    },
+    suspend() {
+      suspendRef.current?.();
+    },
+    resume() {
+      resumeRef.current?.();
     },
   }));
 
@@ -275,8 +298,13 @@ const GlbViewer = forwardRef<GlbViewerHandle, Props>(function GlbViewer({
 
       if (dead) return;
 
+      // MSAA multiplies the drawing buffer ~4× (plus depth/stencil) — tens of
+      // MB per canvas at these oversized mounts. On phones that buffer counts
+      // against WebKit's per-tab memory ceiling, so trade edge smoothing for
+      // headroom there; desktop keeps it.
+      const isPhone = window.matchMedia("(max-width: 767px)").matches;
       renderer = new THREE.WebGLRenderer({
-        antialias: true,
+        antialias: !isPhone,
         alpha: true,
         powerPreference: "high-performance",
       });
@@ -284,7 +312,7 @@ const GlbViewer = forwardRef<GlbViewerHandle, Props>(function GlbViewer({
       // doubles in memory, which is what tips iOS Safari over its per-tab budget
       // when four models are resident at once. 1.5× is visually indistinguishable
       // on the small pouch.
-      const maxDpr = window.matchMedia("(max-width: 767px)").matches ? 1.5 : 2;
+      const maxDpr = isPhone ? 1.5 : 2;
       renderer.setPixelRatio(Math.min(window.devicePixelRatio, maxDpr));
       renderer.setSize(mount.clientWidth, mount.clientHeight);
       renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -513,8 +541,13 @@ const GlbViewer = forwardRef<GlbViewerHandle, Props>(function GlbViewer({
         });
       }
 
+      // suspend()/resume() flag — declared ahead of the ResizeObserver so a
+      // resize landing mid-suspension is deferred to resume() instead of
+      // touching the released context.
+      let suspended = false;
+
       ro = new ResizeObserver(() => {
-        if (!renderer) return;
+        if (!renderer || suspended) return;
         const w = mount.clientWidth;
         const h = mount.clientHeight;
         camera.aspect = w / h;
@@ -630,6 +663,41 @@ const GlbViewer = forwardRef<GlbViewerHandle, Props>(function GlbViewer({
         renderer!.render(scene, camera);
       };
       tick();
+
+      // Suspend/resume (see the handle docs). Loss/restore rather than manual
+      // disposal: one call frees the framebuffer, every texture/buffer AND the
+      // shader programs, and three's own contextrestored handling re-uploads
+      // it all lazily on the next render — no bookkeeping of what was live.
+      // Renders that land while the context is lost (a background install()'s
+      // warm-up draw) are safe no-ops; forceRender repaints them on resume.
+      suspendRef.current = () => {
+        if (dead || suspended || !renderer) return;
+        suspended = true;
+        cancelAnimationFrame(rafId);
+        renderer.forceContextLoss();
+      };
+      resumeRef.current = () => {
+        if (dead || !suspended || !renderer) return;
+        suspended = false;
+        // The contextrestored event can be dispatched async — re-arm the
+        // repaint once three has actually re-initialised (its own listener was
+        // registered first, so it runs before this one). Also set forceRender
+        // synchronously below for engines that restore in the same task.
+        renderer.domElement.addEventListener(
+          "webglcontextrestored",
+          () => { forceRender = true; },
+          { once: true },
+        );
+        renderer.forceContextRestore();
+        // Replay whatever the ResizeObserver swallowed while suspended.
+        const w = mount.clientWidth;
+        const h = mount.clientHeight;
+        camera.aspect = w / h;
+        camera.updateProjectionMatrix();
+        renderer.setSize(w, h);
+        forceRender = true;
+        tick();
+      };
     };
 
     // Don't allocate a WebGL context or parse the (large) GLBs while the mount
@@ -676,6 +744,8 @@ const GlbViewer = forwardRef<GlbViewerHandle, Props>(function GlbViewer({
     return () => {
       dead = true;
       ensureModelRef.current = null;
+      suspendRef.current = null;
+      resumeRef.current = null;
       cancelAnimationFrame(rafId);
       st?.kill();
       ro?.disconnect();

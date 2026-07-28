@@ -24,8 +24,8 @@ export default function MobileSocial() {
               [04] Our collective
             </p>
             <div className="font-bold" style={{ fontFamily: "var(--font-display)", fontSize: mu(64), lineHeight: 0.8, letterSpacing: mu(-5.12), width: mu(276.93) }}>
-              <p className="mb-0">ANANDA IN</p>
-              <p>THE WILD</p>
+              <p className="mb-0 whitespace-nowrap">ANANDA IN</p>
+              <p className="whitespace-nowrap">THE WILD</p>
             </div>
           </div>
           <div className="flex flex-col items-start" style={{ gap: mu(14) }}>

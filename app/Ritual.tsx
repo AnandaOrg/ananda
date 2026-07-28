@@ -109,8 +109,8 @@ export default function Ritual() {
             color: RED,
           }}
         >
-          <p className="mb-0">ANANDA IN</p>
-          <p>THE WILD</p>
+          <p className="mb-0 whitespace-nowrap">ANANDA IN</p>
+          <p className="whitespace-nowrap">THE WILD</p>
         </div>
 
         {/* Flavour tags */}

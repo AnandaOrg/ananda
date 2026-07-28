@@ -8,19 +8,24 @@ type Origin = { x: number; y: number };
 type Ctx = { open: (index: number, e?: React.MouseEvent | Origin, onClose?: () => void, onNav?: () => void) => void };
 const FlavorContext = createContext<Ctx>({ open: () => {} });
 
-// "Has a flavour modal been opened this tab session?" — persisted so the
-// Pathways Kyoto auto-open stays once per visit even across reloads. iOS Safari
-// auto-reloads the page after a WebKit memory kill and restores scroll right
-// back onto the Kyoto band; the twins' in-memory one-shot refs reset on that
-// reload, so the auto-open would re-fire straight into the same kill — after
-// the second one Safari dead-ends the tab with "A problem repeatedly occurred".
-// sessionStorage is per-tab and survives those reloads. try/catch: storage
-// access can throw (private mode / storage disabled).
+// "Did the previous page instance die while a flavour modal was open?" — set
+// on modal open, cleared on clean close, so it only survives a load where the
+// page went away mid-modal. iOS Safari auto-reloads the page after a WebKit
+// memory kill and restores scroll right back onto the Kyoto band; the twins'
+// in-memory one-shot refs reset on that reload, so the Kyoto auto-open would
+// re-fire straight into the same kill — after the second one Safari dead-ends
+// the tab with "A problem repeatedly occurred". sessionStorage is per-tab and
+// survives those reloads. The flag is consumed (cleared) on the next mount, so
+// it suppresses the auto-open for that one recovery load only — a later clean
+// visit auto-opens again. try/catch everywhere: storage access can throw
+// (private mode / storage disabled).
 const MODAL_OPENED_KEY = "ananda-flavor-modal-opened";
 
-/** True once any flavour modal has been opened in this tab session (survives
- *  reloads — see MODAL_OPENED_KEY). The Pathways Kyoto auto-open gates on it. */
-export function wasFlavorModalOpened(): boolean {
+/** True when the previous page instance was killed/unloaded with a flavour
+ *  modal still open (see MODAL_OPENED_KEY). The Pathways twins read this on
+ *  mount to suppress the Kyoto auto-open for the recovery load; FlavorProvider
+ *  clears it right after (its mount effect runs after the twins'). */
+export function wasFlavorModalOpenAtDeath(): boolean {
   try {
     return sessionStorage.getItem(MODAL_OPENED_KEY) === "1";
   } catch {
@@ -28,9 +33,17 @@ export function wasFlavorModalOpened(): boolean {
   }
 }
 
-const markFlavorModalOpened = () => {
+const markFlavorModalOpen = () => {
   try {
     sessionStorage.setItem(MODAL_OPENED_KEY, "1");
+  } catch {
+    /* best-effort */
+  }
+};
+
+const clearFlavorModalOpen = () => {
+  try {
+    sessionStorage.removeItem(MODAL_OPENED_KEY);
   } catch {
     /* best-effort */
   }
@@ -72,8 +85,15 @@ export default function FlavorProvider({ children }: { children: React.ReactNode
     return () => clearTimeout(t);
   }, []);
 
+  // Consume the crash flag: the Pathways twins are descendants, so their mount
+  // effects (which read wasFlavorModalOpenAtDeath into their one-shot refs) run
+  // before this one — clearing here makes the flag suppress exactly one load.
+  useEffect(() => {
+    clearFlavorModalOpen();
+  }, []);
+
   const open = useCallback((i: number, e?: React.MouseEvent | Origin, onClose?: () => void, onNav?: () => void) => {
-    markFlavorModalOpened();
+    markFlavorModalOpen();
     closeCallbackRef.current = onClose ?? null;
     navCallbackRef.current = onNav ?? null;
     if (e) {
@@ -92,6 +112,9 @@ export default function FlavorProvider({ children }: { children: React.ReactNode
     setIndex((i) => (i === null ? i : (i + dir + FLAVORS.length) % FLAVORS.length));
   }, []);
   const onClose = useCallback(() => {
+    // Clean close — the page didn't die with the modal open, so the next load
+    // must NOT suppress the Kyoto auto-open.
+    clearFlavorModalOpen();
     closeCallbackRef.current?.();
     closeCallbackRef.current = null;
     setIndex(null);
