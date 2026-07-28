@@ -226,7 +226,7 @@ export default function MobileIntro() {
           willChange: "opacity",
         }}
       >
-        <VerticalSlider images={GALLERY} index={index} frame reveal duration={0.7} style={{ width: "100%", height: "100%" }} />
+        <VerticalSlider images={GALLERY} index={index} frame reveal duration={0.7} eagerCount={2} style={{ width: "100%", height: "100%" }} />
       </div>
 
       {/* Drinking clip — diamond frame rotates AND grows into the gallery box;

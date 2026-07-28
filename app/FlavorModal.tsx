@@ -696,15 +696,12 @@ export default function FlavorModal({
                   spinDuration={SWING_IMPACT_DURATION}
                   initialTilt={0}
                   noScroll
-                  // Memory diet — the page's Pathways viewer already holds all
-                  // four models; this viewer streaming four MORE on open is
-                  // what tipped iOS Safari over its per-tab ceiling (WebKit
-                  // killed the page seconds after the Kyoto auto-open, and the
-                  // crash-reload loop ended in "A problem repeatedly
-                  // occurred"). Load only the opened flavour, pull the others
-                  // in on nav, and free each model's downloaded bytes once
-                  // parsed.
-                  deferInactiveLoads
+                  // All four models preload (active first, rest streamed
+                  // behind it) so nav is an instant cross-fade — affordable
+                  // since the textures went 2K→1K (~22MB GPU per model, all
+                  // four together costing what ONE did at 2K) and the page's
+                  // Pathways viewer suspends its GPU side while this modal is
+                  // up. Still free each model's downloaded bytes once parsed.
                   dropCacheAfterParse
                   style={{ width: "100%", height: "100%", pointerEvents: "none" }}
                 />

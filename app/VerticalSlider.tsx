@@ -55,6 +55,14 @@ interface Props {
    * false.
    */
   reveal?: boolean;
+  /**
+   * How many leading slides load eagerly: the first with full next/image
+   * `priority`, the rest with `loading="eager"`. Before GSAP positions the
+   * slides, the pre-JS paint stacks ALL of them in the box, so the browser can
+   * crown slide 1+ as the LCP — pass 2 when the slider is above the fold.
+   * Default 1 (only the first slide).
+   */
+  eagerCount?: number;
   className?: string;
   style?: React.CSSProperties;
 }
@@ -68,6 +76,7 @@ export default function VerticalSlider({
   index,
   conveyor = false,
   reveal = false,
+  eagerCount = 1,
   className,
   style,
 }: Props) {
@@ -259,6 +268,7 @@ export default function VerticalSlider({
             sizes="75vw"
             style={{ objectFit: "cover" }}
             priority={i === 0}
+            loading={i > 0 && i < eagerCount ? "eager" : undefined}
           />
         </div>
       ))}

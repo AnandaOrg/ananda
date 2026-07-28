@@ -94,7 +94,7 @@ export default function MobilePathways() {
   const contentRef = useRef<HTMLDivElement>(null);
   const glbWrapRef = useRef<HTMLDivElement>(null);
   // Defer mounting the (heavy, four-model) GLB viewer until the section nears the
-  // viewport. Mounting it eagerly on page load stacks 110MB of GLB parsing on top
+  // viewport. Mounting it eagerly on page load stacks all four GLB parses on top
   // of the hero video + frame sequences and crashes iOS Safari; by the time the
   // user scrolls here, the earlier sections' memory pressure has eased.
   const [glbReady, setGlbReady] = useState(false);

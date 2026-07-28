@@ -42,3 +42,5 @@ next-env.d.ts
 
 .idea/
 .env.local
+# Local backups of pre-optimization 3D assets (2K originals live in git history too)
+/assets-src/

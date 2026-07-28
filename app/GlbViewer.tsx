@@ -78,20 +78,16 @@ type Props = {
    *  wheel swing settles. */
   spinDuration?: number;
   /** Free each GLB's downloaded bytes from THREE.Cache once it's parsed into the
-   *  scene. Set on memory-constrained (mobile) viewers so the ~30MB/model
+   *  scene. Set on memory-constrained (mobile) viewers so the ~4MB/model
    *  ArrayBuffers don't linger after upload. Leave off where the modal reuses
    *  the same cached bytes (desktop). */
   dropCacheAfterParse?: boolean;
-  /** Index-select mode: skip the background streaming of the non-active models
-   *  and load each one on demand the first time `activeIndex` lands on it. Set
-   *  on the modal's MOBILE viewer: streaming all four models on open — on top
-   *  of the page's Pathways viewer, which already holds all four — is what tips
-   *  iOS Safari over its per-tab memory ceiling (WebKit kills the page ~a
-   *  second after the modal opens; the Kyoto auto-open then re-fires after the
-   *  crash reload and Safari dead-ends with "A problem repeatedly occurred").
-   *  On nav the incoming pouch pops in when its load lands instead of
-   *  cross-fading; the bytes revalidate from HTTP cache (the page viewer
-   *  already fetched them), so the gap is parse/upload time only. */
+  /** Index-select mode: skip the background streaming of the non-active models,
+   *  load each on demand the first time `activeIndex` lands on it, and evict
+   *  models more than one nav step away. For memory-constrained viewers — the
+   *  cost is the incoming pouch popping in after its load instead of
+   *  cross-fading. Currently unset everywhere: since the 2K→1K texture pass
+   *  (~22MB GPU/model) all four models preload even on the mobile modal. */
   deferInactiveLoads?: boolean;
   className?: string;
   style?: React.CSSProperties;
@@ -423,7 +419,7 @@ const GlbViewer = forwardRef<GlbViewerHandle, Props>(function GlbViewer({
       if (useSelect) {
         // Active-first: load + show the opened flavour ASAP, then stream the
         // rest in the background for the nav cross-fade. Time-to-first-pouch
-        // now costs one model (~30MB) instead of all four (~110MB).
+        // now costs one model (~4MB) instead of all four (~16MB).
         const activeGltf = await loader.loadAsync(models[startIndex].src);
         if (dead) return;
         if (spinOnMount) spin();
@@ -502,18 +498,26 @@ const GlbViewer = forwardRef<GlbViewerHandle, Props>(function GlbViewer({
       } else {
         // Scroll-blend (Pathways): every model must be ready before blending.
         // Load + install them ONE AT A TIME rather than Promise.all — the latter
-        // holds all four (~110MB) of ArrayBuffers in flight at once, spiking peak
+        // holds all four (~16MB) of ArrayBuffers in flight at once, spiking peak
         // memory past iOS Safari's ceiling. Sequential keeps only one download
         // buffer live, and dropCacheAfterParse frees each once it's on the GPU.
         for (let i = 0; i < models.length; i++) {
-          const gltf = await loader.loadAsync(models[i].src);
-          if (dead) return;
-          if (i === startIndex && spinOnMount) spin();
-          // install()'s warm-up draw paints the first (shown) model as soon as
-          // it's ready, so the section isn't blank while the rest stream in.
-          await install(gltf.scene as THREE_TYPES.Group, i, i === startIndex);
-          if (dead) return;
-          if (dropCacheAfterParse) THREE.Cache.remove(models[i].src);
+          // Per-model try/catch: one failed download/parse must leave a hole
+          // (the tick loop skips it), NOT abort this loop — an abort here would
+          // also skip the ScrollTrigger/tick setup below, freezing the whole
+          // section on whichever model installed last.
+          try {
+            const gltf = await loader.loadAsync(models[i].src);
+            if (dead) return;
+            if (i === startIndex && spinOnMount) spin();
+            // install()'s warm-up draw paints the first (shown) model as soon as
+            // it's ready, so the section isn't blank while the rest stream in.
+            await install(gltf.scene as THREE_TYPES.Group, i, i === startIndex);
+            if (dead) return;
+            if (dropCacheAfterParse) THREE.Cache.remove(models[i].src);
+          } catch (err) {
+            console.error(`GlbViewer: failed to load ${models[i].src}`, err);
+          }
         }
       }
 
@@ -528,17 +532,25 @@ const GlbViewer = forwardRef<GlbViewerHandle, Props>(function GlbViewer({
         // provided, so the cross-fade timing stays locked to the bands no matter
         // how the canvas itself is sized/positioned for the bottle's placement.
         const scrollEl = scrollRef?.current ?? mount;
+        const computeFrac = () => {
+          const rect = scrollEl.getBoundingClientRect();
+          frac = Math.max(0, Math.min(1, (window.innerHeight * 0.5 - rect.top) / rect.height));
+          onProgressRef.current?.(frac);
+        };
         st = ScrollTrigger.create({
           trigger: scrollEl,
           start: "top bottom",
           end: "bottom top",
           scrub: 1,
-          onUpdate() {
-            const rect = scrollEl.getBoundingClientRect();
-            frac = Math.max(0, Math.min(1, (window.innerHeight * 0.5 - rect.top) / rect.height));
-            onProgressRef.current?.(frac);
-          },
+          onUpdate: computeFrac,
+          onRefresh: computeFrac,
         });
+        // Seed frac immediately: the models load async, so this code can run
+        // with the page ALREADY scrolled mid-section (a reload restoring
+        // scroll, a dev refresh). onUpdate only fires on the next scroll
+        // event — until then frac would sit at 0, rendering model 0 at
+        // translate 0 no matter which band is on screen.
+        computeFrac();
       }
 
       // suspend()/resume() flag — declared ahead of the ResizeObserver so a
@@ -704,7 +716,7 @@ const GlbViewer = forwardRef<GlbViewerHandle, Props>(function GlbViewer({
     // is hidden (display:none → 0×0). Both the desktop and mobile Pathways/modal
     // viewers live in the DOM at once; this lets only the visible one load.
     // Scroll-mode viewers (Pathways) sit in normal flow, so their mount is
-    // non-zero the instant the page loads — parsing all four ~30MB GLBs then
+    // non-zero the instant the page loads — parsing all four multi-MB GLBs then
     // collides with initial-load work and janks the first scroll. Wait until the
     // section is within ~2 viewports before doing that heavy parse; the bytes are
     // already warmed by preloadGlb, so this only defers the main-thread parse off

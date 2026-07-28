@@ -70,12 +70,10 @@ export default function FlavorProvider({ children }: { children: React.ReactNode
     };
     const c = nav.connection;
     if (c?.saveData || (c?.effectiveType && /(^|-)2g$/.test(c.effectiveType))) return;
-    // Don't warm all four ~30MB models on phones / low-RAM devices: THREE.Cache
-    // never frees these ArrayBuffers, and holding ~110MB resident is what tips
-    // iOS Safari over its per-tab memory ceiling. On mobile the modal streams its
-    // active model on open instead (GlbViewer's active-first useSelect path).
-    const isSmall = window.matchMedia("(max-width: 767px)").matches;
-    if (isSmall || (nav.deviceMemory !== undefined && nav.deviceMemory <= 4)) return;
+    // Phones warm too since the 2K→1K texture pass (~4MB/model, ~16MB of
+    // ArrayBuffers total — the viewers drop each file's bytes from THREE.Cache
+    // after parsing anyway). Still skipped on very-low-RAM devices.
+    if (nav.deviceMemory !== undefined && nav.deviceMemory <= 2) return;
     const run = () => { preloadGlb(MODAL_GLB_SRCS); };
     if (typeof requestIdleCallback === "function") {
       const id = requestIdleCallback(run, { timeout: 3000 });
