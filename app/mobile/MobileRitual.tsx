@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useEffect, useRef } from "react";
+import { useTranslations } from "next-intl";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { mu, MU_VAR } from "./scale";
@@ -18,15 +19,19 @@ gsap.registerPlugin(ScrollTrigger);
  * Respects prefers-reduced-motion: card drops in static, no cycling.
  */
 
-const STEPS = [
-  { src: "/s5-step1.png", alt: "ANANDA pouches chilling in a cooler of ice", step: "[Step 01]", title: "Chill", body: "Submerge the pouch in ice or drop it in the freezer." },
-  { src: "/s5-step2.png", alt: "Snapping open the high-flow cap", step: "[Step 02]", title: "Twist", body: "Snap open the high-flow cap. No openers, no glass." },
-  { src: "/s5-step3.png", alt: "Sipping an ANANDA pouch on the dancefloor", step: "[Step 03]", title: "Sip", body: "Sip it straight from the pouch, or pour it over crushed ice." },
+// Photo + alt per step; labels/titles/bodies come from the locale dictionary
+// (messages/*.json, `ritual.step*`). TODO: /s5-step2.png (Twist) is due for a
+// replacement photo — swap the asset in public/ when the client sends it
+// (the same file is used by the desktop RitualCards).
+const STEP_MEDIA = [
+  { src: "/s5-step1.png", alt: "ANANDA pouches chilling in a cooler of ice" },
+  { src: "/s5-step2.png", alt: "Snapping open the high-flow cap" },
+  { src: "/s5-step3.png", alt: "Sipping an ANANDA pouch on the dancefloor" },
 ];
 
 const CARD = { w: 342.303, h: 491.887 }; // single card (390-frame units)
 
-const N = STEPS.length;
+const N = STEP_MEDIA.length;
 const HOLD = 3; // seconds the contents rest before the next cycle
 const PHOTO_DUR = 0.7; // photo top-to-bottom slide duration
 const TEXT_DUR = 0.6; // text left-to-right reveal duration
@@ -39,6 +44,14 @@ const CLIP_HIDDEN = "inset(-50% 100% -50% 0%)"; // fully clipped from the right
 const CLIP_SHOWN = "inset(-50% 0% -50% 0%)";
 
 export default function MobileRitual() {
+  const t = useTranslations("ritual");
+  const steps = STEP_MEDIA.map((m, i) => ({
+    ...m,
+    step: t(`step${i + 1}.label`),
+    title: t(`step${i + 1}.title`),
+    body: t(`step${i + 1}.body`),
+  }));
+
   const cardRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -127,13 +140,13 @@ export default function MobileRitual() {
               className="whitespace-nowrap"
               style={{ fontFamily: "var(--font-mono-label)", fontSize: mu(12), lineHeight: 0.87, letterSpacing: mu(0.84) }}
             >
-              [03] How it works
+              {t("eyebrow")}
             </p>
             <p
               className="font-bold"
               style={{ fontFamily: "var(--font-display)", fontSize: mu(64), lineHeight: 0.8, letterSpacing: mu(-5.12), width: mu(276.93) }}
             >
-              The Ritual
+              {t("title")}
             </p>
           </div>
 
@@ -153,9 +166,9 @@ export default function MobileRitual() {
               <div className="flex w-full items-end justify-between uppercase text-[#fff0e5]">
                 {/* Title — layered per step, revealed left → right */}
                 <div className="grid">
-                  {STEPS.map((s, k) => (
+                  {steps.map((s, k) => (
                     <p
-                      key={s.title}
+                      key={k}
                       data-text-step={k}
                       className="font-bold"
                       style={{ gridArea: "1 / 1", fontFamily: "var(--font-display)", fontSize: mu(39.949), lineHeight: 0.8, letterSpacing: mu(-3.196), clipPath: k === 0 ? CLIP_SHOWN : CLIP_HIDDEN }}
@@ -166,9 +179,9 @@ export default function MobileRitual() {
                 </div>
                 {/* Step label — layered per step, revealed left → right */}
                 <div className="grid" style={{ justifyItems: "end" }}>
-                  {STEPS.map((s, k) => (
+                  {steps.map((s, k) => (
                     <p
-                      key={s.step}
+                      key={k}
                       data-text-step={k}
                       className="whitespace-nowrap"
                       style={{ gridArea: "1 / 1", fontFamily: "var(--font-mono-label)", fontSize: mu(12.484), lineHeight: 0.87, letterSpacing: mu(0.8739), clipPath: k === 0 ? CLIP_SHOWN : CLIP_HIDDEN }}
@@ -185,7 +198,7 @@ export default function MobileRitual() {
                     yPercent before the card becomes visible (an inline
                     translateY would compound with it and strand the photo
                     off-window). */}
-                {STEPS.map((s) => (
+                {steps.map((s) => (
                   <div key={s.src} data-photo className="absolute inset-0">
                     <Image src={s.src} alt={s.alt} fill sizes="60vw" className="object-cover" />
                   </div>
@@ -194,7 +207,7 @@ export default function MobileRitual() {
 
               {/* Body — layered per step, revealed left → right */}
               <div className="grid" style={{ width: mu(215.05) }}>
-                {STEPS.map((s, k) => (
+                {steps.map((s, k) => (
                   <p
                     key={s.src}
                     data-text-step={k}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 
 const u = (n: number) => `calc(var(--u) * ${n})`;
 
@@ -23,6 +24,7 @@ export default function AboutCopyBlock({
    */
   revealed?: boolean;
 }) {
+  const t = useTranslations("about");
   const ref = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(revealed);
 
@@ -77,29 +79,25 @@ export default function AboutCopyBlock({
             color: "var(--terracotta)",
           }}
         >
-          What we&apos;re about
+          {t("eyebrow")}
         </p>
       </div>
 
       <div style={{ padding: `${u(10)} ${u(14)}` }}>
+        {/* 16 → 20u per the copy brief ("increase font size"). */}
         <div
           style={{
             fontFamily: "var(--font-body)",
             fontWeight: 500,
-            fontSize: u(16),
+            fontSize: u(20),
             lineHeight: 1.3,
-            letterSpacing: u(0.16),
+            letterSpacing: u(0.2),
             color: "var(--terracotta)",
           }}
         >
-          <p className="mb-0">
-            Premium, bar&ndash;strength cocktails mixed for the makers, the movers, and
-            the midnight sun.
-          </p>
-          <p>
-            No glass, no pretense. Just pure, uninhibited joy &ndash; ready whenever and
-            wherever you are.
-          </p>
+          <p className="mb-0">{t("p1")}</p>
+          <p className="mb-0">{t("p2")}</p>
+          <p>{t("p3")}</p>
         </div>
       </div>
     </div>

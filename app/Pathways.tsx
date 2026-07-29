@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useCallback, useEffect, useRef } from "react";
+import { useTranslations } from "next-intl";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useFlavor, wasFlavorModalOpenAtDeath } from "./FlavorProvider";
@@ -113,6 +114,7 @@ const FLAVORS = [
 ];
 
 export default function Pathways() {
+  const t = useTranslations("flavors");
   const { open } = useFlavor();
   const glbRef = useRef<GlbViewerHandle>(null);
   // Fixed band-region reference — drives cross-fade/turntable progress and stays
@@ -240,14 +242,14 @@ export default function Pathways() {
             className="whitespace-nowrap uppercase text-[#fff0e5]"
             style={{ fontFamily: "var(--font-mono-label)", fontSize: u(14), lineHeight: 0.87, letterSpacing: u(0.98) }}
           >
-            [02] Choose your ANANDA
+            {t("eyebrow")}
           </p>
         </div>
 
         {/* Headline — splashes into place like liquid once the pour above
             reveals the section (LiquidText: elastic word rise) */}
         <LiquidText
-          text="The Pathways to Bliss"
+          text={t("title")}
           className="absolute font-bold uppercase text-[#fff0e5]"
           style={{
             left: u(95.75),
@@ -351,7 +353,7 @@ export default function Pathways() {
               className="font-semibold uppercase text-[#eb4638]"
               style={{ fontFamily: "var(--font-display)", fontSize: u(40), lineHeight: 0.8, letterSpacing: u(-2.8), textBoxTrim: "trim-both", textBoxEdge: "cap alphabetic" } as React.CSSProperties}
             >
-              see flavors
+              {t("cta")}
             </span>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/s4-arrow.svg" alt="" style={{ width: u(15.644), height: u(30.807) }} />

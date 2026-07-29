@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useEffect, useRef } from "react";
+import { useTranslations } from "next-intl";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 
@@ -27,28 +28,15 @@ const REL = {
   body: { left: 72.96, top: 591.63, w: 300, font: 12.38, pad: [7.74, 10.83], ls: 0.12 },
 };
 
-const STEPS = [
-  {
-    src: "/s5-step1.png",
-    alt: "ANANDA pouches chilling in a cooler of ice",
-    step: "[Step 01]",
-    title: "Chill",
-    body: "Submerge the pouch in ice or drop it in the freezer.",
-  },
-  {
-    src: "/s5-step2.png",
-    alt: "Snapping open the high-flow cap",
-    step: "[Step 02]",
-    title: "Twist",
-    body: "Snap open the high-flow cap. Ditch the bottle openers, the sticky counters, and the heavy glass.",
-  },
-  {
-    src: "/s5-step3.png",
-    alt: "Sipping an ANANDA pouch on the dancefloor",
-    step: "[Step 03]",
-    title: "Sip",
-    body: "Sip it straight from the pouch on the dancefloor, or pour it over crushed ice under the sun. Be entirely right here, right now.",
-  },
+// Photo + alt per step; labels/titles/bodies come from the locale dictionary
+// (messages/*.json, `ritual.step*`).
+// TODO: the Twist photo (/s5-step2.png) is due for a replacement showing the
+// cap being twisted open — swap the asset in public/ when the client sends it
+// (the same file is used by mobile/MobileRitual).
+const STEP_MEDIA = [
+  { src: "/s5-step1.png", alt: "ANANDA pouches chilling in a cooler of ice" },
+  { src: "/s5-step2.png", alt: "Snapping open the high-flow cap" },
+  { src: "/s5-step3.png", alt: "Sipping an ANANDA pouch on the dancefloor" },
 ];
 
 // The three fixed frame positions, ordered front → left → right: a horizontal
@@ -64,13 +52,15 @@ const STEPS = [
 // frame's title box instead of past their far edge, so a sliver of that text
 // is visibly exposed beside the front card. Accepted tradeoff for the
 // tighter fan; see git history for the wider, fully-concealing spacing.
+// y shifted up 989.86u with the manifesto's extraction out of Ritual.tsx
+// (was 1661 on the old 3942.548-tall canvas).
 const SLOTS = [
-  { x: 480, y: 1661, rotation: 0, scale: 1, z: 3 }, // front / center
-  { x: 178, y: 1661, rotation: -20, scale: 0.76, z: 2 }, // left
-  { x: 802, y: 1661, rotation: 20, scale: 0.76, z: 1 }, // right
+  { x: 480, y: 671.14, rotation: 0, scale: 1, z: 3 }, // front / center
+  { x: 178, y: 671.14, rotation: -20, scale: 0.76, z: 2 }, // left
+  { x: 802, y: 671.14, rotation: 20, scale: 0.76, z: 1 }, // right
 ];
 
-const N = STEPS.length; // === SLOTS.length === 3
+const N = STEP_MEDIA.length; // === SLOTS.length === 3
 const HOLD = 3; // seconds the contents rest before the next cycle
 const PHOTO_DUR = 0.7; // photo slide duration
 const TEXT_DUR = 0.6; // text left-to-right reveal duration
@@ -95,6 +85,14 @@ const CLIP_SHOWN = "inset(0% 0% 0% 0%)";
 const stepOf = (frame: number, tick: number) => (frame + tick) % N;
 
 export default function RitualCards() {
+  const t = useTranslations("ritual");
+  const steps = STEP_MEDIA.map((m, i) => ({
+    ...m,
+    step: t(`step${i + 1}.label`),
+    title: t(`step${i + 1}.title`),
+    body: t(`step${i + 1}.body`),
+  }));
+
   const layerRef = useRef<HTMLDivElement | null>(null);
   const cardRefs = useRef<(HTMLDivElement | null)[]>([]);
 
@@ -223,7 +221,7 @@ export default function RitualCards() {
                 REVEAL axis (x/yPercent) before the frame becomes visible (an
                 inline transform would
                 compound with it and strand the photo off-window). */}
-            {STEPS.map((s) => (
+            {steps.map((s) => (
               <div key={s.src} data-photo className="absolute inset-0">
                 <Image src={s.src} alt={s.alt} fill sizes="40vw" className="object-cover" />
               </div>
@@ -239,9 +237,9 @@ export default function RitualCards() {
             className="absolute grid"
             style={{ left: u(REL.label.left), top: u(REL.label.top), padding: `${u(REL.label.pad[0])} ${u(REL.label.pad[1])}`, justifyItems: "end" }}
           >
-            {STEPS.map((s, k) => (
+            {steps.map((s, k) => (
               <p
-                key={s.step}
+                key={k}
                 data-text-step={k}
                 className="whitespace-nowrap uppercase"
                 style={{ gridArea: "1 / 1", fontFamily: "var(--font-mono-label)", fontSize: u(REL.label.font), lineHeight: 0.87, letterSpacing: u(REL.label.ls), color: CREAM, clipPath: k === f ? CLIP_SHOWN : CLIP_HIDDEN }}
@@ -252,9 +250,9 @@ export default function RitualCards() {
           </div>
 
           <div className="absolute grid" style={{ left: u(REL.title.left), top: u(REL.title.top), width: u(REL.title.w) }}>
-            {STEPS.map((s, k) => (
+            {steps.map((s, k) => (
               <p
-                key={s.title}
+                key={k}
                 data-text-step={k}
                 className="font-bold uppercase"
                 style={{ gridArea: "1 / 1", fontFamily: "var(--font-display)", fontSize: u(REL.title.font), lineHeight: 1, letterSpacing: u(REL.title.ls), color: CREAM, clipPath: k === f ? CLIP_SHOWN : CLIP_HIDDEN }}
@@ -265,7 +263,7 @@ export default function RitualCards() {
           </div>
 
           <div className="absolute grid" style={{ left: u(REL.body.left), top: u(REL.body.top), width: u(REL.body.w) }}>
-            {STEPS.map((s, k) => (
+            {steps.map((s, k) => (
               <p
                 key={s.src}
                 data-text-step={k}

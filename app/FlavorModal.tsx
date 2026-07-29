@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 import { AnimatePresence, motion, useMotionValue, useReducedMotion, useSpring, type Transition, type Variants } from "framer-motion";
 import GlbViewer, { type GlbViewerHandle, type ModelEntry } from "./GlbViewer";
 
@@ -452,6 +453,7 @@ export default function FlavorModal({
   onClose: () => void;
   onNav: (dir: number) => void;
 }) {
+  const t = useTranslations("modal");
   const reduceMotion = useReducedMotion();
   const swing = useSwingPlane();
 
@@ -623,8 +625,8 @@ export default function FlavorModal({
                   <Scene f={f} />
                 </div>
                 <div className="absolute inset-x-0 flex flex-col items-center" style={{ bottom: u(210), gap: u(14), color: f.textColor }}>
-                  <p aria-label="Ingredients" className="whitespace-nowrap uppercase" style={{ fontFamily: "var(--font-mono-label)", fontSize: u(16), lineHeight: 0.87, letterSpacing: u(1.12) }}>
-                    Ingredients
+                  <p aria-label={t("ingredients")} className="whitespace-nowrap uppercase" style={{ fontFamily: "var(--font-mono-label)", fontSize: u(16), lineHeight: 0.87, letterSpacing: u(1.12) }}>
+                    {t("ingredients")}
                   </p>
                   <div className="text-center" style={{ fontFamily: "var(--font-body)", fontSize: u(24), lineHeight: 1.6, letterSpacing: u(0.24), width: u(465.222) }}>
                     <p className="mb-0" aria-label={f.ingredients[0]}>
@@ -652,15 +654,15 @@ export default function FlavorModal({
 
           {/* Nav row: persistent controls — always visible, never swing */}
           <div className="absolute inset-x-0 flex items-center justify-between" style={{ bottom: u(40), padding: `0 ${u(60)}`, height: u(128) }}>
-            <button type="button" aria-label="Previous flavour" onClick={(e) => { e.stopPropagation(); guardedNav(-1); }} className="cursor-pointer">
+            <button type="button" aria-label={t("prev")} onClick={(e) => { e.stopPropagation(); guardedNav(-1); }} className="cursor-pointer">
               <Chevron color={f.nameColor} flip />
             </button>
-            <button type="button" aria-label="Next flavour" onClick={(e) => { e.stopPropagation(); guardedNav(1); }} className="cursor-pointer">
+            <button type="button" aria-label={t("next")} onClick={(e) => { e.stopPropagation(); guardedNav(1); }} className="cursor-pointer">
               <Chevron color={f.nameColor} />
             </button>
           </div>
 
-          <button type="button" aria-label="Close" onClick={(e) => { e.stopPropagation(); onClose(); }} className="absolute cursor-pointer" style={{ left: u(1813.9), top: u(36), width: u(60), height: u(60) }}>
+          <button type="button" aria-label={t("close")} onClick={(e) => { e.stopPropagation(); onClose(); }} className="absolute cursor-pointer" style={{ left: u(1813.9), top: u(36), width: u(60), height: u(60) }}>
             <CloseIcon color={f.textColor} />
           </button>
         </div>
@@ -737,8 +739,8 @@ export default function FlavorModal({
                   className="absolute left-1/2 flex -translate-x-1/2 flex-col items-center text-center"
                   style={{ top: mu(480), width: mu(221.76), gap: mu(8), color: f.textColor }}
                 >
-                  <p aria-label="Ingredients" className="whitespace-nowrap uppercase" style={{ fontFamily: "var(--font-mono-label)", fontSize: mu(12), lineHeight: 0.87, letterSpacing: mu(0.84) }}>
-                    Ingredients
+                  <p aria-label={t("ingredients")} className="whitespace-nowrap uppercase" style={{ fontFamily: "var(--font-mono-label)", fontSize: mu(12), lineHeight: 0.87, letterSpacing: mu(0.84) }}>
+                    {t("ingredients")}
                   </p>
                   <div style={{ fontFamily: "var(--font-body)", fontSize: mu(16), lineHeight: 1.2, letterSpacing: mu(0.16), width: mu(214.182) }}>
                     <p className="mb-0" aria-label={f.ingredients[0]}>{f.ingredients[0]}</p>
@@ -764,17 +766,17 @@ export default function FlavorModal({
         {/* Prev/next arrows — persistent, flanking the wordmark row */}
         <div className="absolute bottom-0 left-0 w-full" style={{ height: mu(680), pointerEvents: "none", zIndex: 50 }}>
           <div className="absolute flex items-center justify-between" style={{ left: mu(21.67), top: mu(594.83), width: mu(346.667), height: mu(38) }}>
-            <button type="button" aria-label="Previous flavour" onClick={(e) => { e.stopPropagation(); guardedNav(-1); }} className="cursor-pointer" style={{ pointerEvents: "auto" }}>
+            <button type="button" aria-label={t("prev")} onClick={(e) => { e.stopPropagation(); guardedNav(-1); }} className="cursor-pointer" style={{ pointerEvents: "auto" }}>
               <Chevron color={f.nameColor} flip width={mu(12.484)} height={mu(24.586)} />
             </button>
-            <button type="button" aria-label="Next flavour" onClick={(e) => { e.stopPropagation(); guardedNav(1); }} className="cursor-pointer" style={{ pointerEvents: "auto" }}>
+            <button type="button" aria-label={t("next")} onClick={(e) => { e.stopPropagation(); guardedNav(1); }} className="cursor-pointer" style={{ pointerEvents: "auto" }}>
               <Chevron color={f.nameColor} width={mu(12.484)} height={mu(24.586)} />
             </button>
           </div>
         </div>
 
         {/* Close — anchored to the viewport top-right */}
-        <button type="button" aria-label="Close" onClick={(e) => { e.stopPropagation(); onClose(); }} className="absolute cursor-pointer" style={{ right: mu(24.36), top: mu(26.72), width: mu(24), height: mu(24), zIndex: 50 }}>
+        <button type="button" aria-label={t("close")} onClick={(e) => { e.stopPropagation(); onClose(); }} className="absolute cursor-pointer" style={{ right: mu(24.36), top: mu(26.72), width: mu(24), height: mu(24), zIndex: 50 }}>
           <CloseIcon color={f.textColor} />
         </button>
       </div>

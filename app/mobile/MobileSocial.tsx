@@ -1,8 +1,7 @@
+import { useTranslations } from "next-intl";
 import { CAROUSEL_AUTOPLAY_SPEED } from "../configs";
 import { mu, MU_VAR } from "./scale";
 import WildCarousel from "./WildCarousel";
-
-const TAGS = ["100% Pure joy", "Tag @AnandaCocktails to join the collective"];
 
 const WILD = [
   { src: "/s5-wild1.png", w: 405.682, alt: "Friends enjoying ANANDA outdoors" },
@@ -14,6 +13,9 @@ const WILD = [
 
 /** Mobile section — "ANANDA in the Wild" + photo strip (Figma 184:3036). */
 export default function MobileSocial() {
+  const t = useTranslations("wild");
+  const tags = [t("tag1"), t("tag2")];
+
   return (
     <section className="w-full overflow-hidden bg-[#fff0e5] md:hidden" style={{ containerType: "inline-size" }}>
       <div className="relative flex flex-col items-start" style={{ ...MU_VAR, width: mu(390) }}>
@@ -21,17 +23,17 @@ export default function MobileSocial() {
         <div className="flex flex-col items-start" style={{ marginLeft: mu(24), marginTop: mu(60), marginBottom: mu(60), width: mu(316), gap: mu(40) }}>
           <div className="flex flex-col items-start uppercase text-[#eb4638]" style={{ gap: mu(16) }}>
             <p className="whitespace-nowrap" style={{ fontFamily: "var(--font-mono-label)", fontSize: mu(12), lineHeight: 0.87, letterSpacing: mu(0.84) }}>
-              [04] Our collective
+              {t("eyebrow")}
             </p>
             <div className="font-bold" style={{ fontFamily: "var(--font-display)", fontSize: mu(64), lineHeight: 0.8, letterSpacing: mu(-5.12), width: mu(276.93) }}>
-              <p className="mb-0 whitespace-nowrap">ANANDA IN</p>
-              <p className="whitespace-nowrap">THE WILD</p>
+              <p className="mb-0 whitespace-nowrap">{t("title1")}</p>
+              <p className="whitespace-nowrap">{t("title2")}</p>
             </div>
           </div>
           <div className="flex flex-col items-start" style={{ gap: mu(14) }}>
-            {TAGS.map((t) => (
+            {tags.map((tag) => (
               <span
-                key={t}
+                key={tag}
                 className="whitespace-nowrap"
                 style={{
                   border: `${mu(0.75)} solid #eb4638`,
@@ -44,7 +46,7 @@ export default function MobileSocial() {
                   color: "#eb4638",
                 }}
               >
-                {t}
+                {tag}
               </span>
             ))}
           </div>

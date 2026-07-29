@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useLocale, useTranslations } from "next-intl";
 import { AnimatePresence, motion } from "framer-motion";
 import { mu, MU_VAR } from "./mobile/scale";
 
@@ -36,22 +37,18 @@ type FormScale = {
 
 type Status = "idle" | "loading" | "success" | "error";
 
-const ERROR_TEXT = "Something went wrong. Please try again.";
 const REVERT_MS = 3000; // how long success / error states stay before the input returns
-
-const HEADINGS: Record<Status, string> = {
-  idle: "Get on the list",
-  loading: "Get on the list",
-  success: "Amazing!",
-  error: "Oops…",
-};
 
 /** Heading + email field. On submit, POSTs to /api/subscribe (MailerLite). Success
  *  swaps the heading to "Amazing!" and the field to a plain confirmation message;
  *  failure swaps the heading to "Oops…" and the field to a warning pill. Either
  *  state holds for 3s, then the heading and empty input return. */
 function DropForm({ s, height, fontSize, padL, padR, radius, btnRight, btnSize, headingSize, headingLs, msgSize }: FormScale) {
+  const t = useTranslations("dropList");
   const [status, setStatus] = useState<Status>("idle");
+
+  const heading =
+    status === "success" ? t("headingSuccess") : status === "error" ? t("headingError") : t("headingIdle");
 
   useEffect(() => {
     if (status !== "success" && status !== "error") return;
@@ -87,7 +84,7 @@ function DropForm({ s, height, fontSize, padL, padR, radius, btnRight, btnSize, 
       <div className="relative w-full" style={{ height: s(headingSize * 0.8) }}>
         <AnimatePresence initial={false}>
           <motion.p
-            key={HEADINGS[status]}
+            key={heading}
             className="absolute left-0 top-0 whitespace-nowrap font-semibold uppercase text-[#fff0e5]"
             style={{ fontFamily: "var(--font-display)", fontSize: s(headingSize), lineHeight: 0.8, letterSpacing: s(headingLs) }}
             initial={{ opacity: 0 }}
@@ -95,7 +92,7 @@ function DropForm({ s, height, fontSize, padL, padR, radius, btnRight, btnSize, 
             exit={{ opacity: 0 }}
             transition={FADE}
           >
-            {HEADINGS[status]}
+            {heading}
           </motion.p>
         </AnimatePresence>
       </div>
@@ -114,7 +111,7 @@ function DropForm({ s, height, fontSize, padL, padR, radius, btnRight, btnSize, 
               exit={ENTER}
               transition={FADE}
             >
-              We&apos;ve received your information and we&apos;ll be in touch shortly.
+              {t("successMsg")}
             </motion.div>
           ) : status === "error" ? (
             <motion.div
@@ -129,7 +126,7 @@ function DropForm({ s, height, fontSize, padL, padR, radius, btnRight, btnSize, 
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src="/m-warning.svg" alt="" style={{ width: s(msgSize * 1.4), height: s(msgSize * 1.4) }} />
-              <p style={{ fontFamily: "var(--font-body)", fontSize: s(msgSize) }}>{ERROR_TEXT}</p>
+              <p style={{ fontFamily: "var(--font-body)", fontSize: s(msgSize) }}>{t("errorMsg")}</p>
             </motion.div>
           ) : (
             <motion.form
@@ -144,14 +141,14 @@ function DropForm({ s, height, fontSize, padL, padR, radius, btnRight, btnSize, 
               <input
                 type="email"
                 name="email"
-                placeholder="Your email"
-                aria-label="Your email"
+                placeholder={t("placeholder")}
+                aria-label={t("placeholder")}
                 className="absolute inset-0 w-full bg-[#fff0e5] text-[#0a142f] outline-none placeholder:text-[#eb4638]"
                 style={{ fontFamily: "var(--font-body)", fontSize: s(fontSize), paddingLeft: s(padL), paddingRight: s(padR), borderRadius: s(radius) }}
               />
               <button
                 type="submit"
-                aria-label="Subscribe"
+                aria-label={t("submitAria")}
                 disabled={status === "loading"}
                 className="absolute -translate-y-1/2 disabled:opacity-50"
                 style={{ right: s(btnRight), top: "50%", width: s(btnSize), height: s(btnSize) }}
@@ -168,6 +165,12 @@ function DropForm({ s, height, fontSize, padL, padR, radius, btnRight, btnSize, 
 }
 
 export default function DropList() {
+  const t = useTranslations("dropList");
+  const locale = useLocale();
+  // BG "Присъедини се към drop list-а" runs long — step the display size down
+  // and widen the box so the longest word still fits.
+  const bg = locale === "bg";
+
   return (
     <section className="w-full bg-[#eb4638]" style={{ containerType: "inline-size" }}>
       {/* Mobile */}
@@ -175,9 +178,9 @@ export default function DropList() {
         <div className="w-full" style={{ containerType: "inline-size" }}>
           <div className="flex flex-col items-start" style={{ ...MU_VAR, padding: `${mu(60)} ${mu(24)} ${mu(4)} ${mu(24)}`, gap: mu(40) }}>
             <div className="flex flex-col items-start uppercase text-[#fff0e5]" style={{ gap: mu(16) }}>
-              <p style={{ fontFamily: "var(--font-mono-label)", fontSize: mu(12), lineHeight: 0.87, letterSpacing: mu(0.84) }}>[05] Want in?</p>
-              <p className="font-bold" style={{ fontFamily: "var(--font-display)", fontSize: mu(64), lineHeight: 0.8, letterSpacing: mu(-5.12), width: mu(276.93) }}>
-                Join the drop list
+              <p style={{ fontFamily: "var(--font-mono-label)", fontSize: mu(12), lineHeight: 0.87, letterSpacing: mu(0.84) }}>{t("eyebrow")}</p>
+              <p className="font-bold" style={{ fontFamily: "var(--font-display)", fontSize: bg ? mu(52) : mu(64), lineHeight: 0.8, letterSpacing: bg ? mu(-4.16) : mu(-5.12), width: bg ? mu(342) : mu(276.93) }}>
+                {t("title")}
               </p>
             </div>
             <div className="flex flex-col items-start" style={{ gap: mu(19.87), width: '100%' }}>
@@ -191,9 +194,9 @@ export default function DropList() {
       <div className="hidden md:block" style={UD_VAR}>
         <div className="flex w-full items-end justify-between" style={{ padding: `${ud(160)} ${ud(80)}` }}>
           <div className="flex flex-col items-start uppercase text-[#fff0e5]" style={{ gap: ud(48) }}>
-            <p style={{ fontFamily: "var(--font-mono-label)", fontSize: ud(14), lineHeight: 0.87, letterSpacing: ud(0.98) }}>[05] Want in?</p>
-            <p className="font-bold" style={{ fontFamily: "var(--font-display)", fontSize: ud(160), lineHeight: 0.8, letterSpacing: ud(-12.8), width: ud(626.379) }}>
-              Join the drop list
+            <p style={{ fontFamily: "var(--font-mono-label)", fontSize: ud(14), lineHeight: 0.87, letterSpacing: ud(0.98) }}>{t("eyebrow")}</p>
+            <p className="font-bold" style={{ fontFamily: "var(--font-display)", fontSize: bg ? ud(110) : ud(160), lineHeight: 0.8, letterSpacing: bg ? ud(-8.8) : ud(-12.8), width: ud(626.379) }}>
+              {t("title")}
             </p>
           </div>
           <div className="flex flex-col items-start justify-center" style={{ gap: ud(38.105), width: ud(492.185), marginBottom: ud(26) }}>

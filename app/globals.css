@@ -6,6 +6,11 @@
   /* Muted terracotta used by the body-copy blocks ("What we're about", the
      ANANDA statement) — deliberately softer than the brand red #eb4638. */
   --terracotta: #d15841;
+  /* Composite font stacks. AnekKannada (display) and Barlow (body) ship
+     Latin-only glyphs, so the BG locale's Cyrillic falls through per-glyph to
+     Inter (--font-cyrillic, loaded in layout.tsx). Latin text is unaffected. */
+  --font-display: var(--font-display-latin), var(--font-cyrillic), sans-serif;
+  --font-body: var(--font-body-latin), var(--font-cyrillic), sans-serif;
 }
 
 @theme inline {

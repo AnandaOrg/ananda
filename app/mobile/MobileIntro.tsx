@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
+import { useLocale, useTranslations } from "next-intl";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import VerticalSlider from "../VerticalSlider";
@@ -11,8 +12,8 @@ gsap.registerPlugin(ScrollTrigger);
 
 /**
  * Mobile sections 2 + 3 as ONE pinned stage (Figma 184:1157). Mirrors desktop
- * `DitchTheGlass`: the left-aligned "Liquid Bliss. Mixed to Move." heading holds
- * a drinking-clip diamond to the right of "To"; on scroll the heading fades while
+ * `DitchTheGlass`: the left-aligned "Liquid Bliss. Built for Freedom." heading
+ * holds a drinking-clip diamond; on scroll the heading fades while
  * the diamond ROTATES upright and GROWS into the gallery's first-slide box, hands
  * off into the framed `VerticalSlider` (same image → invisible swap), which then
  * steps through the hero photos with the "What we're about" copy below. One pin =
@@ -76,6 +77,12 @@ const GROW_END = 0.35; // diamond finishes rotating + growing here
 const HANDOFF = 0.34; // gallery becomes visible just before the diamond hides
 
 export default function MobileIntro() {
+  const t = useTranslations("hero");
+  const tAbout = useTranslations("about");
+  const locale = useLocale();
+  // One word per heading line, derived from the same strings desktop uses.
+  const headingWords = [...t("line1").split(" "), ...t("line2a").split(" "), t("line2b")];
+
   const sectionRef = useRef<HTMLElement>(null);
   const frameRef = useRef<HTMLDivElement>(null);
   const innerRef = useRef<HTMLDivElement>(null);
@@ -173,7 +180,7 @@ export default function MobileIntro() {
       className="relative h-[100svh] w-full overflow-hidden bg-[#fff0e5] md:hidden"
       style={{ containerType: "inline-size", ...MU_VAR, color: RED }}
     >
-      {/* [01] Ditch the glass — right edge aligns with the heading's right margin. */}
+      {/* Eyebrow — right edge aligns with the heading's right margin. */}
       <p
         className="dtg-word absolute whitespace-nowrap uppercase"
         style={{
@@ -186,11 +193,14 @@ export default function MobileIntro() {
           willChange: "opacity",
         }}
       >
-        [01] Ditch the glass
+        {t("eyebrow")}
       </p>
 
-      {/* Heading — one word per line, left aligned. Anek Kannada 700, 106px,
-          line-height 80%, letter-spacing -8%, 60px horizontal insets. */}
+      {/* Heading — one word per line, left aligned. Anek Kannada 700,
+          line-height 80%, letter-spacing -8%, 60px horizontal insets.
+          Per-locale size: the design's 106 fits "Liquid"/"Move." but not
+          "Freedom." (or the longer BG words), so the size steps down with
+          the widest word of each locale. */}
       <h2
         className="absolute font-bold uppercase"
         style={{
@@ -199,16 +209,16 @@ export default function MobileIntro() {
           width: mu(270),
           fontFamily: "var(--font-display)",
           fontWeight: 700,
-          fontSize: mu(106),
+          fontSize: locale === "bg" ? mu(56) : mu(80),
           lineHeight: 0.8,
           letterSpacing: "-0.08em",
         }}
       >
-        <span className="dtg-word block" style={{ willChange: "opacity" }}>Liquid</span>
-        <span className="dtg-word block" style={{ willChange: "opacity" }}>Bliss.</span>
-        <span className="dtg-word block" style={{ willChange: "opacity" }}>Mixed</span>
-        <span className="dtg-word block" style={{ willChange: "opacity" }}>To</span>
-        <span className="dtg-word block" style={{ willChange: "opacity" }}>Move.</span>
+        {/* Keyed by line index (not word) so a locale switch updates the text
+            in place — the pinned effect holds refs to these spans. */}
+        {headingWords.map((word, i) => (
+          <span key={i} className="dtg-word block" style={{ willChange: "opacity" }}>{word}</span>
+        ))}
       </h2>
 
       {/* Framed gallery — pinned at the slider box; revealed at the hand-off and
@@ -275,12 +285,14 @@ export default function MobileIntro() {
           className="uppercase"
           style={{ fontFamily: "var(--font-mono-label)", fontSize: mu(13), lineHeight: 0.87, letterSpacing: mu(1), color: "var(--terracotta)" }}
         >
-          What we&apos;re about
+          {tAbout("eyebrow")}
         </p>
-        {/* 250mu box reproduces the design's six-line rag at 16/1.3. */}
-        <div style={{ fontFamily: "var(--font-body)", fontWeight: 500, fontSize: mu(16), lineHeight: 1.3, letterSpacing: mu(0.2), color: "var(--terracotta)", maxWidth: mu(250) }}>
-          <p className="mb-0">Premium, bar&ndash;strength cocktails mixed for the makers, the movers, and the midnight sun.</p>
-          <p>No glass, no pretense. Just pure, uninhibited joy &ndash; ready whenever and wherever you are.</p>
+        {/* 16 → 18mu per the copy brief ("increase font size"); box widened
+            to keep a similar rag with the new three-paragraph copy. */}
+        <div style={{ fontFamily: "var(--font-body)", fontWeight: 500, fontSize: mu(18), lineHeight: 1.3, letterSpacing: mu(0.2), color: "var(--terracotta)", maxWidth: mu(280) }}>
+          <p className="mb-0">{tAbout("p1")}</p>
+          <p className="mb-0">{tAbout("p2")}</p>
+          <p>{tAbout("p3")}</p>
         </div>
       </div>
     </section>

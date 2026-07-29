@@ -3,6 +3,8 @@ import AmbientVideo from "./AmbientVideo";
 import AutoplayRescue from "./AutoplayRescue";
 import DitchTheGlass from "./DitchTheGlass";
 import AboutCollage from "./AboutCollage";
+import LanguageSwitcher from "./LanguageSwitcher";
+import Manifesto from "./Manifesto";
 import Pathways from "./Pathways";
 import Ritual from "./Ritual";
 import DropList from "./DropList";
@@ -21,6 +23,9 @@ export default function Home() {
     <FlavorProvider>
       {/* iOS: retry blocked autoplays on first touch (Low Power Mode) */}
       <AutoplayRescue />
+
+      {/* Fixed EN/BG toggle (cookie + RSC refresh; sits under the modal) */}
+      <LanguageSwitcher />
 
       {/* Section 1 — splash (shared) */}
       <section className="relative flex h-screen items-center justify-center overflow-hidden">
@@ -68,6 +73,13 @@ export default function Home() {
       <MobileCollageMedia />
       <MobileKyoto />
 
+      {/* Manifesto — the ANANDA dictionary entry, BEFORE the flavours
+          (Hero → About → Manifesto → Flavors → …). */}
+      <div className="hidden md:block">
+        <Manifesto />
+      </div>
+      <MobileAbout />
+
       {/* Section 4 — The Pathways to Bliss */}
       <div className="hidden md:block">
         <Pathways />
@@ -78,7 +90,6 @@ export default function Home() {
       <div className="hidden md:block">
         <Ritual />
       </div>
-      <MobileAbout />
       <MobileRitual />
       <MobileSocial />
 

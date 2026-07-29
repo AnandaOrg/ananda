@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useLocale, useTranslations } from "next-intl";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { mu, MU_VAR } from "./scale";
@@ -76,6 +77,8 @@ const GLB_MODELS = [
 const GLB_TRANSITION_DURATION = 0.04;
 
 export default function MobilePathways() {
+  const t = useTranslations("flavors");
+  const locale = useLocale();
   const { open } = useFlavor();
   const glbRef = useRef<GlbViewerHandle>(null);
   // Fixed band-region reference — drives cross-fade/turntable progress; stays put
@@ -249,20 +252,21 @@ export default function MobilePathways() {
         <div className="absolute flex flex-col items-start" style={{ left: mu(24), top: mu(43), width: mu(276.93), gap: mu(24) }}>
           <div className="flex flex-col items-start uppercase text-[#fff0e5]" style={{ gap: mu(16) }}>
             <p className="whitespace-nowrap" style={{ fontFamily: "var(--font-mono-label)", fontSize: mu(12), lineHeight: 0.87, letterSpacing: mu(0.84) }}>
-              [02] Choose your ANANDA
+              {t("eyebrow")}
             </p>
             {/* Headline — splashes into place like liquid (LiquidText: elastic
-                word rise), matching the desktop reveal */}
+                word rise), matching the desktop reveal. BG runs longer
+                ("блаженство") so it steps down a size and widens its box. */}
             <LiquidText
-              text="The Pathways to Bliss"
+              text={t("title")}
               className="relative font-bold"
-              style={{ fontFamily: "var(--font-display)", fontSize: mu(64), lineHeight: 0.8, letterSpacing: mu(-5.12), width: mu(276.93) }}
+              style={{ fontFamily: "var(--font-display)", fontSize: locale === "bg" ? mu(56) : mu(64), lineHeight: 0.8, letterSpacing: locale === "bg" ? mu(-4.48) : mu(-5.12), width: locale === "bg" ? mu(342) : mu(276.93) }}
             />
           </div>
           <button type="button" onClick={() => openWithSpin(0)} className="flex cursor-pointer appearance-none items-center justify-center overflow-hidden border-0 bg-[#fff0e5]" style={{ padding: `${mu(8)} ${mu(12)}`, borderRadius: mu(25.016) }}>
             <div className="flex items-center" style={{ gap: mu(7.505) }}>
               <span className="font-semibold uppercase text-[#eb4638]" style={{ fontFamily: "var(--font-display)", fontSize: mu(20), lineHeight: 0.8, letterSpacing: mu(-1.4), textBoxTrim: "trim-both", textBoxEdge: "cap alphabetic" } as React.CSSProperties}>
-                see flavors
+                {t("cta")}
               </span>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src="/s4-arrow.svg" alt="" style={{ width: mu(7.822), height: mu(15.404) }} />

@@ -1,18 +1,19 @@
-import RevealStatement, { STATEMENT_PARAS } from "./RevealStatement";
+import { useTranslations } from "next-intl";
 import RitualCards from "./RitualCards";
 import WildCarousel from "./mobile/WildCarousel";
 import { CAROUSEL_AUTOPLAY_SPEED } from "./configs";
 
 /**
  * Section 5 — "The Ritual" / "ANANDA in the Wild" (Figma node 74:8391, a
- * 1440×4024 cream frame). Same width-scaling canvas as the other sections:
+ * 1440-wide cream frame). Same width-scaling canvas as the other sections:
  * `--u = 100cqw / 1440`, every length `calc(var(--u) * figma-px)`.
+ * The intro manifesto that used to open this section now lives in its own
+ * `Manifesto.tsx` before the flavours; every offset here shifted up by
+ * 989.86u and the canvas shrank accordingly.
  */
 
 const u = (n: number) => `calc(var(--u) * ${n})`;
 const RED = "#eb4638";
-
-const TAGS = ["100% Pure joy", "Tag @AnandaCocktails to join the collective"];
 
 const WILD = [
   { src: "/s5-wild1.png", w: 525.269, h: 652.058, alt: "Friends enjoying ANANDA outdoors" },
@@ -23,47 +24,23 @@ const WILD = [
 ];
 
 export default function Ritual() {
+  const tRitual = useTranslations("ritual");
+  const tWild = useTranslations("wild");
+  const tags = [tWild("tag1"), tWild("tag2")];
+
   return (
     <section className="relative w-full overflow-hidden" style={{ containerType: "inline-size", backgroundColor: "#fff0e5" }}>
       <div
         className="relative mx-auto"
-        style={{ ["--u" as string]: "calc(100cqw / 1440)", width: u(1440), height: u(3942.548) }}
+        style={{ ["--u" as string]: "calc(100cqw / 1440)", width: u(1440), height: u(2952.688) }}
       >
-        {/* Intro statement — letter-fill reveal on scroll */}
-        <RevealStatement
-          paras={STATEMENT_PARAS}
-          smallFontSize={u(27.296)}
-          className="absolute font-bold"
-          style={{
-            left: u(78.23),
-            top: u(271.98),
-            width: u(1311.92),
-            fontFamily: "var(--font-display)",
-            fontSize: u(59.247),
-            lineHeight: 1.15,
-            letterSpacing: u(-2.3699),
-            // Statement-specific muted terracotta (design), not the brand RED
-            // used by the rest of this section.
-            color: "var(--terracotta)",
-          }}
-        />
-
-        {/* Decorative mandala */}
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src="/s5-mandala.svg"
-          alt=""
-          className="absolute"
-          style={{ left: u(615.03), top: u(865.31), width: u(209.93), height: u(219.7) }}
-        />
-
-        {/* [03] HOW IT WORKS */}
-        <div className="absolute" style={{ left: u(67), top: u(1261.84), padding: `${u(10)} ${u(14)}` }}>
+        {/* HOW IT WORKS */}
+        <div className="absolute" style={{ left: u(67), top: u(271.98), padding: `${u(10)} ${u(14)}` }}>
           <p
             className="whitespace-nowrap uppercase"
             style={{ fontFamily: "var(--font-mono-label)", fontSize: u(14), lineHeight: 0.87, letterSpacing: u(0.98), color: RED }}
           >
-            [03] How it works
+            {tRitual("eyebrow")}
           </p>
         </div>
 
@@ -72,7 +49,7 @@ export default function Ritual() {
           className="absolute font-bold uppercase"
           style={{
             left: u(78.23),
-            top: u(1339.03),
+            top: u(349.17),
             width: u(886.654),
             fontFamily: "var(--font-display)",
             fontSize: u(180),
@@ -81,19 +58,19 @@ export default function Ritual() {
             color: RED,
           }}
         >
-          The Ritual
+          {tRitual("title")}
         </p>
 
         {/* Step cards — scroll-triggered rotation entrance */}
         <RitualCards />
 
-        {/* [04] HOW IT WORKS — sits 400px below the card block (bottom at u(2381)) */}
-        <div className="absolute" style={{ left: u(67), top: u(2781), padding: `${u(10)} ${u(14)}` }}>
+        {/* OUR COLLECTIVE — sits 400px below the card block */}
+        <div className="absolute" style={{ left: u(67), top: u(1791.14), padding: `${u(10)} ${u(14)}` }}>
           <p
             className="whitespace-nowrap uppercase"
             style={{ fontFamily: "var(--font-mono-label)", fontSize: u(14), lineHeight: 0.87, letterSpacing: u(0.98), color: RED }}
           >
-            [04] How it works
+            {tWild("eyebrow")}
           </p>
         </div>
 
@@ -102,7 +79,7 @@ export default function Ritual() {
           className="absolute font-bold uppercase"
           style={{
             left: u(78.23),
-            top: u(2858.18),
+            top: u(1868.32),
             width: u(886.654),
             fontFamily: "var(--font-display)",
             fontSize: u(180),
@@ -111,13 +88,13 @@ export default function Ritual() {
             color: RED,
           }}
         >
-          <p className="mb-0 whitespace-nowrap">ANANDA IN</p>
-          <p className="whitespace-nowrap">THE WILD</p>
+          <p className="mb-0 whitespace-nowrap">{tWild("title1")}</p>
+          <p className="whitespace-nowrap">{tWild("title2")}</p>
         </div>
 
         {/* Flavour tags */}
-        <div className="absolute flex items-center" style={{ left: u(81), top: u(3157.66), gap: u(14) }}>
-          {TAGS.map((t) => (
+        <div className="absolute flex items-center" style={{ left: u(81), top: u(2167.8), gap: u(14) }}>
+          {tags.map((t) => (
             <span
               key={t}
               className="whitespace-nowrap"
@@ -139,7 +116,7 @@ export default function Ritual() {
         </div>
 
         {/* "In the wild" photo carousel — drag / scroll through the gallery */}
-        <div className="absolute" style={{ left: 0, top: u(3290.49), width: u(1440) }}>
+        <div className="absolute" style={{ left: 0, top: u(2300.63), width: u(1440) }}>
           <WildCarousel
             items={WILD}
             slideW={u(525.269)}

@@ -1,6 +1,9 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import type { Run } from "./manifesto-copy";
+
+export type { Run };
 
 /**
  * Scroll-linked letter-by-letter opacity "fill" for the ANANDA statement.
@@ -10,40 +13,24 @@ import { useEffect, useRef } from "react";
  * Words are kept un-breakable so wrapping stays normal.
  */
 
-export type Run = { text: string; underline?: boolean };
-const R = (text: string, underline = false): Run => ({ text, underline });
-
-/** Desktop: three hard-broken lines (Ritual). */
-export const STATEMENT_PARAS: Run[][] = [
-  [R("ANANDA IS THE SUPREME JOY OF THE PRESENT "), R("MOMENT.", true)],
-  [R("IT’S THE FEELING OF THE BASS HITTING YOUR CHEST,")],
-  [
-    R("THE SUN WASHING "),
-    R("OVER THE", true),
-    R(" POOL, AND THE SENSE THAT THERE IS NOWHERE ELSE ON EARTH YOU’D RATHER BE. WE BOTTLED THAT EXACT FEELING. "),
-    R("THEN WE", true),
-    R(" DITCHED THE BOTTLE. THIS IS HIGH-FIDELITY MIXOLOGY PACKED FOR "),
-    R("ABSOLUTE", true),
-    R(" FREEDOM."),
-  ],
-];
-
-/** Mobile: one flowing paragraph (the lines joined with spaces). */
-export const STATEMENT_FLAT: Run[][] = [
-  STATEMENT_PARAS.reduce<Run[]>((acc, p, i) => (i === 0 ? [...p] : [...acc, R(" "), ...p]), []),
-];
+// The manifesto copy itself lives in ./manifesto-copy.ts (a plain module) so
+// Server Components can index it per-locale without hitting the client
+// boundary.
 
 const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
 
 export default function RevealStatement({
   paras,
   smallFontSize,
+  paraSpacing,
   base = 0.18,
   className,
   style,
 }: {
   paras: Run[][];
   smallFontSize: string;
+  /** Vertical gap inserted before every paragraph after the first. */
+  paraSpacing?: string;
   base?: number;
   className?: string;
   style?: React.CSSProperties;
@@ -111,7 +98,11 @@ export default function RevealStatement({
   return (
     <div ref={ref} className={className} style={style}>
       {paras.map((runs, pi) => (
-        <p key={pi} className={pi < paras.length - 1 ? "mb-0" : undefined}>
+        <p
+          key={pi}
+          className={pi < paras.length - 1 ? "mb-0" : undefined}
+          style={pi > 0 && paraSpacing ? { marginTop: paraSpacing } : undefined}
+        >
           {runs.map((run, ri) => (
             <span
               key={ri}

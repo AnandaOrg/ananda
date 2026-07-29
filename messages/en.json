@@ -1,0 +1,53 @@
+{
+  "hero": {
+    "eyebrow": "Ditch the glass",
+    "line1": "Liquid Bliss.",
+    "line2a": "Built for",
+    "line2b": "Freedom."
+  },
+  "about": {
+    "eyebrow": "What we're about",
+    "p1": "Premium cocktails were never meant to stay at the bar.",
+    "p2": "We built ANANDA for everywhere else. Real recipes, zero ceremony, ready before you are.",
+    "p3": "Pool, festival, rooftop, dancefloor. Wherever the night finds you."
+  },
+  "flavors": {
+    "eyebrow": "Choose your ANANDA",
+    "title": "The Pathways to Bliss",
+    "cta": "see flavors"
+  },
+  "ritual": {
+    "eyebrow": "How it works",
+    "title": "The Ritual",
+    "step1": { "label": "[Step 01]", "title": "Chill", "body": "Drop it in ice. Everything else follows." },
+    "step2": { "label": "[Step 02]", "title": "Twist", "body": "One cap. One snap. The ritual is complete." },
+    "step3": { "label": "[Step 03]", "title": "Sip", "body": "Straight from the pouch or over crushed ice. There is no wrong answer." }
+  },
+  "wild": {
+    "eyebrow": "Our collective",
+    "title1": "ANANDA IN",
+    "title2": "THE WILD",
+    "tag1": "100% Pure joy",
+    "tag2": "Tag @AnandaCocktails to join the collective"
+  },
+  "dropList": {
+    "eyebrow": "Want in?",
+    "title": "Join the drop list",
+    "headingIdle": "Get on the list",
+    "headingSuccess": "Amazing!",
+    "headingError": "Oops…",
+    "successMsg": "We've received your information and we'll be in touch shortly.",
+    "errorMsg": "Something went wrong. Please try again.",
+    "placeholder": "Your email",
+    "submitAria": "Subscribe"
+  },
+  "footer": {
+    "copyright": "© {year} Ananda Cocktails. All Rights Reserved."
+  },
+  "modal": {
+    "ingredients": "Ingredients",
+    "close": "Close",
+    "prev": "Previous flavour",
+    "next": "Next flavour"
+  }
+}

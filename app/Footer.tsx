@@ -1,3 +1,4 @@
+import { useTranslations } from "next-intl";
 import { mu, MU_VAR } from "./mobile/scale";
 
 /**
@@ -24,6 +25,8 @@ function Socials({ scale }: { scale: (n: number) => string }) {
 }
 
 export default function Footer() {
+  const t = useTranslations("footer");
+
   return (
     <footer className="w-full bg-[#eb4638]" style={{ containerType: "inline-size" }}>
       {/* Mobile */}
@@ -36,7 +39,7 @@ export default function Footer() {
               <img src="/ananda-logo.svg" alt="ANANDA Cocktails" style={{ width: mu(152.482), height: "auto" }} />
               <Socials scale={mu} />
               <p className="text-center text-[#fff0e5]" style={{ fontFamily: "var(--font-body)", fontWeight: 400, fontSize: mu(14), lineHeight: mu(18), width: mu(280) }}>
-                © {getCurrentYear()} Ananda Cocktails. All Rights Reserved.
+                {t("copyright", { year: getCurrentYear() })}
               </p>
             </div>
           </div>
@@ -51,7 +54,7 @@ export default function Footer() {
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/ananda-logo.svg" alt="ANANDA Cocktails" style={{ width: ud(152.482), height: "auto" }} />
             <p className="text-center text-[#fff0e5]" style={{ fontFamily: "var(--font-body)", fontWeight: 400, fontSize: ud(14), lineHeight: ud(14), width: ud(280) }}>
-              © {getCurrentYear()} Ananda Cocktails. All Rights Reserved.
+              {t("copyright", { year: getCurrentYear() })}
             </p>
             <Socials scale={ud} />
           </div>

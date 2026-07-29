@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useLocale, useTranslations } from "next-intl";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import AboutCopyBlock from "./AboutCopyBlock";
@@ -54,6 +55,8 @@ const coverScale = (w: number, h: number, rotDeg: number) => {
  * "scrolls in". Desktop only. (Mobile uses MobileIntro / MobileCollage.)
  */
 export default function DitchTheGlass() {
+  const t = useTranslations("hero");
+  const locale = useLocale();
   const sectionRef = useRef<HTMLElement>(null);
   const placeholderRef = useRef<HTMLSpanElement>(null);
   const travelRef = useRef<HTMLDivElement>(null);
@@ -194,19 +197,22 @@ export default function DitchTheGlass() {
           className="dtg-word mb-[clamp(1.5rem,4vw,3.5rem)] text-[14px] uppercase leading-[0.87] tracking-[0.98px]"
           style={{ fontFamily: "var(--font-mono-label)", willChange: "opacity" }}
         >
-          [01] Ditch the glass
+          {t("eyebrow")}
         </p>
 
+        {/* Per-locale sizing: "Built for ◆ Freedom." is ~20% wider than the old
+            "Mixed to ◆ Move.", and the BG line wider still — the clamp shrinks
+            with the locale so the diamond line always fits the viewport. */}
         <h2
-          className="text-[clamp(2.75rem,12.5vw,180px)] font-bold uppercase leading-[0.8] tracking-[-0.08em]"
-          style={{ fontFamily: "var(--font-display)" }}
+          className="font-bold uppercase leading-[0.8] tracking-[-0.08em]"
+          style={{ fontFamily: "var(--font-display)", fontSize: locale === "bg" ? "clamp(2rem, 7.3vw, 105px)" : "clamp(2.5rem, 10.3vw, 148px)" }}
         >
-          <span className="dtg-word block" style={{ willChange: "opacity" }}>Liquid Bliss.</span>
+          <span className="dtg-word block" style={{ willChange: "opacity" }}>{t("line1")}</span>
           <span className="flex items-center justify-center gap-[0.2em]">
-            <span className="dtg-word" style={{ willChange: "opacity" }}>Mixed to</span>
+            <span className="dtg-word" style={{ willChange: "opacity" }}>{t("line2a")}</span>
             {/* Reserves the inline gap; the traveling image overlays it at rest. */}
             <span ref={placeholderRef} className="inline-block size-[1.2em] shrink-0" aria-hidden />
-            <span className="dtg-word" style={{ willChange: "opacity" }}>Move.</span>
+            <span className="dtg-word" style={{ willChange: "opacity" }}>{t("line2b")}</span>
           </span>
         </h2>
       </div>
