@@ -4,12 +4,11 @@ import { MANIFESTO } from "./manifesto-copy";
 import type { AppLocale } from "@/i18n/config";
 
 /**
- * Manifesto — the ANANDA dictionary entry (letter-fill reveal + mandala).
- * Extracted from the top of `Ritual.tsx` so it sits BEFORE the flavours
- * section (Hero → About → Manifesto → Flavors → Ritual → …). Flow layout
- * rather than a fixed-height canvas so the section height tracks the
- * per-locale copy length. Desktop only — the mobile twin is
- * `mobile/MobileAbout`.
+ * Manifesto — the ANANDA statement (letter-fill reveal + mandala). Extracted
+ * from the top of `Ritual.tsx`; sits AFTER the flavours section
+ * (Hero → About → Flavors → Manifesto → Ritual → …). Flow layout rather than
+ * a fixed-height canvas so the section height tracks the per-locale copy
+ * length. Desktop only — the mobile twin is `mobile/MobileAbout`.
  */
 
 const u = (n: number) => `calc(var(--u) * ${n})`;

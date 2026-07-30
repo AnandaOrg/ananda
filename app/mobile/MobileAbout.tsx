@@ -4,10 +4,10 @@ import RevealStatement from "../RevealStatement";
 import { MANIFESTO_MOBILE } from "../manifesto-copy";
 import type { AppLocale } from "@/i18n/config";
 
-/** Mobile section — the ANANDA manifesto statement + mandala. Sits before
- *  MobilePathways (Hero → About → Manifesto → Flavors → …), mirroring the
- *  desktop `Manifesto` section. EN flows as one paragraph; BG keeps the
- *  dictionary-entry paragraphs. */
+/** Mobile section — the ANANDA manifesto statement + mandala. Sits between
+ *  MobilePathways and MobileRitual (Hero → About → Flavors → Manifesto →
+ *  Ritual → …), mirroring the desktop `Manifesto` section. EN flows as one
+ *  paragraph; BG keeps the dictionary-entry paragraphs. */
 export default function MobileAbout() {
   const locale = useLocale() as AppLocale;
 

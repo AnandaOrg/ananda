@@ -80,18 +80,18 @@ export default function Home() {
       <MobileCollageMedia />
       <MobileKyoto />
 
-      {/* Manifesto — the ANANDA dictionary entry, BEFORE the flavours
-          (Hero → About → Manifesto → Flavors → …). */}
-      <div className="hidden md:block">
-        <Manifesto />
-      </div>
-      <MobileAbout />
-
       {/* Section 4 — The Pathways to Bliss */}
       <div className="hidden md:block">
         <Pathways />
       </div>
       <MobilePathways />
+
+      {/* Manifesto — the ANANDA statement, AFTER the flavours
+          (Hero → About → Flavors → Manifesto → Ritual → …). */}
+      <div className="hidden md:block">
+        <Manifesto />
+      </div>
+      <MobileAbout />
 
       {/* Section 5 — The Ritual / ANANDA in the Wild (desktop is one section) */}
       <div className="hidden md:block">
