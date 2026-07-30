@@ -249,7 +249,7 @@ export default function MobilePathways() {
         ))}
 
         {/* Heading + see-flavors pill */}
-        <div className="absolute flex flex-col items-start" style={{ left: mu(24), top: mu(43), width: mu(276.93), gap: mu(24) }}>
+        <div className="absolute flex flex-col items-start" style={{ left: mu(locale === "bg" ? 14 : 24), top: mu(43), width: mu(276.93), gap: mu(24) }}>
           <div className="flex flex-col items-start uppercase text-[#fff0e5]" style={{ gap: mu(16) }}>
             <p className="whitespace-nowrap" style={{ fontFamily: "var(--font-mono-label)", fontSize: mu(12), lineHeight: 0.87, letterSpacing: mu(0.84) }}>
               {t("eyebrow")}
