@@ -20,7 +20,11 @@ export default function Manifesto() {
     <section className="relative w-full overflow-hidden" style={{ containerType: "inline-size", backgroundColor: "#fff0e5" }}>
       <div
         className="relative mx-auto flex flex-col items-center"
-        style={{ ["--u" as string]: "calc(100cqw / 1440)", width: u(1440), paddingTop: u(220), paddingBottom: u(176) }}
+        // No bottom padding: the Ritual canvas below already carries a 272u
+        // top offset before its "[03]" eyebrow, and the combined seam read as
+        // a dead zone (600px+ on wide screens). The mandala → eyebrow gap is
+        // now that 272u alone (≈ 400px at ~2100px-wide viewports).
+        style={{ ["--u" as string]: "calc(100cqw / 1440)", width: u(1440), paddingTop: u(220), paddingBottom: 0 }}
       >
         {/* Dictionary-entry statement — letter-fill reveal on scroll */}
         <RevealStatement
