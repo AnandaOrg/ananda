@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono, IBM_Plex_Mono, Barlow, Inter } from "next/font/google";
+import { Geist, Geist_Mono, IBM_Plex_Mono, Barlow } from "next/font/google";
 import localFont from "next/font/local";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale } from "next-intl/server";
@@ -46,11 +46,34 @@ const barlow = Barlow({
 });
 
 // Cyrillic fallback for the BG locale — AnekKannada and Barlow have no
-// Cyrillic glyphs, so BG headlines/body fall through to Inter per-glyph.
-const inter = Inter({
-  variable: "--font-cyrillic",
-  subsets: ["cyrillic"],
+// Cyrillic glyphs, so BG text falls through per-glyph to Golos Text (the
+// self-hosted cyrillic-subset file; unicode-range keeps Latin on Anek/Barlow).
+// Golos renders larger than both primaries at equal font-size, so each stack
+// gets its own metric-matched face (measured with fontTools):
+//   display: Anek cap-height 0.639em vs Golos 0.700em → size-adjust 91.29%
+//   body:    Barlow x-height 0.506em vs Golos 0.530em → size-adjust 95.47%
+// Same file twice — one download, two @font-face rules. (next/font requires
+// fully literal arguments, hence the repeated unicode-range value.)
+const golosDisplay = localFont({
+  src: "./fonts/GolosText-cyrillic.woff2",
+  weight: "400 900",
+  variable: "--font-cyrillic-display",
   display: "swap",
+  declarations: [
+    { prop: "size-adjust", value: "91.29%" },
+    { prop: "unicode-range", value: "U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116" },
+  ],
+});
+
+const golosBody = localFont({
+  src: "./fonts/GolosText-cyrillic.woff2",
+  weight: "400 900",
+  variable: "--font-cyrillic-body",
+  display: "swap",
+  declarations: [
+    { prop: "size-adjust", value: "95.47%" },
+    { prop: "unicode-range", value: "U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116" },
+  ],
 });
 
 export const metadata: Metadata = {
@@ -68,7 +91,7 @@ export default async function RootLayout({
   return (
     <html
       lang={locale}
-      className={`${geistSans.variable} ${geistMono.variable} ${anekKannada.variable} ${ibmPlexMono.variable} ${barlow.variable} ${inter.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} ${anekKannada.variable} ${ibmPlexMono.variable} ${barlow.variable} ${golosDisplay.variable} ${golosBody.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
         <NextIntlClientProvider>{children}</NextIntlClientProvider>

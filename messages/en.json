@@ -1,37 +1,36 @@
 {
   "hero": {
-    "eyebrow": "Ditch the glass",
+    "eyebrow": "[01] Ditch the glass",
     "line1": "Liquid Bliss.",
-    "line2a": "Built for",
-    "line2b": "Freedom."
+    "line2a": "Mixed to",
+    "line2b": "Move."
   },
   "about": {
     "eyebrow": "What we're about",
-    "p1": "Premium cocktails were never meant to stay at the bar.",
-    "p2": "We built ANANDA for everywhere else. Real recipes, zero ceremony, ready before you are.",
-    "p3": "Pool, festival, rooftop, dancefloor. Wherever the night finds you."
+    "p1": "Premium, bar–strength cocktails mixed for the makers, the movers, and the midnight sun.",
+    "p2": "No glass, no pretense. Just pure, uninhibited joy – ready whenever and wherever you are."
   },
   "flavors": {
-    "eyebrow": "Choose your ANANDA",
+    "eyebrow": "[02] Choose your ANANDA",
     "title": "The Pathways to Bliss",
     "cta": "see flavors"
   },
   "ritual": {
-    "eyebrow": "How it works",
+    "eyebrow": "[03] How it works",
     "title": "The Ritual",
-    "step1": { "label": "[Step 01]", "title": "Chill", "body": "Drop it in ice. Everything else follows." },
-    "step2": { "label": "[Step 02]", "title": "Twist", "body": "One cap. One snap. The ritual is complete." },
-    "step3": { "label": "[Step 03]", "title": "Sip", "body": "Straight from the pouch or over crushed ice. There is no wrong answer." }
+    "step1": { "label": "[Step 01]", "title": "Chill", "body": "Submerge the pouch in ice or drop it in the freezer." },
+    "step2": { "label": "[Step 02]", "title": "Twist", "body": "Snap open the high-flow cap. Ditch the bottle openers, the sticky counters, and the heavy glass." },
+    "step3": { "label": "[Step 03]", "title": "Sip", "body": "Sip it straight from the pouch on the dancefloor, or pour it over crushed ice under the sun. Be entirely right here, right now." }
   },
   "wild": {
-    "eyebrow": "Our collective",
+    "eyebrow": "[04] Our collective",
     "title1": "ANANDA IN",
     "title2": "THE WILD",
     "tag1": "100% Pure joy",
     "tag2": "Tag @AnandaCocktails to join the collective"
   },
   "dropList": {
-    "eyebrow": "Want in?",
+    "eyebrow": "[05] Want in?",
     "title": "Join the drop list",
     "headingIdle": "Get on the list",
     "headingSuccess": "Amazing!",
@@ -49,5 +48,17 @@
     "close": "Close",
     "prev": "Previous flavour",
     "next": "Next flavour"
+  },
+  "ageGate": {
+    "title": "18+?",
+    "subtitle": "Let's make it official.",
+    "out": "I'm out",
+    "in": "I'm in",
+    "warning": "[ Alcohol abuse is dangerous for your health ]"
+  },
+  "noEntry": {
+    "eyebrow": "[ 18+ only ]",
+    "title": "Sorry, you can't enter.",
+    "body": "Come back when it's official."
   }
 }

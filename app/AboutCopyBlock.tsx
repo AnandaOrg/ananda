@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 
 const u = (n: number) => `calc(var(--u) * ${n})`;
 
@@ -25,6 +25,7 @@ export default function AboutCopyBlock({
   revealed?: boolean;
 }) {
   const t = useTranslations("about");
+  const locale = useLocale();
   const ref = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(revealed);
 
@@ -84,20 +85,20 @@ export default function AboutCopyBlock({
       </div>
 
       <div style={{ padding: `${u(10)} ${u(14)}` }}>
-        {/* 16 → 20u per the copy brief ("increase font size"). */}
+        {/* BG runs the copy-brief sizing (16 → 20u); EN keeps the original. */}
         <div
           style={{
             fontFamily: "var(--font-body)",
             fontWeight: 500,
-            fontSize: u(20),
+            fontSize: locale === "bg" ? u(20) : u(16),
             lineHeight: 1.3,
-            letterSpacing: u(0.2),
+            letterSpacing: locale === "bg" ? u(0.2) : u(0.16),
             color: "var(--terracotta)",
           }}
         >
           <p className="mb-0">{t("p1")}</p>
-          <p className="mb-0">{t("p2")}</p>
-          <p>{t("p3")}</p>
+          <p className={t.has("p3") ? "mb-0" : undefined}>{t("p2")}</p>
+          {t.has("p3") && <p>{t("p3")}</p>}
         </div>
       </div>
     </div>

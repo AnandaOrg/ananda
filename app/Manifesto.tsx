@@ -27,14 +27,17 @@ export default function Manifesto() {
         <RevealStatement
           paras={MANIFESTO[locale]}
           smallFontSize={u(27.296)}
-          paraSpacing={u(28)}
+          // EN paras are hard-broken lines of one statement (no gap); BG is a
+          // dictionary entry whose paragraphs need breathing room.
+          paraSpacing={locale === "bg" ? u(28) : undefined}
           className="font-bold"
           style={{
             width: u(1311.92),
             fontFamily: "var(--font-display)",
             fontSize: u(59.247),
             lineHeight: 1.15,
-            letterSpacing: u(-2.3699),
+            // BG (Golos) halves the Anek-tuned -0.04em tracking.
+            letterSpacing: u(locale === "bg" ? -1.185 : -2.3699),
             // Statement-specific muted terracotta (design), not the brand red.
             color: "var(--terracotta)",
           }}

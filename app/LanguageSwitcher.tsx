@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useLocale } from "next-intl";
 import { useRouter } from "next/navigation";
 import gsap from "gsap";
@@ -18,12 +18,36 @@ function setLocaleCookie(next: AppLocale) {
  * Fixed EN/BG toggle (top right). Persists the choice in the locale cookie and
  * refreshes the RSC tree so the server re-renders with the new dictionary —
  * no `[locale]` routing, the URL never changes. z-40 keeps it under the
- * flavour modal (z-50).
+ * flavour modal (z-50). Hidden over the hero splash (the first 100vh) — it
+ * fades in once the scroll reaches the "Ditch the glass" section.
  */
 export default function LanguageSwitcher() {
   const locale = useLocale();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const [visible, setVisible] = useState(false);
+
+  // Show only past the hero: the splash section is exactly 100vh, so once
+  // scrollY passes ~3/4 of it the "Ditch the glass" section dominates the
+  // viewport. rAF-throttled, and re-checked on resize (vh changes).
+  useEffect(() => {
+    let raf = 0;
+    const check = () => {
+      raf = 0;
+      setVisible(window.scrollY > window.innerHeight * 0.75);
+    };
+    const onScroll = () => {
+      if (!raf) raf = requestAnimationFrame(check);
+    };
+    check();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll);
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+      if (raf) cancelAnimationFrame(raf);
+    };
+  }, []);
 
   // Copy lengths differ per locale, which moves section heights around —
   // re-measure every pinned/scrubbed timeline once the new text is in.
@@ -51,8 +75,13 @@ export default function LanguageSwitcher() {
         backgroundColor: "rgba(255, 240, 229, 0.92)",
         backdropFilter: "blur(4px)",
         WebkitBackdropFilter: "blur(4px)",
-        opacity: isPending ? 0.6 : 1,
-        transition: "opacity 0.2s ease",
+        opacity: !visible ? 0 : isPending ? 0.6 : 1,
+        // visibility keeps the hidden pill out of the tab order / a11y tree;
+        // it flips after the fade-out and before the fade-in.
+        visibility: visible ? "visible" : "hidden",
+        pointerEvents: visible ? "auto" : "none",
+        transform: visible ? "translateY(0)" : "translateY(-8px)",
+        transition: "opacity 0.3s ease, transform 0.3s ease, visibility 0.3s",
       }}
     >
       {LOCALES.map((l) => (

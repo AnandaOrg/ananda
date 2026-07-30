@@ -200,12 +200,17 @@ export default function DitchTheGlass() {
           {t("eyebrow")}
         </p>
 
-        {/* Per-locale sizing: "Built for ◆ Freedom." is ~20% wider than the old
-            "Mixed to ◆ Move.", and the BG line wider still — the clamp shrinks
-            with the locale so the diamond line always fits the viewport. */}
+        {/* Per-locale sizing: the BG line is wider than EN's "Mixed to ◆ Move."
+            — the clamp shrinks for BG so the diamond line always fits the
+            viewport. BG also relaxes the -0.08em Anek tracking: Golos glyphs
+            fill their advance widths, so the design tracking crushes them. */}
         <h2
-          className="font-bold uppercase leading-[0.8] tracking-[-0.08em]"
-          style={{ fontFamily: "var(--font-display)", fontSize: locale === "bg" ? "clamp(2rem, 7.3vw, 105px)" : "clamp(2.5rem, 10.3vw, 148px)" }}
+          className="font-bold uppercase leading-[0.8]"
+          style={{
+            fontFamily: "var(--font-display)",
+            fontSize: locale === "bg" ? "clamp(2rem, 7.3vw, 105px)" : "clamp(2.75rem, 12.5vw, 180px)",
+            letterSpacing: locale === "bg" ? "-0.03em" : "-0.08em",
+          }}
         >
           <span className="dtg-word block" style={{ willChange: "opacity" }}>{t("line1")}</span>
           <span className="flex items-center justify-center gap-[0.2em]">

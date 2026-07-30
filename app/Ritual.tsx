@@ -1,4 +1,4 @@
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import RitualCards from "./RitualCards";
 import WildCarousel from "./mobile/WildCarousel";
 import { CAROUSEL_AUTOPLAY_SPEED } from "./configs";
@@ -26,6 +26,7 @@ const WILD = [
 export default function Ritual() {
   const tRitual = useTranslations("ritual");
   const tWild = useTranslations("wild");
+  const bg = useLocale() === "bg";
   const tags = [tWild("tag1"), tWild("tag2")];
 
   return (
@@ -54,7 +55,8 @@ export default function Ritual() {
             fontFamily: "var(--font-display)",
             fontSize: u(180),
             lineHeight: 0.8,
-            letterSpacing: u(-14.4),
+            // BG (Golos) relaxes the -0.08em Anek tracking to -0.03em.
+            letterSpacing: u(bg ? -5.4 : -14.4),
             color: RED,
           }}
         >
@@ -84,7 +86,8 @@ export default function Ritual() {
             fontFamily: "var(--font-display)",
             fontSize: u(180),
             lineHeight: 0.8,
-            letterSpacing: u(-14.4),
+            // BG (Golos) relaxes the -0.08em Anek tracking to -0.03em.
+            letterSpacing: u(bg ? -5.4 : -14.4),
             color: RED,
           }}
         >

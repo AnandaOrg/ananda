@@ -44,6 +44,7 @@ const REVERT_MS = 3000; // how long success / error states stay before the input
  *  failure swaps the heading to "Oops…" and the field to a warning pill. Either
  *  state holds for 3s, then the heading and empty input return. */
 function DropForm({ s, height, fontSize, padL, padR, radius, btnRight, btnSize, headingSize, headingLs, msgSize }: FormScale) {
+  const formBg = useLocale() === "bg";
   const t = useTranslations("dropList");
   const [status, setStatus] = useState<Status>("idle");
 
@@ -86,7 +87,7 @@ function DropForm({ s, height, fontSize, padL, padR, radius, btnRight, btnSize, 
           <motion.p
             key={heading}
             className="absolute left-0 top-0 whitespace-nowrap font-semibold uppercase text-[#fff0e5]"
-            style={{ fontFamily: "var(--font-display)", fontSize: s(headingSize), lineHeight: 0.8, letterSpacing: s(headingLs) }}
+            style={{ fontFamily: "var(--font-display)", fontSize: s(headingSize), lineHeight: 0.8, letterSpacing: s(formBg ? headingSize * -0.03 : headingLs) }}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -179,7 +180,7 @@ export default function DropList() {
           <div className="flex flex-col items-start" style={{ ...MU_VAR, padding: `${mu(60)} ${mu(24)} ${mu(4)} ${mu(24)}`, gap: mu(40) }}>
             <div className="flex flex-col items-start uppercase text-[#fff0e5]" style={{ gap: mu(16) }}>
               <p style={{ fontFamily: "var(--font-mono-label)", fontSize: mu(12), lineHeight: 0.87, letterSpacing: mu(0.84) }}>{t("eyebrow")}</p>
-              <p className="font-bold" style={{ fontFamily: "var(--font-display)", fontSize: bg ? mu(52) : mu(64), lineHeight: 0.8, letterSpacing: bg ? mu(-4.16) : mu(-5.12), width: bg ? mu(342) : mu(276.93) }}>
+              <p className="font-bold" style={{ fontFamily: "var(--font-display)", fontSize: bg ? mu(52) : mu(64), lineHeight: 0.8, letterSpacing: bg ? mu(-1.56) : mu(-5.12), width: bg ? mu(342) : mu(276.93) }}>
                 {t("title")}
               </p>
             </div>
@@ -195,7 +196,7 @@ export default function DropList() {
         <div className="flex w-full items-end justify-between" style={{ padding: `${ud(160)} ${ud(80)}` }}>
           <div className="flex flex-col items-start uppercase text-[#fff0e5]" style={{ gap: ud(48) }}>
             <p style={{ fontFamily: "var(--font-mono-label)", fontSize: ud(14), lineHeight: 0.87, letterSpacing: ud(0.98) }}>{t("eyebrow")}</p>
-            <p className="font-bold" style={{ fontFamily: "var(--font-display)", fontSize: bg ? ud(110) : ud(160), lineHeight: 0.8, letterSpacing: bg ? ud(-8.8) : ud(-12.8), width: ud(626.379) }}>
+            <p className="font-bold" style={{ fontFamily: "var(--font-display)", fontSize: bg ? ud(110) : ud(160), lineHeight: 0.8, letterSpacing: bg ? ud(-3.3) : ud(-12.8), width: ud(626.379) }}>
               {t("title")}
             </p>
           </div>

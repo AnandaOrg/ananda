@@ -17,12 +17,19 @@ import MobileAbout from "./mobile/MobileAbout";
 import MobileRitual from "./mobile/MobileRitual";
 import MobileSocial from "./mobile/MobileSocial";
 import FlavorProvider from "./FlavorProvider";
+import AgeGate from "./AgeGate";
 
 export default function Home() {
   return (
     <FlavorProvider>
       {/* iOS: retry blocked autoplays on first touch (Low Power Mode) */}
       <AutoplayRescue />
+
+      {/* 18+ age gate — once per tab session (acceptance in sessionStorage,
+          so refreshes skip it), locks scroll while open, z-[60] sits above the
+          language switcher (z-40) and flavour modal (z-50). "I'm out" leads
+          to /no-entry. */}
+      <AgeGate />
 
       {/* Fixed EN/BG toggle (cookie + RSC refresh; sits under the modal) */}
       <LanguageSwitcher />

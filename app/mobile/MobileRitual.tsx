@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useEffect, useRef } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { mu, MU_VAR } from "./scale";
@@ -45,6 +45,7 @@ const CLIP_SHOWN = "inset(-50% 0% -50% 0%)";
 
 export default function MobileRitual() {
   const t = useTranslations("ritual");
+  const bg = useLocale() === "bg";
   const steps = STEP_MEDIA.map((m, i) => ({
     ...m,
     step: t(`step${i + 1}.label`),
@@ -144,7 +145,7 @@ export default function MobileRitual() {
             </p>
             <p
               className="font-bold"
-              style={{ fontFamily: "var(--font-display)", fontSize: mu(64), lineHeight: 0.8, letterSpacing: mu(-5.12), width: mu(276.93) }}
+              style={{ fontFamily: "var(--font-display)", fontSize: mu(64), lineHeight: 0.8, letterSpacing: mu(bg ? -1.92 : -5.12), width: mu(276.93) }}
             >
               {t("title")}
             </p>
@@ -164,14 +165,17 @@ export default function MobileRitual() {
               style={{ left: mu(38.72), top: mu(37.62), width: mu(260.411), gap: mu(11.22) }}
             >
               <div className="flex w-full items-end justify-between uppercase text-[#fff0e5]">
-                {/* Title — layered per step, revealed left → right */}
+                {/* Title — layered per step, revealed left → right. BG titles
+                    ("ЗАВЪРТНИ") are longer and share this row with the wider
+                    "[СТЪПКА 0X]" label, so BG steps down to keep the pair
+                    inside the card. */}
                 <div className="grid">
                   {steps.map((s, k) => (
                     <p
                       key={k}
                       data-text-step={k}
                       className="font-bold"
-                      style={{ gridArea: "1 / 1", fontFamily: "var(--font-display)", fontSize: mu(39.949), lineHeight: 0.8, letterSpacing: mu(-3.196), clipPath: k === 0 ? CLIP_SHOWN : CLIP_HIDDEN }}
+                      style={{ gridArea: "1 / 1", fontFamily: "var(--font-display)", fontSize: mu(bg ? 32 : 39.949), lineHeight: 0.8, letterSpacing: mu(bg ? -0.96 : -3.196), clipPath: k === 0 ? CLIP_SHOWN : CLIP_HIDDEN }}
                     >
                       {s.title}
                     </p>

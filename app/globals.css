@@ -8,9 +8,10 @@
   --terracotta: #d15841;
   /* Composite font stacks. AnekKannada (display) and Barlow (body) ship
      Latin-only glyphs, so the BG locale's Cyrillic falls through per-glyph to
-     Inter (--font-cyrillic, loaded in layout.tsx). Latin text is unaffected. */
-  --font-display: var(--font-display-latin), var(--font-cyrillic), sans-serif;
-  --font-body: var(--font-body-latin), var(--font-cyrillic), sans-serif;
+     Golos Text — two size-adjusted faces (layout.tsx) so Cyrillic renders at
+     the same optical size as each Latin primary. Latin is unaffected. */
+  --font-display: var(--font-display-latin), var(--font-cyrillic-display), sans-serif;
+  --font-body: var(--font-body-latin), var(--font-cyrillic-body), sans-serif;
 }
 
 @theme inline {
@@ -104,6 +105,13 @@ body {
 
 .dl-shake {
   animation: dl-shake 0.5s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+}
+
+/* Age gate: when this tab's session already accepted, AgeGate's inline script
+   tags <html> with .age-ok during parse — hiding the server-rendered gate
+   before first paint (React unmounts it right after hydration). */
+.age-ok .age-gate-root {
+  display: none;
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useEffect, useRef } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 
@@ -19,8 +19,14 @@ const CARD = { w: 480, h: 720 };
 // 480×720 frame (scaled from the original 620.422×863.666 design).
 const REL = {
   photo: { left: 72.96, top: 143.63, w: 320, h: 420 },
-  label: { left: 342.64, top: 68.78, font: 10.83, pad: [7.74, 10.83], ls: 0.76 },
-  title: { left: 54.31, top: 49.9, w: 331.65, font: 74.27, ls: -5.94 },
+  // Anchored by its RIGHT edge at the card's 54.31 side margin (Figma's
+  // left 342.64 + the EN label width lands exactly there) so the longer BG
+  // labels grow inward instead of spilling past the card edge.
+  label: { right: 54.31, top: 68.78, font: 10.83, pad: [7.74, 10.83], ls: 0.76 },
+  // fontBg: the BG titles are longer ("ЗАВЪРТНИ") and render in Golos Text,
+  // so they need a smaller size (tracking scaled to match) to stay inside
+  // the box — past the card edge the cream text vanishes into the page.
+  title: { left: 54.31, top: 49.9, w: 331.65, font: 74.27, ls: -5.94, fontBg: 56, lsBg: -1.68 },
   // left matches photo.left so the body copy lines up with the photo above
   // it; w spans the rest of the card's width (CARD.w - left) instead of a
   // fixed figma width, so it uses the full available row. top sits exactly
@@ -86,6 +92,7 @@ const stepOf = (frame: number, tick: number) => (frame + tick) % N;
 
 export default function RitualCards() {
   const t = useTranslations("ritual");
+  const bg = useLocale() === "bg";
   const steps = STEP_MEDIA.map((m, i) => ({
     ...m,
     step: t(`step${i + 1}.label`),
@@ -235,7 +242,7 @@ export default function RitualCards() {
               instead of leaking a mid-word fragment). */}
           <div
             className="absolute grid"
-            style={{ left: u(REL.label.left), top: u(REL.label.top), padding: `${u(REL.label.pad[0])} ${u(REL.label.pad[1])}`, justifyItems: "end" }}
+            style={{ right: u(REL.label.right), top: u(REL.label.top), padding: `${u(REL.label.pad[0])} ${u(REL.label.pad[1])}`, justifyItems: "end" }}
           >
             {steps.map((s, k) => (
               <p
@@ -255,7 +262,7 @@ export default function RitualCards() {
                 key={k}
                 data-text-step={k}
                 className="font-bold uppercase"
-                style={{ gridArea: "1 / 1", fontFamily: "var(--font-display)", fontSize: u(REL.title.font), lineHeight: 1, letterSpacing: u(REL.title.ls), color: CREAM, clipPath: k === f ? CLIP_SHOWN : CLIP_HIDDEN }}
+                style={{ gridArea: "1 / 1", fontFamily: "var(--font-display)", fontSize: u(bg ? REL.title.fontBg : REL.title.font), lineHeight: 1, letterSpacing: u(bg ? REL.title.lsBg : REL.title.ls), color: CREAM, clipPath: k === f ? CLIP_SHOWN : CLIP_HIDDEN }}
               >
                 {s.title}
               </p>

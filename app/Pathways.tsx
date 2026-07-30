@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useCallback, useEffect, useRef } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useFlavor, wasFlavorModalOpenAtDeath } from "./FlavorProvider";
@@ -115,6 +115,7 @@ const FLAVORS = [
 
 export default function Pathways() {
   const t = useTranslations("flavors");
+  const bg = useLocale() === "bg";
   const { open } = useFlavor();
   const glbRef = useRef<GlbViewerHandle>(null);
   // Fixed band-region reference — drives cross-fade/turntable progress and stays
@@ -256,9 +257,10 @@ export default function Pathways() {
             top: u(297.49),
             width: u(1102.287),
             fontFamily: "var(--font-display)",
-            fontSize: u(180),
+            fontSize: u(bg ? 180 : 170),
             lineHeight: 0.8,
-            letterSpacing: u(-14.4),
+            // BG (Golos) relaxes the -0.08em Anek tracking to -0.03em.
+            letterSpacing: u(bg ? -5.4 : -14.4),
           }}
         />
 
@@ -341,16 +343,19 @@ export default function Pathways() {
         {/* Fixed band-region reference for the scroll progress (invisible). */}
         <div ref={scrollRef} aria-hidden className="pointer-events-none absolute" style={{ left: 0, top: u(720), width: u(1), height: u(1250), visibility: "hidden" }} />
 
-        {/* SEE FLAVORS pill */}
+        {/* SEE FLAVORS pill. BG's "виж вкусовете" is wider than the ~315u
+            between the Figma left offset and the canvas edge, so BG anchors
+            the pill by its RIGHT edge (≈ EN's design right margin) and lets
+            it grow leftward into open canvas — never wrapped, never clipped. */}
         <button
           type="button"
           onClick={() => openWithSpin(0)}
           className="absolute flex cursor-pointer appearance-none items-center justify-center overflow-hidden border-0 bg-[#fff0e5]"
-          style={{ left: u(1125), top: u(48.25), padding: `${u(14)} ${u(24)}`, borderRadius: u(50.032) }}
+          style={{ ...(bg ? { right: u(25) } : { left: u(1125) }), top: u(48.25), padding: `${u(14)} ${u(24)}`, borderRadius: u(50.032) }}
         >
           <div className="flex items-center" style={{ gap: u(15.01) }}>
             <span
-              className="font-semibold uppercase text-[#eb4638]"
+              className="whitespace-nowrap font-semibold uppercase text-[#eb4638]"
               style={{ fontFamily: "var(--font-display)", fontSize: u(40), lineHeight: 0.8, letterSpacing: u(-2.8), textBoxTrim: "trim-both", textBoxEdge: "cap alphabetic" } as React.CSSProperties}
             >
               {t("cta")}

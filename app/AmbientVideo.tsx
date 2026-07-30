@@ -22,6 +22,14 @@ export default function AmbientVideo(props: React.VideoHTMLAttributes<HTMLVideoE
   useEffect(() => {
     const v = ref.current;
     if (!v) return;
+    // React never writes the `muted` attribute into server-rendered HTML
+    // (long-standing React quirk), so Safari parses an UNMUTED autoplay video,
+    // refuses the attribute during load, and then rejects the observer's
+    // play() below too (unmuted play() needs a user gesture). Re-assert it
+    // imperatively before the first play attempt — a muted, playsInline video
+    // may always start programmatically.
+    v.muted = true;
+    v.defaultMuted = true;
     let onScreen = true;
     // Something else (AutoplayRescue's gesture kick) may start the video while
     // it's off screen — put it straight back to sleep.

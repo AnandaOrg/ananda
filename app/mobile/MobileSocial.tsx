@@ -1,4 +1,4 @@
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { CAROUSEL_AUTOPLAY_SPEED } from "../configs";
 import { mu, MU_VAR } from "./scale";
 import WildCarousel from "./WildCarousel";
@@ -14,6 +14,7 @@ const WILD = [
 /** Mobile section — "ANANDA in the Wild" + photo strip (Figma 184:3036). */
 export default function MobileSocial() {
   const t = useTranslations("wild");
+  const bg = useLocale() === "bg";
   const tags = [t("tag1"), t("tag2")];
 
   return (
@@ -25,7 +26,7 @@ export default function MobileSocial() {
             <p className="whitespace-nowrap" style={{ fontFamily: "var(--font-mono-label)", fontSize: mu(12), lineHeight: 0.87, letterSpacing: mu(0.84) }}>
               {t("eyebrow")}
             </p>
-            <div className="font-bold" style={{ fontFamily: "var(--font-display)", fontSize: mu(64), lineHeight: 0.8, letterSpacing: mu(-5.12), width: mu(276.93) }}>
+            <div className="font-bold" style={{ fontFamily: "var(--font-display)", fontSize: mu(64), lineHeight: 0.8, letterSpacing: mu(bg ? -1.92 : -5.12), width: mu(276.93) }}>
               <p className="mb-0 whitespace-nowrap">{t("title1")}</p>
               <p className="whitespace-nowrap">{t("title2")}</p>
             </div>

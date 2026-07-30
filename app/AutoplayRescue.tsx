@@ -21,6 +21,12 @@ export default function AutoplayRescue() {
       let pending = 0;
       videos.forEach((v) => {
         if (v.paused && v.played.length === 0) {
+          // Safari: server HTML carries no `muted` attribute (React never
+          // renders it), so without this the play() is an unmuted-autoplay
+          // request and gets rejected — or, under a gesture, starts WITH
+          // sound. Every autoplay video on this site is a muted ambient loop.
+          v.muted = true;
+          v.defaultMuted = true;
           pending += 1;
           v.play().catch(() => {});
         }

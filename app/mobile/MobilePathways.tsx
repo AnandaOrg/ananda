@@ -260,12 +260,12 @@ export default function MobilePathways() {
             <LiquidText
               text={t("title")}
               className="relative font-bold"
-              style={{ fontFamily: "var(--font-display)", fontSize: locale === "bg" ? mu(56) : mu(64), lineHeight: 0.8, letterSpacing: locale === "bg" ? mu(-4.48) : mu(-5.12), width: locale === "bg" ? mu(342) : mu(276.93) }}
+              style={{ fontFamily: "var(--font-display)", fontSize: locale === "bg" ? mu(56) : mu(64), lineHeight: 0.8, letterSpacing: locale === "bg" ? mu(-1.68) : mu(-5.12), width: locale === "bg" ? mu(342) : mu(276.93) }}
             />
           </div>
           <button type="button" onClick={() => openWithSpin(0)} className="flex cursor-pointer appearance-none items-center justify-center overflow-hidden border-0 bg-[#fff0e5]" style={{ padding: `${mu(8)} ${mu(12)}`, borderRadius: mu(25.016) }}>
             <div className="flex items-center" style={{ gap: mu(7.505) }}>
-              <span className="font-semibold uppercase text-[#eb4638]" style={{ fontFamily: "var(--font-display)", fontSize: mu(20), lineHeight: 0.8, letterSpacing: mu(-1.4), textBoxTrim: "trim-both", textBoxEdge: "cap alphabetic" } as React.CSSProperties}>
+              <span className="whitespace-nowrap font-semibold uppercase text-[#eb4638]" style={{ fontFamily: "var(--font-display)", fontSize: mu(20), lineHeight: 0.8, letterSpacing: mu(-1.4), textBoxTrim: "trim-both", textBoxEdge: "cap alphabetic" } as React.CSSProperties}>
                 {t("cta")}
               </span>
               {/* eslint-disable-next-line @next/next/no-img-element */}

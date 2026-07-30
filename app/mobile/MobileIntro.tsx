@@ -198,9 +198,8 @@ export default function MobileIntro() {
 
       {/* Heading — one word per line, left aligned. Anek Kannada 700,
           line-height 80%, letter-spacing -8%, 60px horizontal insets.
-          Per-locale size: the design's 106 fits "Liquid"/"Move." but not
-          "Freedom." (or the longer BG words), so the size steps down with
-          the widest word of each locale. */}
+          Per-locale size: the design's 106 fits EN's "Liquid"/"Move." but not
+          the longer BG words, so BG steps down. */}
       <h2
         className="absolute font-bold uppercase"
         style={{
@@ -209,9 +208,10 @@ export default function MobileIntro() {
           width: mu(270),
           fontFamily: "var(--font-display)",
           fontWeight: 700,
-          fontSize: locale === "bg" ? mu(56) : mu(80),
+          fontSize: locale === "bg" ? mu(56) : mu(106),
           lineHeight: 0.8,
-          letterSpacing: "-0.08em",
+          // Golos (BG) needs looser tracking than Anek's design value.
+          letterSpacing: locale === "bg" ? "-0.03em" : "-0.08em",
         }}
       >
         {/* Keyed by line index (not word) so a locale switch updates the text
@@ -287,12 +287,22 @@ export default function MobileIntro() {
         >
           {tAbout("eyebrow")}
         </p>
-        {/* 16 → 18mu per the copy brief ("increase font size"); box widened
-            to keep a similar rag with the new three-paragraph copy. */}
-        <div style={{ fontFamily: "var(--font-body)", fontWeight: 500, fontSize: mu(18), lineHeight: 1.3, letterSpacing: mu(0.2), color: "var(--terracotta)", maxWidth: mu(280) }}>
+        {/* BG runs the copy-brief sizing (16 → 18mu, box widened for the
+            three-paragraph copy); EN keeps the original two paragraphs. */}
+        <div
+          style={{
+            fontFamily: "var(--font-body)",
+            fontWeight: 500,
+            fontSize: locale === "bg" ? mu(18) : mu(16),
+            lineHeight: 1.3,
+            letterSpacing: mu(0.2),
+            color: "var(--terracotta)",
+            maxWidth: locale === "bg" ? mu(280) : mu(250),
+          }}
+        >
           <p className="mb-0">{tAbout("p1")}</p>
-          <p className="mb-0">{tAbout("p2")}</p>
-          <p>{tAbout("p3")}</p>
+          <p className={tAbout.has("p3") ? "mb-0" : undefined}>{tAbout("p2")}</p>
+          {tAbout.has("p3") && <p>{tAbout("p3")}</p>}
         </div>
       </div>
     </section>
