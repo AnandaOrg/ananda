@@ -31,18 +31,20 @@ export default function MobileSocial() {
               <p className="whitespace-nowrap">{t("title2")}</p>
             </div>
           </div>
+          {/* BG's second tag is longer than the screen, so BG pills wrap
+              (with a readable line-height); EN keeps the one-line design. */}
           <div className="flex flex-col items-start" style={{ gap: mu(14) }}>
             {tags.map((tag) => (
               <span
                 key={tag}
-                className="whitespace-nowrap"
+                className={bg ? undefined : "whitespace-nowrap"}
                 style={{
                   border: `${mu(0.75)} solid #eb4638`,
                   borderRadius: mu(2),
                   padding: `${mu(10)} ${mu(14)}`,
                   fontFamily: "var(--font-mono-label)",
                   fontSize: mu(11),
-                  lineHeight: 0.87,
+                  lineHeight: bg ? 1.4 : 0.87,
                   letterSpacing: mu(0.77),
                   color: "#eb4638",
                 }}

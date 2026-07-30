@@ -180,11 +180,11 @@ export default function MobileIntro() {
       className="relative h-[100svh] w-full overflow-hidden bg-[#fff0e5] md:hidden"
       style={{ containerType: "inline-size", ...MU_VAR, color: RED }}
     >
-      {/* Eyebrow — right edge aligns with the heading's right margin. */}
+      {/* Eyebrow — left-aligned with the heading below. */}
       <p
         className="dtg-word absolute whitespace-nowrap uppercase"
         style={{
-          right: mu(60),
+          left: mu(60),
           top: mu(72),
           fontFamily: "var(--font-mono-label)",
           fontSize: mu(12),
@@ -199,7 +199,8 @@ export default function MobileIntro() {
       {/* Heading — one word per line, left aligned. Anek Kannada 700,
           line-height 80%, letter-spacing -8%, 60px horizontal insets.
           Per-locale size: the design's 106 fits EN's "Liquid"/"Move." but not
-          the longer BG words, so BG steps down. */}
+          BG's "БЛАЖЕНСТВО." — at 48 the widest BG word ends ~37mu inside the
+          390 frame instead of past its right edge. */}
       <h2
         className="absolute font-bold uppercase"
         style={{
@@ -208,7 +209,7 @@ export default function MobileIntro() {
           width: mu(270),
           fontFamily: "var(--font-display)",
           fontWeight: 700,
-          fontSize: locale === "bg" ? mu(56) : mu(106),
+          fontSize: locale === "bg" ? mu(48) : mu(106),
           lineHeight: 0.8,
           // Golos (BG) needs looser tracking than Anek's design value.
           letterSpacing: locale === "bg" ? "-0.03em" : "-0.08em",
