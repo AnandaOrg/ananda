@@ -575,9 +575,11 @@ export default function FlavorModal({
                 // Wider than the bottle so the spin/tilt is never clipped by the
                 // canvas. Same camera FOV → identical on-screen size. Sized in the
                 // height-capped unit (uCap) so an over-wide/short viewport can't
-                // inflate the pouch into the ingredient text below.
-                width: uCap(1200),
-                height: uCap(1440),
+                // inflate the pouch into the ingredient text below. The fitted
+                // model reads 41.49% of canvas height (FOV 38 @ camZ 7), so
+                // 1590.8u renders the design's 660u-tall pouch (Figma 251×660).
+                width: uCap(1325.7),
+                height: uCap(1590.8),
               }}
             >
               {/* Float lives on its own layer — a CSS animation on `transform`
@@ -676,12 +678,12 @@ export default function FlavorModal({
         onTouchEnd={onSwipeTouchEnd}
       >
         {/* GLB pouch — persistent, centred 418mu above the frame bottom. The
-            canvas is sized so the fitted model reads ~360mu tall (the visible
-            pouch spans ~41.5% of the canvas height at the default camera) —
-            its bottom then clears the INGREDIENTS label at frame y=480 by
-            ~35mu for every flavour. The earlier 386/945 calibration was
-            measured off Product_Santorini_Mobile alone; Kyoto fits the camera
-            taller and its bottom buried the label. Bobs gently at rest. */}
+            fitted model reads 41.49% of canvas height (FOV 38 @ camZ 7), so
+            868.8mu renders the design's 360.4mu-tall pouch (Figma 130×360.4)
+            — its bottom clears the INGREDIENTS label at frame y=480 by ~38mu
+            for every flavour. The earlier 386/945 calibration was measured
+            off Product_Santorini_Mobile alone; Kyoto fits the camera taller
+            and its bottom buried the label. Bobs gently at rest. */}
         <div className="absolute inset-0" style={{ pointerEvents: "none", zIndex: 40 }}>
           <div
             style={{
@@ -690,7 +692,7 @@ export default function FlavorModal({
               top: `calc(100% - ${mu(418)})`,
               transform: "translate(-50%, -50%)",
               width: mu(560),
-              height: mu(870),
+              height: mu(868.8),
             }}
           >
             <div className="glb-float size-full" style={{ perspective: 900 }}>
