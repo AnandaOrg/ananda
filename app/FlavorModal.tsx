@@ -417,7 +417,7 @@ function MobileScene({ f }: { f: Flavor }) {
       <img
         src={f.pattern}
         alt=""
-        className="pointer-events-none absolute left-1/2 -translate-x-1/2"
+        className="pointer-events-none absolute left-1/2 -translate-x-1/2 -translate-y-1/4"
         style={{ top: mu(-107), width: mu(465), height: mu(465) }}
       />
       {/* Top-anchored fruits — the corner decorations along the artboard's top
@@ -675,20 +675,22 @@ export default function FlavorModal({
         onTouchStart={onSwipeTouchStart}
         onTouchEnd={onSwipeTouchEnd}
       >
-        {/* GLB pouch — persistent, centred 386mu above the frame bottom (the
-            measured cap-top→print-bottom span in Product_Santorini_Mobile is
-            98→490, centre 294). The canvas is sized so the fitted model reads
-            ~392mu tall — the visible pouch spans ~41.5% of the canvas height
-            at the default camera. Bobs gently at rest. */}
+        {/* GLB pouch — persistent, centred 418mu above the frame bottom. The
+            canvas is sized so the fitted model reads ~360mu tall (the visible
+            pouch spans ~41.5% of the canvas height at the default camera) —
+            its bottom then clears the INGREDIENTS label at frame y=480 by
+            ~35mu for every flavour. The earlier 386/945 calibration was
+            measured off Product_Santorini_Mobile alone; Kyoto fits the camera
+            taller and its bottom buried the label. Bobs gently at rest. */}
         <div className="absolute inset-0" style={{ pointerEvents: "none", zIndex: 40 }}>
           <div
             style={{
               position: "absolute",
               left: "50%",
-              top: `calc(100% - ${mu(386)})`,
+              top: `calc(100% - ${mu(418)})`,
               transform: "translate(-50%, -50%)",
-              width: mu(607),
-              height: mu(945),
+              width: mu(560),
+              height: mu(870),
             }}
           >
             <div className="glb-float size-full" style={{ perspective: 900 }}>

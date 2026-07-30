@@ -92,6 +92,10 @@ export default async function RootLayout({
     <html
       lang={locale}
       className={`${geistSans.variable} ${geistMono.variable} ${anekKannada.variable} ${ibmPlexMono.variable} ${barlow.variable} ${golosDisplay.variable} ${golosBody.variable} h-full antialiased`}
+      // AgeGate's inline script tags <html> with `.age-ok` during parse (before
+      // hydration) when this tab's session already accepted — an intentional
+      // attribute delta React must leave in place, not warn about.
+      suppressHydrationWarning
     >
       <body className="min-h-full flex flex-col">
         <NextIntlClientProvider>{children}</NextIntlClientProvider>
