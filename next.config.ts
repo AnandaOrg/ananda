@@ -7,17 +7,23 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       {
-        // /public media (images, video, GLB models). Conservative on purpose:
-        // the custom Service Worker (app/sw.js/route.ts) already runtime-caches
-        // these for 24h with deploy-based invalidation via BUILD_ID. A long
-        // immutable max-age here would be honored by the SW's own fetch()
-        // calls too, letting the HTTP cache outlive — and defeat — that 24h
-        // invalidation if a file is ever replaced in place at the same path.
+        // /public media (images, video, GLB models): cached for a year as
+        // immutable, matching Lighthouse's "efficient cache lifetimes"
+        // expectations and actually helping first-time visitors — the SW
+        // (app/sw.js/route.ts) only benefits repeat visits within the same
+        // 24h window, since it hasn't installed yet on a page's own first
+        // load, which is what Lighthouse (and the visitor) sees first.
+        //
+        // SAFE ONLY under this rule: never overwrite a /public asset's
+        // bytes at its existing filename. Renaming the file (or bumping a
+        // `?v=` query on every reference) on any content change is what
+        // makes the immutable cache correct instead of a footgun — without
+        // it, visitors can serve a stale copy for up to a year.
         source: "/:path*.:ext(png|jpe?g|webp|avif|gif|svg|ico|mp4|webm|glb|gltf)",
         headers: [
           {
             key: "Cache-Control",
-            value: "public, max-age=3600, stale-while-revalidate=86400",
+            value: "public, max-age=31536000, immutable",
           },
         ],
       },
