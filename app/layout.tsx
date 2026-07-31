@@ -24,7 +24,11 @@ const organizationJsonLd = {
   name: "ANANDA Cocktails",
   url: SITE_URL,
   logo: `${SITE_URL}/ananda-logo.svg`,
-  sameAs: ["https://www.instagram.com/anandacocktails/"],
+  sameAs: [
+    "https://www.instagram.com/anandacocktails/",
+    "https://www.facebook.com/anandacocktails.eu/",
+    "https://www.linkedin.com/company/ananda-cocktails",
+  ],
 };
 
 export async function generateMetadata(): Promise<Metadata> {

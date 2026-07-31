@@ -15,9 +15,9 @@ function Socials({ scale }: { scale: (n: number) => string }) {
   return (
     <div className="flex items-center" style={{ gap: scale(14) }}>
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src="/m-linkedin.svg" alt="LinkedIn" style={{ width: scale(39), height: scale(39) }} />
+      <a href="https://www.linkedin.com/company/ananda-cocktails" target="_blank" rel="noopener noreferrer"><img src="/m-linkedin.svg" alt="LinkedIn" style={{ width: scale(39), height: scale(39) }} /></a>
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src="/m-facebook.svg" alt="Facebook" style={{ width: scale(39), height: scale(39) }} />
+      <a href="https://www.facebook.com/anandacocktails.eu/" target="_blank" rel="noopener noreferrer"><img src="/m-facebook.svg" alt="Facebook" style={{ width: scale(39), height: scale(39) }} /></a>
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <a href="https://www.instagram.com/anandacocktails/" target="_blank" rel="noopener noreferrer"><img src="/m-instagram.svg" alt="X" style={{ width: scale(39), height: scale(39) }} /></a>
     </div>
