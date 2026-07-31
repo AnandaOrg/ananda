@@ -1,13 +1,93 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono, IBM_Plex_Mono, Barlow } from "next/font/google";
 import localFont from "next/font/local";
 import Script from "next/script";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale } from "next-intl/server";
 import SwRegister from "./SwRegister";
+import { SITE_URL } from "./configs";
 import "./globals.css";
 
 const GA_MEASUREMENT_ID = "G-HBNX982Z9W";
+
+// Only the production deployment should tell crawlers to index — Vercel
+// preview URLs would otherwise compete with the real domain as duplicate
+// content. Mirrors the same check in app/robots.ts.
+const isProduction = process.env.VERCEL_ENV === "production";
+
+const DESCRIPTION =
+  "Premium, bar-strength canned cocktails mixed for the makers, the movers, and the midnight sun. No glass, no pretense — just pure, uninhibited joy, ready wherever you are.";
+
+const organizationJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  name: "ANANDA Cocktails",
+  url: SITE_URL,
+  logo: `${SITE_URL}/ananda-logo.svg`,
+  sameAs: ["https://www.instagram.com/anandacocktails/"],
+};
+
+export async function generateMetadata(): Promise<Metadata> {
+  const locale = await getLocale();
+  const ogLocale = locale === "bg" ? "bg_BG" : "en_US";
+  const alternateOgLocale = locale === "bg" ? "en_US" : "bg_BG";
+  const title = "ANANDA Cocktails — Premium Canned Cocktails";
+
+  return {
+    metadataBase: new URL(SITE_URL),
+    title: {
+      default: title,
+      template: "%s | ANANDA Cocktails",
+    },
+    description: DESCRIPTION,
+    keywords: [
+      "ANANDA Cocktails",
+      "canned cocktails",
+      "ready to drink cocktails",
+      "RTD cocktails",
+      "pouch cocktails",
+      "premium cocktails",
+    ],
+    applicationName: "ANANDA Cocktails",
+    alternates: {
+      canonical: "/",
+    },
+    openGraph: {
+      type: "website",
+      url: "/",
+      siteName: "ANANDA Cocktails",
+      title,
+      description: DESCRIPTION,
+      locale: ogLocale,
+      alternateLocale: alternateOgLocale,
+    },
+    twitter: {
+      card: "summary",
+      title,
+      description: DESCRIPTION,
+    },
+    robots: isProduction
+      ? {
+          index: true,
+          follow: true,
+          googleBot: {
+            index: true,
+            follow: true,
+            "max-image-preview": "large",
+            "max-snippet": -1,
+            "max-video-preview": -1,
+          },
+        }
+      : { index: false, follow: false },
+  };
+}
+
+export const viewport: Viewport = {
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#fff0e5" },
+    { media: "(prefers-color-scheme: dark)", color: "#0a0a0a" },
+  ],
+};
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -79,11 +159,6 @@ const golosBody = localFont({
   ],
 });
 
-export const metadata: Metadata = {
-  title: "ANANDA Cocktails",
-  description: "ANANDA Cocktails",
-};
-
 export default async function RootLayout({
   children,
 }: Readonly<{
@@ -101,6 +176,11 @@ export default async function RootLayout({
       suppressHydrationWarning
     >
       <head>
+        <script
+          type="application/ld+json"
+          // Static, build-time JSON — not user input, so no injection risk.
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
+        />
         <Script
           src={`https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`}
           strategy="afterInteractive"

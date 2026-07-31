@@ -1,5 +1,8 @@
 export const CAROUSEL_AUTOPLAY_SPEED = 10; // px/s
 
+/** Canonical production origin — used for metadataBase, robots.ts, and sitemap.ts. */
+export const SITE_URL = "https://www.anandacocktails.eu";
+
 /**
  * "What we're about" pinned gallery: scroll distance per image, as a fraction of
  * viewport height. Total pinned scroll = count × this × 100vh. Higher = slower,
