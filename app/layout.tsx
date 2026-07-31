@@ -1,10 +1,13 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, IBM_Plex_Mono, Barlow } from "next/font/google";
 import localFont from "next/font/local";
+import Script from "next/script";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale } from "next-intl/server";
 import SwRegister from "./SwRegister";
 import "./globals.css";
+
+const GA_MEASUREMENT_ID = "G-HBNX982Z9W";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -97,6 +100,20 @@ export default async function RootLayout({
       // attribute delta React must leave in place, not warn about.
       suppressHydrationWarning
     >
+      <head>
+        <Script
+          src={`https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`}
+          strategy="afterInteractive"
+        />
+        <Script id="gtag-init" strategy="afterInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', '${GA_MEASUREMENT_ID}');
+          `}
+        </Script>
+      </head>
       <body className="min-h-full flex flex-col">
         <NextIntlClientProvider>{children}</NextIntlClientProvider>
         <SwRegister />
