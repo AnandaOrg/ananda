@@ -3,9 +3,9 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
-  /* Muted terracotta used by the body-copy blocks ("What we're about", the
-     ANANDA statement) — deliberately softer than the brand red #eb4638. */
-  --terracotta: #d15841;
+  /* Used by the body-copy blocks ("What we're about", the ANANDA statement) —
+     matches the brand red #eb4638. */
+  --terracotta: #eb4638;
   /* Composite font stacks. AnekKannada (display) and Barlow (body) ship
      Latin-only glyphs, so the BG locale's Cyrillic falls through per-glyph to
      Golos Text — two size-adjusted faces (layout.tsx) so Cyrillic renders at

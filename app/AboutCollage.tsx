@@ -32,6 +32,10 @@ function maskStyle(src: string, [mw, mh]: [number, number], [mx, my]: [number, n
  * gallery/copy that used to occupy the top of this canvas now live upstream.
  */
 const SHIFT = 900;
+// Extra room below the original 3010 Figma height so KyotoLiftoff's spill can
+// grow into a full-height mound (per design) before this section ends and
+// Pathways begins — matches the WAVE_FLOOR_Y bump in KyotoLiftoff.tsx.
+const EXTRA_H = 170;
 
 export default function AboutCollage() {
   return (
@@ -41,7 +45,7 @@ export default function AboutCollage() {
     >
       <div
         className="relative mx-auto"
-        style={{ ["--u" as string]: "calc(100cqw / 1440)", width: u(1440), height: u(3010 - SHIFT) }}
+        style={{ ["--u" as string]: "calc(100cqw / 1440)", width: u(1440), height: u(3010 + EXTRA_H - SHIFT) }}
       >
         {/* Pineapple — GSAP scroll-scrubbed */}
         <ScrollVideoCanvas

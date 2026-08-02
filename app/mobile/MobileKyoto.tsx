@@ -58,7 +58,7 @@ const VIDEO_SRC = "/videos/kyoto-mobile.mp4";
 // only rises once the wave has fully landed, same read as desktop.
 const SCRUB_SVH = 60; // scroll distance (svh) the pinned choreography scrubs over
 // Stage boundaries, as fractions of the scroll window.
-const FADE_END = 0.3; // video → red background cross-fade completes here
+const FADE_END = 0.22; // video → red background cross-fade completes here — comfortably before ROT_DELAY, so the hand+lemon video is fully gone before any rotation is visible
 const EMERGE_END = 0.35; // pouch fully "out of the video" here
 const ROT_DELAY = 0.3; // rotation only starts once the pouch is mostly out
 // "Come out toward the viewer" pop. The cutout's rest spot now sits exactly
@@ -68,7 +68,11 @@ const ROT_DELAY = 0.3; // rotation only starts once the pouch is mostly out
 const EMERGE_SCALE = 0.8; // ≈ the video pouch's size vs the cutout
 const EMERGE_DX = 0; // no horizontal drift — stays centred on the video twin
 const EMERGE_DY = 0; // no vertical drift on emerge (the lift below still applies)
-const LIFT_MU = 74; // how far (mobile design px) it rises
+const LIFT_MU = 74; // how far (mobile design px) it rises during EMERGE
+// As it tips (keyed to rp, the rotation progress, not raw scroll) the pouch
+// also swings DOWN and OUT — past LIFT_MU's emerge-rise — so the cap clears
+// the rectangle's bottom edge into the cream, per design (desktop 260 × 0.494).
+const TIP_DROP = 128;
 const GROW = 0.12; // extra scale as it pops out
 // Rotation (flat 2-D, deg), scrubbed over the back of the window.
 const ROT_START = 0; // at rest
@@ -87,24 +91,43 @@ const POUCH_Y = "70%";
 // OUT of the cap, then GROWS from that peak (fanning down + out) until its
 // full-width base reaches the seam and laps into Pathways' identical red. The
 // area below the pouch stays cream, so the red spill is clearly visible.
-const WAVE_FLOOR_Y = 559.2; // = old WAVE_TOP(399.5) + WAVE_H(159.7): the seam the base lands on
+// Pushed down 84 (desktop's 170 × 0.494) — measured from the Figma reference:
+// the settled spill's peak should stand tall, a full mound, not the flattened
+// hill the original seam gave it. Growing WAVE_FLOOR_Y also grows this
+// section's own height (see the `height` below), so Pathways naturally gets
+// pushed down to make room — no separate parent height to touch, unlike desktop.
+const WAVE_FLOOR_Y = 643.18;
 const SPILL_OVERLAP = 40; // how far (mobile design px) the base laps past the seam onto Pathways' red
 // Cap (spout) geometry — the pouch's centre plus the cap's rotated offset gives
 // the cap's (x, y) every frame; the spill's peak is pinned there.
 const POUCH_CX = (parseFloat(POUCH_X) / 100) * SCENE_W; // pouch centre x (design px)
 const POUCH_CY = (parseFloat(POUCH_Y) / 100) * SCENE_H; // pouch centre y at rest (design px)
-const CAP_D = 169; // cap-tip distance from the pouch image centre (desktop 342 × 0.494) — nudge to sit on the cap
+const CAP_D = 156; // cap-tip distance from the pouch image centre (desktop 315 × 0.494) — measured from kyoto-image.png's opaque bbox
+// The pouch is CSS-scaled (EMERGE_SCALE→1, then +GROW) as it emerges and tips,
+// which scales the cap's distance from centre too — the cap-tracking math below
+// multiplies CAP_D by the SAME live `scale` each frame so the wave's peak
+// tracks the actual rendered cap, not the unscaled image's.
+// Manual fine-tune on top of the scaled cap-tracking geometry, if still needed
+// after eyeballing in dev (design px, +down).
+const SPILL_Y_PUSH = 0;
 // Spill sizing: `/c-wave.svg`'s peak sits at 42.41% of its width. SPILL_W is
 // wider than the frame so the fanned base fully spans it; its height is geometry
 // (cap → seam), so it always reaches Pathways at full pour.
 const WAVE_PEAK_X = 0.4241; // fraction of the spill width where the pointy peak sits
-const SPILL_W = SCENE_W * 1.7; // fanned spill width (mobile design px) — bigger = spreads wider to the sides
+// Fanned spill width. The peak (WAVE_PEAK_X) sits right-of-centre (the cap
+// swings right as it tips), so the box needs real overhang on the LEFT to
+// still reach the frame edge there — 1.7× is the original, proven value.
+// WAVE_FLOOR_Y above (not this) is what fixes the flattened-mound look.
+const SPILL_W = SCENE_W * 1.7;
 // Settled cap + spill box: computed once at full tip so the spill can live at a
 // FIXED size/position and be driven purely by `transform` (translate + scale) —
 // GPU-composited, so the grow stays smooth (no per-frame layout from resizing).
 const CAP_RAD_SETTLED = (ROT_END * Math.PI) / 180;
-const CAP_X_SETTLED = POUCH_CX + CAP_D * Math.sin(CAP_RAD_SETTLED);
-const CAP_Y_SETTLED = POUCH_CY - LIFT_MU - CAP_D * Math.cos(CAP_RAD_SETTLED);
+const SCALE_SETTLED = 1 + GROW; // pouch's own scale at p=1, emerge=1 (EMERGE_SCALE term → 1)
+const CAP_D_SETTLED = CAP_D * SCALE_SETTLED;
+const CAP_X_SETTLED = POUCH_CX + CAP_D_SETTLED * Math.sin(CAP_RAD_SETTLED);
+const CAP_Y_SETTLED =
+  POUCH_CY - LIFT_MU + TIP_DROP - CAP_D_SETTLED * Math.cos(CAP_RAD_SETTLED) + SPILL_Y_PUSH;
 const SPILL_LEFT = CAP_X_SETTLED - WAVE_PEAK_X * SPILL_W; // fixed box left (design px)
 const SPILL_H = Math.max(0, WAVE_FLOOR_Y + SPILL_OVERLAP - CAP_Y_SETTLED); // fixed box height (cap → past the seam)
 // The pour is keyed to the TIP ANGLE, not raw scroll progress: it only starts
@@ -197,12 +220,15 @@ export default function MobileKyoto() {
       // the spill below, which is keyed to the tip.)
       const rp = smoothstep(clamp((p - ROT_DELAY) / (1 - ROT_DELAY), 0, 1));
       const rot = ROT_START + (ROT_END - ROT_START) * rp;
+      // Shared with the spill block below — the cap-tracking math needs the
+      // SAME scale the pouch itself renders at, since CSS scale() also scales
+      // the cap's distance from the pouch's centre.
+      const emerge = smoothstep(clamp(p / EMERGE_END, 0, 1));
+      const scale = (EMERGE_SCALE + (1 - EMERGE_SCALE) * emerge) * (1 + GROW * p);
       const pouch = pouchRef.current;
       if (pouch) {
-        const emerge = smoothstep(clamp(p / EMERGE_END, 0, 1));
         const dx = EMERGE_DX * (1 - emerge);
-        const dy = EMERGE_DY * (1 - emerge) - LIFT_MU * p;
-        const scale = (EMERGE_SCALE + (1 - EMERGE_SCALE) * emerge) * (1 + GROW * p);
+        const dy = EMERGE_DY * (1 - emerge) - LIFT_MU * p + TIP_DROP * rp;
         pouch.style.opacity = clamp(p / 0.12, 0, 1).toFixed(3);
         pouch.style.transform = `translate(-50%, -50%) translate(calc(var(--mu) * ${dx.toFixed(
           2
@@ -221,15 +247,16 @@ export default function MobileKyoto() {
         const pourProg = smoothstep(
           clamp((rot - POUR_ROT_START) / (ROT_END - POUR_ROT_START), 0, 1)
         );
-        const pourOpacity = clamp(pourProg / 0.1, 0, 1);
         // Cap (spout) position — the fixed spill box is TRANSLATED so its peak
         // stays pinned to the cap as it swings, then SCALED to grow the spill.
         // Both are transform-only, so the motion is GPU-smooth.
         const rad = (rot * Math.PI) / 180;
-        const capX = POUCH_CX + CAP_D * Math.sin(rad);
-        const capY = POUCH_CY - LIFT_MU * p - CAP_D * Math.cos(rad);
+        const capD = CAP_D * scale;
+        const capX = POUCH_CX + capD * Math.sin(rad);
+        const capY = POUCH_CY - LIFT_MU * p + TIP_DROP * rp - capD * Math.cos(rad) + SPILL_Y_PUSH;
         const dx = capX - CAP_X_SETTLED;
         const dy = capY - CAP_Y_SETTLED;
+        const pourOpacity = clamp(pourProg / 0.1, 0, 1);
         spill.style.opacity = pourOpacity.toFixed(3);
         spill.style.transform = `translate(${mu(dx)}, ${mu(dy)}) scale(${pourProg.toFixed(4)})`;
 
@@ -398,20 +425,26 @@ export default function MobileKyoto() {
         </div>
 
         {/* KYOTO pouch — emerges out of the video (fade + grow), then tips
-            over on scroll. It lives in its own clip layer (same bounds as the
-            scene box — the pouch must never escape it mid-rotation) stacked
-            ABOVE the spill, so the cap renders on top of the liquid pouring
-            out of it. */}
+            over on scroll, swinging DOWN and OUT (TIP_DROP) so the cap clears
+            the rectangle's bottom edge into the cream, per design. UNCLIPPED —
+            stacked ABOVE the spill so the cap renders on top of the liquid
+            pouring out of it — the pouch is meant to visibly leave the box
+            both at rest (its natural overhang) and through the whole tip. */}
         <div
-          className="pointer-events-none absolute inset-0 overflow-hidden"
-          style={{ zIndex: 4 }}
+          className="pointer-events-none absolute"
+          style={{ left: 0, top: 0, width: mu(SCENE_W), height: mu(SCENE_H), zIndex: 4 }}
         >
           <div
             ref={pouchRef}
             className="pointer-events-none absolute"
             style={{
-              left: POUCH_X,
-              top: POUCH_Y,
+              // Explicit px (not a %) — this div's positioned ancestor is the
+              // clip layer above, which is taller than SCENE_H (POUCH_OVERHANG);
+              // a percentage top would resolve against THAT height, not SCENE_H,
+              // silently drifting the pouch (and everything the cap-tracking
+              // spill math derives from it) away from where POUCH_CX/CY assume.
+              left: mu(POUCH_CX),
+              top: mu(POUCH_CY),
               width: mu(POUCH_W),
               height: mu(POUCH_W),
               opacity: 0,
