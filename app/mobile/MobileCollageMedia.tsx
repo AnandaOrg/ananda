@@ -6,13 +6,13 @@ import { mu, MU_VAR, maskStyle } from "./scale";
  * Mobile twin of the AboutCollage media (desktop): the scroll-scrubbed
  * pineapple frame sequence and the strawberries looping video (autoplays on
  * load) with their organic masks.
- * Layout per the mobile Figma: the pineapple column hugs and bleeds off the
+ * Layout per the mobile Figma: the pineapple column sits flush against the
  * right edge; the strawberries photo (rotated −90° like desktop so the KYOTO
  * pouch stands upright) sits lower-left. All lengths are desktop values
  * × 0.404 (pineapple) / × 0.308 (strawberries), in `--mu` units. (md:hidden)
  */
 
-const PINE = { left: 266, top: 40, w: 160, h: 320 }; // bleeds ~36 past the 390 frame
+const PINE = { top: 40, w: 160, h: 320 };
 const STRAW = { left: 9, top: 93, w: 231, h: 186 }; // visual (post-rotation) box
 const PAD_BOTTOM = 40;
 const SECTION_H = PINE.top + PINE.h + PAD_BOTTOM;
@@ -31,7 +31,7 @@ export default function MobileCollageMedia() {
           alt="Pineapple slices against a blue sky"
           style={{
             position: "absolute",
-            left: mu(PINE.left),
+            right: 0,
             top: mu(PINE.top),
             width: mu(PINE.w),
             height: mu(PINE.h),

@@ -36,6 +36,10 @@ const SHIFT = 900;
 // grow into a full-height mound (per design) before this section ends and
 // Pathways begins — matches the WAVE_FLOOR_Y bump in KyotoLiftoff.tsx.
 const EXTRA_H = 170;
+// Extra room matching KyotoLiftoff.tsx's SPILL_OVERLAP — the spill's floor
+// now laps 80px past the Pathways seam, and without this the overlap gets
+// clipped by this section's own overflow-hidden instead of reaching Pathways.
+const SPILL_OVERLAP_H = 80;
 
 export default function AboutCollage() {
   return (
@@ -45,7 +49,7 @@ export default function AboutCollage() {
     >
       <div
         className="relative mx-auto"
-        style={{ ["--u" as string]: "calc(100cqw / 1440)", width: u(1440), height: u(3010 + EXTRA_H - SHIFT) }}
+        style={{ ["--u" as string]: "calc(100cqw / 1440)", width: u(1440), height: u(3010 + EXTRA_H + SPILL_OVERLAP_H - SHIFT) }}
       >
         {/* Pineapple — GSAP scroll-scrubbed */}
         <ScrollVideoCanvas
@@ -54,7 +58,7 @@ export default function AboutCollage() {
           alt="Pineapple slices against a blue sky"
           style={{
             position: "absolute",
-            left: u(930.8),
+            right: 0,
             top: u(1008.67 - SHIFT),
             width: u(396.208),
             height: u(792.416),

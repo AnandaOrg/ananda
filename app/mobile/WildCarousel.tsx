@@ -207,7 +207,15 @@ export default function WildCarousel({
     >
       {looped.map((p, i) => (
         <div key={i} className={`relative shrink-0 overflow-hidden ${snapType === "none" ? "" : alignClass}`} style={{ width: slideW, height: slideH }}>
-          <Image src={p.src} alt={p.alt} fill sizes="40vw" draggable={false} className="pointer-events-none object-cover" />
+          <Image
+            src={p.src}
+            alt={p.alt}
+            fill
+            sizes="40vw"
+            draggable={false}
+            className="pointer-events-none object-cover"
+            loading={i === n + Math.min(startIndex, n - 1) ? "eager" : "lazy"}
+          />
         </div>
       ))}
     </div>

@@ -90,6 +90,14 @@ const POUCH_Y = "65%";
 // should stand ~269 design px tall, a full mound, not the flattened ~100px
 // the original seam gave it.
 const WAVE_FLOOR_Y = 1301.643;
+// How far (design px) the base laps PAST the calculated seam onto Pathways'
+// identical red — without this, the spill's floor lands exactly on the
+// seam with zero margin, and any sub-pixel rounding can expose a hairline
+// of AboutCollage's cream behind it. Matches the safety margin
+// MobileKyoto.tsx's WAVE_FLOOR_Y already builds in (its SPILL_OVERLAP = 40,
+// i.e. this value × 0.494). AboutCollage's canvas height grows by the same
+// amount so this overlap isn't clipped by its own overflow-hidden.
+const SPILL_OVERLAP = 80;
 const CANVAS_W = 1440; // AboutCollage's canvas width (design px)
 // Cap (spout) geometry — the pouch's centre plus the cap's rotated offset gives
 // the cap's (x, y) every frame; the spill's peak is pinned there.
@@ -125,7 +133,7 @@ const CAP_X_SETTLED = POUCH_CX + CAP_D_SETTLED * Math.sin(CAP_RAD_SETTLED);
 const CAP_Y_SETTLED =
   POUCH_CY - LIFT_U + TIP_DROP - CAP_D_SETTLED * Math.cos(CAP_RAD_SETTLED) + SPILL_Y_PUSH;
 const SPILL_LEFT = CAP_X_SETTLED - WAVE_PEAK_X * SPILL_W; // fixed box left (wrap coords)
-const SPILL_H = Math.max(0, WAVE_FLOOR_Y - CAP_Y_SETTLED); // fixed box height (cap → seam)
+const SPILL_H = Math.max(0, WAVE_FLOOR_Y + SPILL_OVERLAP - CAP_Y_SETTLED); // fixed box height (cap → past the seam)
 // The pour is keyed to the TIP ANGLE, not raw scroll progress: it only starts
 // once the cap has swung past POUR_ROT_START (≈ pointing down — as close as
 // ROT_END=160 allows) and completes at full tip, so liquid never leaves a cap

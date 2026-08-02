@@ -150,7 +150,7 @@ export default function MobileIntro() {
       const st = ScrollTrigger.create({
         trigger: section,
         start: "top top",
-        end: "+=350%",
+        end: "+=280%",
         pin: true,
         scrub: true,
         anticipatePin: 1,

@@ -102,6 +102,14 @@ export default function VerticalSlider({
 
   // Tracks the visible slide across renders for controlled stepping.
   const curRef = useRef(0);
+  // Controlled stepping: the most recently requested target index, and
+  // whether a transition is currently mid-flight. A burst of `index` changes
+  // (e.g. fast scrolling) never runs more than one tween at a time — the next
+  // step only starts once the in-flight one finishes, straight to whatever
+  // index is current at that moment (no queued catch-up through skipped
+  // intermediates).
+  const pendingIndexRef = useRef(0);
+  const animatingRef = useRef(false);
 
   // Initial stacking: first slide shown, the rest parked off-screen (clipped
   // by overflow:hidden).
@@ -160,91 +168,111 @@ export default function VerticalSlider({
     };
   }, [controlled]);
 
-  // Controlled stepping — animate to `index`, reversible.
+  // Controlled stepping — request a transition to `index`, reversible. Steps
+  // are queued (see `pendingIndexRef`/`animatingRef` above): if one is
+  // already mid-flight, this only updates the pending target; `runStep`'s
+  // `finish()` starts the next one once the current tween(s) actually
+  // complete, so two steps never render on screen at once.
   useEffect(() => {
     if (!controlled) return;
     const els = slideRefs.current.filter((el): el is HTMLDivElement => el !== null);
-    const next = Math.max(0, Math.min(els.length - 1, index ?? 0));
-    const cur = curRef.current;
-    if (next === cur || !els[next] || !els[cur]) return;
+    pendingIndexRef.current = Math.max(0, Math.min(els.length - 1, index ?? 0));
+    if (animatingRef.current) return;
 
-    const curEl = els[cur];
-    const nxtEl = els[next];
-    const forward = next > cur;
+    function runStep() {
+      const els = slideRefs.current.filter((el): el is HTMLDivElement => el !== null);
+      const cur = curRef.current;
+      const next = pendingIndexRef.current;
+      if (next === cur || !els[next] || !els[cur]) return;
 
-    if (revealRef.current) {
-      // Reveal: the current slide never moves. Going forward, the incoming
-      // slide sits on top and is wiped in from the top edge downward (its
-      // bottom inset shrinks to 0). Going back, the current slide is wiped
-      // away downward-to-up to uncover the previous one beneath.
-      if (forward) {
-        gsap.set(nxtEl, { y: "0%", clipPath: "inset(0 0 100% 0)", zIndex: 2 });
+      animatingRef.current = true;
+      const curEl = els[cur];
+      const nxtEl = els[next];
+      const forward = next > cur;
+
+      const finish = () => {
+        curRef.current = next;
+        animatingRef.current = false;
+        if (pendingIndexRef.current !== next) runStep();
+      };
+
+      if (revealRef.current) {
+        // Reveal: the current slide never moves. Going forward, the incoming
+        // slide sits on top and is wiped in from the top edge downward (its
+        // bottom inset shrinks to 0). Going back, the current slide is wiped
+        // away downward-to-up to uncover the previous one beneath.
+        if (forward) {
+          gsap.set(nxtEl, { y: "0%", clipPath: "inset(0 0 100% 0)", zIndex: 2 });
+          gsap.set(curEl, { zIndex: 1 });
+          gsap.to(nxtEl, {
+            clipPath: "inset(0 0 0% 0)",
+            duration: durationRef.current,
+            ease: "power2.inOut",
+            onComplete() { gsap.set(nxtEl, { zIndex: 1 }); gsap.set(curEl, { zIndex: 0 }); finish(); },
+          });
+        } else {
+          gsap.set(nxtEl, { y: "0%", clipPath: "inset(0 0 0% 0)", zIndex: 1 });
+          gsap.set(curEl, { zIndex: 2 });
+          gsap.to(curEl, {
+            clipPath: "inset(0 0 100% 0)",
+            duration: durationRef.current,
+            ease: "power2.inOut",
+            onComplete() { gsap.set(curEl, { zIndex: 0 }); finish(); },
+          });
+        }
+        return;
+      }
+
+      if (conveyorRef.current) {
+        // Conveyor: incoming enters from this step's entry side while the
+        // outgoing keeps moving the same way and exits the opposite side —
+        // both at once, mirroring RitualCards' photo reveal.
+        const entry = forward ? off() : oppositeOff();
+        const exit = forward ? oppositeOff() : off();
+        let remaining = 2;
+        const complete = () => { remaining -= 1; if (remaining === 0) finish(); };
+        gsap.set(nxtEl, { y: entry, zIndex: 2 });
         gsap.set(curEl, { zIndex: 1 });
-        gsap.to(nxtEl, {
-          clipPath: "inset(0 0 0% 0)",
+        gsap.to(nxtEl, { y: "0%", duration: durationRef.current, ease: "power2.inOut", onComplete() { gsap.set(nxtEl, { zIndex: 1 }); complete(); } });
+        gsap.to(curEl, {
+          y: exit,
           duration: durationRef.current,
           ease: "power2.inOut",
-          onComplete() { gsap.set(nxtEl, { zIndex: 1 }); gsap.set(curEl, { zIndex: 0 }); },
+          onComplete() { gsap.set(curEl, { y: entry, zIndex: 0 }); complete(); },
+        });
+        return;
+      }
+
+      if (forward) {
+        // Forward: incoming slides in over the current slide.
+        gsap.set(nxtEl, { y: off(), zIndex: 2 });
+        gsap.to(nxtEl, {
+          y: "0%",
+          duration: durationRef.current,
+          ease: "power2.inOut",
+          onComplete() {
+            gsap.set(curEl, { y: off(), zIndex: 0 });
+            gsap.set(nxtEl, { zIndex: 1 });
+            finish();
+          },
         });
       } else {
-        gsap.set(nxtEl, { y: "0%", clipPath: "inset(0 0 0% 0)", zIndex: 1 });
+        // Reverse: target sits beneath, current moves away to reveal it.
+        gsap.set(nxtEl, { y: "0%", zIndex: 1 });
         gsap.set(curEl, { zIndex: 2 });
         gsap.to(curEl, {
-          clipPath: "inset(0 0 100% 0)",
+          y: off(),
           duration: durationRef.current,
           ease: "power2.inOut",
-          onComplete() { gsap.set(curEl, { zIndex: 0 }); },
+          onComplete() {
+            gsap.set(curEl, { zIndex: 0 });
+            finish();
+          },
         });
       }
-      curRef.current = next;
-      return;
     }
 
-    if (conveyorRef.current) {
-      // Conveyor: incoming enters from this step's entry side while the
-      // outgoing keeps moving the same way and exits the opposite side —
-      // both at once, mirroring RitualCards' photo reveal.
-      const entry = forward ? off() : oppositeOff();
-      const exit = forward ? oppositeOff() : off();
-      gsap.set(nxtEl, { y: entry, zIndex: 2 });
-      gsap.set(curEl, { zIndex: 1 });
-      gsap.to(nxtEl, { y: "0%", duration: durationRef.current, ease: "power2.inOut", onComplete() { gsap.set(nxtEl, { zIndex: 1 }); } });
-      gsap.to(curEl, {
-        y: exit,
-        duration: durationRef.current,
-        ease: "power2.inOut",
-        onComplete() { gsap.set(curEl, { y: entry, zIndex: 0 }); },
-      });
-      curRef.current = next;
-      return;
-    }
-
-    if (forward) {
-      // Forward: incoming slides in over the current slide.
-      gsap.set(nxtEl, { y: off(), zIndex: 2 });
-      gsap.to(nxtEl, {
-        y: "0%",
-        duration: durationRef.current,
-        ease: "power2.inOut",
-        onComplete() {
-          gsap.set(curEl, { y: off(), zIndex: 0 });
-          gsap.set(nxtEl, { zIndex: 1 });
-        },
-      });
-    } else {
-      // Reverse: target sits beneath, current moves away to reveal it.
-      gsap.set(nxtEl, { y: "0%", zIndex: 1 });
-      gsap.set(curEl, { zIndex: 2 });
-      gsap.to(curEl, {
-        y: off(),
-        duration: durationRef.current,
-        ease: "power2.inOut",
-        onComplete() {
-          gsap.set(curEl, { zIndex: 0 });
-        },
-      });
-    }
-    curRef.current = next;
+    runStep();
   }, [index, controlled]);
 
   if (images.length === 0) return null;
