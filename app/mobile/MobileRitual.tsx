@@ -32,7 +32,7 @@ const STEP_MEDIA = [
 const CARD = { w: 342.303, h: 491.887 }; // single card (390-frame units)
 
 const N = STEP_MEDIA.length;
-const HOLD = 3; // seconds the contents rest before the next cycle
+const HOLD = 2; // seconds the contents rest before the next cycle
 const PHOTO_DUR = 0.7; // photo top-to-bottom slide duration
 const TEXT_DUR = 0.6; // text left-to-right reveal duration
 const TEXT_DELAY = 0.15; // reveal starts just after the photo begins moving

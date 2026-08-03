@@ -114,6 +114,19 @@ body {
   display: none;
 }
 
+/* ── Hero scroll cue ──
+   A slow scale+opacity pulse on the icon so the "scroll down" affordance
+   reads as alive without being distracting. */
+@keyframes scroll-cue-pulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.18); opacity: 0.55; }
+}
+
+.scroll-cue-pulse {
+  animation: scroll-cue-pulse 1.8s ease-in-out infinite;
+  transform-origin: center;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .vmg-animate-up,
   .vmg-animate-down {
@@ -125,5 +138,11 @@ body {
   .glb-float,
   .dl-shake {
     animation: none !important;
+  }
+
+  .scroll-cue-pulse {
+    animation: none !important;
+    transform: none !important;
+    opacity: 1 !important;
   }
 }

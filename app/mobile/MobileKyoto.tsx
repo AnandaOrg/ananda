@@ -109,11 +109,11 @@ const CAP_D = 156; // cap-tip distance from the pouch image centre (desktop 315 
 // tracks the actual rendered cap, not the unscaled image's.
 // Manual fine-tune on top of the scaled cap-tracking geometry, if still needed
 // after eyeballing in dev (design px, +down).
-const SPILL_Y_PUSH = 0;
+const SPILL_Y_PUSH = 30;
 // Spill sizing: `/c-wave.svg`'s peak sits at 42.41% of its width. SPILL_W is
 // wider than the frame so the fanned base fully spans it; its height is geometry
 // (cap → seam), so it always reaches Pathways at full pour.
-const WAVE_PEAK_X = 0.4241; // fraction of the spill width where the pointy peak sits
+const WAVE_PEAK_X = 0.4; // fraction of the spill width where the pointy peak sits
 // Fanned spill width. The peak (WAVE_PEAK_X) sits right-of-centre (the cap
 // swings right as it tips), so the box needs real overhang on the LEFT to
 // still reach the frame edge there — 1.7× is the original, proven value.

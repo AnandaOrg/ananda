@@ -67,7 +67,7 @@ const SLOTS = [
 ];
 
 const N = STEP_MEDIA.length; // === SLOTS.length === 3
-const HOLD = 3; // seconds the contents rest before the next cycle
+const HOLD = 2; // seconds the contents rest before the next cycle
 const PHOTO_DUR = 0.7; // photo slide duration
 const TEXT_DUR = 0.6; // text left-to-right reveal duration
 const TEXT_DELAY = 0.15; // reveal starts just after the photo begins moving

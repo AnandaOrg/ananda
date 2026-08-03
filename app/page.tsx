@@ -18,6 +18,7 @@ import MobileRitual from "./mobile/MobileRitual";
 import MobileSocial from "./mobile/MobileSocial";
 import FlavorProvider from "./FlavorProvider";
 import AgeGate from "./AgeGate";
+import ScrollCue from "./ScrollCue";
 
 export default function Home() {
   return (
@@ -52,6 +53,7 @@ export default function Home() {
           className="relative w-[74vw] max-w-[290px] md:w-[clamp(180px,22vw,283px)] md:max-w-none"
           style={{ height: "auto" }}
         />
+        <ScrollCue />
       </section>
 
       {/* Sections 2 + 3 — "Ditch the glass" → "What we're about" as ONE pinned

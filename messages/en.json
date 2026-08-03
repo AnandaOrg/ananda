@@ -1,4 +1,7 @@
 {
+  "splash": {
+    "scrollDown": "Scroll Down"
+  },
   "hero": {
     "eyebrow": "[01] Ditch the glass",
     "line1": "Liquid Bliss.",
