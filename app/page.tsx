@@ -40,8 +40,8 @@ export default function Home() {
             (a fraction of the decode cost), md+ keeps the full 1080p file.
             AmbientVideo pauses the loop while the hero is scrolled away. */}
         <AmbientVideo className="absolute inset-0 h-full w-full object-cover">
-          <source src="/videos/hero-mobile.mp4" media="(max-width: 767px)" />
-          <source src="/videos/hero.mp4" />
+          <source src="/videos/hero-mobile.webm" media="(max-width: 767px)" />
+          <source src="/videos/hero.webm" />
         </AmbientVideo>
         <Image
           src="/ananda-logo.svg"
