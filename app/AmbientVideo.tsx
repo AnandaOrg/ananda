@@ -1,23 +1,33 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 /**
- * A muted, looping, autoplaying <video> that actually plays only while it is
- * near the viewport. Ambient loops (the hero, the strawberries collage clip)
- * otherwise keep decoding frames for the whole session even when they sit
- * several screens away — on phones that is constant CPU/battery drain
- * competing with the scroll-driven animations. Pausing off-screen is
- * invisible: the loop resumes exactly where it left off as it scrolls back in
- * (a generous rootMargin restarts it a beat early).
+ * A muted, looping, autoplaying <video> that only downloads and plays while
+ * it is near the viewport. Ambient loops (the hero, the strawberries collage
+ * clip) otherwise start fetching the instant they mount — via the native
+ * `autoplay` attribute, which browsers honour regardless of CSS visibility —
+ * even for a section's off-breakpoint twin sitting behind `hidden md:block` /
+ * `md:hidden`, or a clip several screens below the fold. Deferring both the
+ * `src`/`<source>` attachment AND playback to the same IntersectionObserver
+ * fixes both: a `display:none` element never reports intersecting, so the
+ * wrong-breakpoint twin never fetches at all, and below-the-fold clips wait
+ * their turn. Resuming is invisible: the loop picks up exactly where it left
+ * off as it scrolls back in (a generous rootMargin starts it a beat early).
  *
  * Drop-in for `<video autoPlay muted loop playsInline>` — pass className /
  * style / src / <source> children through as usual. Plays nicely with
- * AutoplayRescue: its kick only targets videos that have never started, and
- * the 'play' listener below re-pauses one kicked while off screen.
+ * AutoplayRescue: its kick only targets videos that have already started
+ * loading, and the 'play' listener below re-pauses one kicked while off
+ * screen.
  */
-export default function AmbientVideo(props: React.VideoHTMLAttributes<HTMLVideoElement>) {
+export default function AmbientVideo({
+  src,
+  children,
+  ...props
+}: React.VideoHTMLAttributes<HTMLVideoElement>) {
   const ref = useRef<HTMLVideoElement>(null);
+  const [shouldLoad, setShouldLoad] = useState(false);
 
   useEffect(() => {
     const v = ref.current;
@@ -30,7 +40,7 @@ export default function AmbientVideo(props: React.VideoHTMLAttributes<HTMLVideoE
     // may always start programmatically.
     v.muted = true;
     v.defaultMuted = true;
-    let onScreen = true;
+    let onScreen = false;
     // Something else (AutoplayRescue's gesture kick) may start the video while
     // it's off screen — put it straight back to sleep.
     const onPlay = () => {
@@ -40,8 +50,12 @@ export default function AmbientVideo(props: React.VideoHTMLAttributes<HTMLVideoE
     const io = new IntersectionObserver(
       ([entry]) => {
         onScreen = entry.isIntersecting;
-        if (onScreen) v.play().catch(() => {});
-        else v.pause();
+        if (onScreen) {
+          setShouldLoad(true);
+          v.play().catch(() => {});
+        } else {
+          v.pause();
+        }
       },
       { rootMargin: "50% 0px" }
     );
@@ -52,5 +66,19 @@ export default function AmbientVideo(props: React.VideoHTMLAttributes<HTMLVideoE
     };
   }, []);
 
-  return <video ref={ref} autoPlay muted loop playsInline {...props} />;
+  // <source> children (or a src attribute) attached after mount need an
+  // explicit load() before the browser will notice them.
+  useEffect(() => {
+    if (!shouldLoad) return;
+    const v = ref.current;
+    if (!v) return;
+    v.load();
+    v.play().catch(() => {});
+  }, [shouldLoad]);
+
+  return (
+    <video ref={ref} muted loop playsInline preload="none" {...props} src={shouldLoad ? src : undefined}>
+      {shouldLoad ? children : null}
+    </video>
+  );
 }

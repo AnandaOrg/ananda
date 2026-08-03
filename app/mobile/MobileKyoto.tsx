@@ -186,6 +186,17 @@ export default function MobileKyoto() {
       return;
     }
     let raf = 0;
+    // The clip isn't fetched until the first moment it's actually needed —
+    // this scene sits below the fold, so a static `src` attribute would
+    // download it well before the user ever scrolls near it.
+    let srcLoaded = false;
+    const ensureLoaded = () => {
+      const video = videoRef.current;
+      if (srcLoaded || !video) return;
+      srcLoaded = true;
+      video.src = VIDEO_SRC;
+      video.load();
+    };
 
     const update = () => {
       raf = 0;
@@ -205,6 +216,7 @@ export default function MobileKyoto() {
         videoRef.current?.pause();
       } else if (p === 0 && engagedRef.current) {
         engagedRef.current = false;
+        ensureLoaded();
         videoRef.current?.play().catch(() => {});
       }
 
@@ -296,15 +308,20 @@ export default function MobileKyoto() {
     window.addEventListener("scroll", onScroll, { passive: true });
     window.addEventListener("resize", onScroll);
 
-    // Play the loop only while the scene is actually on screen.
+    // Play the loop only while the scene is actually on screen — and don't
+    // even fetch the clip until then.
     let io: IntersectionObserver | undefined;
     const video = videoRef.current;
     if (video) {
       io = new IntersectionObserver(
         ([entry]) => {
           if (engagedRef.current) return;
-          if (entry.isIntersecting) video.play().catch(() => {});
-          else video.pause();
+          if (entry.isIntersecting) {
+            ensureLoaded();
+            video.play().catch(() => {});
+          } else {
+            video.pause();
+          }
         },
         { threshold: 0.25 }
       );
@@ -380,14 +397,12 @@ export default function MobileKyoto() {
         {/* Looping KYOTO video — freezes and cross-fades away as the pouch emerges */}
         <video
           ref={videoRef}
-          src={VIDEO_SRC}
           className="pointer-events-none absolute inset-0 size-full object-cover"
           style={{ opacity: 1, willChange: "opacity" }}
-          autoPlay
           muted
           loop
           playsInline
-          preload="auto"
+          preload="none"
           aria-hidden="true"
         />
 

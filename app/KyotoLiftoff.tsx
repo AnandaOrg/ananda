@@ -91,13 +91,16 @@ const POUCH_Y = "65%";
 // the original seam gave it.
 const WAVE_FLOOR_Y = 1301.643;
 // How far (design px) the base laps PAST the calculated seam onto Pathways'
-// identical red — without this, the spill's floor lands exactly on the
-// seam with zero margin, and any sub-pixel rounding can expose a hairline
-// of AboutCollage's cream behind it. Matches the safety margin
-// MobileKyoto.tsx's WAVE_FLOOR_Y already builds in (its SPILL_OVERLAP = 40,
-// i.e. this value × 0.494). AboutCollage's canvas height grows by the same
-// amount so this overlap isn't clipped by its own overflow-hidden.
-const SPILL_OVERLAP = 80;
+// identical red. AboutCollage's canvas only grows by SPILL_OVERLAP_H = 80
+// (its own separate constant) to accommodate this — deliberately LESS than
+// this value, so the spill's floor lands a real ~20px past AboutCollage's
+// own overflow-hidden clip line (the excess is silently clipped away,
+// harmless, since Pathways' identical red already covers that y-range).
+// Matching the two constants exactly used to leave ~0.18px of margin at the
+// seam — invisible in the math but well under a quarter of a real CSS px at
+// typical widths, so any sub-pixel rounding between AboutCollage's and
+// Pathways' independently-computed `--u` exposed a hairline of cream there.
+const SPILL_OVERLAP = 100;
 const CANVAS_W = 1440; // AboutCollage's canvas width (design px)
 // Cap (spout) geometry — the pouch's centre plus the cap's rotated offset gives
 // the cap's (x, y) every frame; the spill's peak is pinned there.
@@ -190,6 +193,17 @@ export default function KyotoLiftoff({
       return;
     }
     let raf = 0;
+    // The clip isn't fetched until the first moment it's actually needed —
+    // this scene sits below the fold, so a static `src` attribute would
+    // download it well before the user ever scrolls near it.
+    let srcLoaded = false;
+    const ensureLoaded = () => {
+      const video = videoRef.current;
+      if (srcLoaded || !video) return;
+      srcLoaded = true;
+      video.src = VIDEO_SRC;
+      video.load();
+    };
 
     const update = () => {
       raf = 0;
@@ -205,6 +219,7 @@ export default function KyotoLiftoff({
         videoRef.current?.pause();
       } else if (p === 0 && engagedRef.current) {
         engagedRef.current = false;
+        ensureLoaded();
         videoRef.current?.play().catch(() => {});
       }
 
@@ -296,15 +311,21 @@ export default function KyotoLiftoff({
     window.addEventListener("scroll", onScroll, { passive: true });
     window.addEventListener("resize", onScroll);
 
-    // Play the loop only while the scene is actually on screen.
+    // Play the loop only while the scene is actually on screen — and don't
+    // even fetch the clip until then, so the desktop-only wrapper's mobile
+    // twin (display:none, never intersecting) never downloads it.
     let io: IntersectionObserver | undefined;
     const video = videoRef.current;
     if (video) {
       io = new IntersectionObserver(
         ([entry]) => {
           if (engagedRef.current) return;
-          if (entry.isIntersecting) video.play().catch(() => {});
-          else video.pause();
+          if (entry.isIntersecting) {
+            ensureLoaded();
+            video.play().catch(() => {});
+          } else {
+            video.pause();
+          }
         },
         { threshold: 0.25 }
       );
@@ -347,14 +368,12 @@ export default function KyotoLiftoff({
         {/* Looping KYOTO video — freezes and cross-fades away as the pouch emerges */}
         <video
           ref={videoRef}
-          src={VIDEO_SRC}
           className="pointer-events-none absolute inset-0 size-full object-cover"
           style={{ opacity: 1, willChange: "opacity" }}
-          autoPlay
           muted
           loop
           playsInline
-          preload="auto"
+          preload="none"
           aria-hidden="true"
         />
 

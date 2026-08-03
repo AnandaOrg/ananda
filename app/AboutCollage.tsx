@@ -1,3 +1,4 @@
+import AmbientVideo from "./AmbientVideo";
 import ScrollVideoCanvas from "./ScrollVideoCanvas";
 import KyotoLiftoff from "./KyotoLiftoff";
 
@@ -36,9 +37,12 @@ const SHIFT = 900;
 // grow into a full-height mound (per design) before this section ends and
 // Pathways begins — matches the WAVE_FLOOR_Y bump in KyotoLiftoff.tsx.
 const EXTRA_H = 170;
-// Extra room matching KyotoLiftoff.tsx's SPILL_OVERLAP — the spill's floor
-// now laps 80px past the Pathways seam, and without this the overlap gets
-// clipped by this section's own overflow-hidden instead of reaching Pathways.
+// Extra room so the spill's lap past the Pathways seam isn't clipped by this
+// section's own overflow-hidden before it gets there. Deliberately LESS than
+// KyotoLiftoff.tsx's SPILL_OVERLAP (100) — the difference is the real safety
+// margin at the seam; matching the two exactly leaves ~0px of tolerance for
+// sub-pixel rounding between this canvas's and Pathways' independently
+// computed `--u`, which is what exposed a hairline of cream there.
 const SPILL_OVERLAP_H = 80;
 
 export default function AboutCollage() {
@@ -80,13 +84,8 @@ export default function AboutCollage() {
                 ...maskStyle("/m-14.svg", [746.535, 592.314], [0.979, 5.315]),
               }}
             >
-              <video
+              <AmbientVideo
                 src="/videos/kyoto-strawberries.mp4"
-                autoPlay
-                muted
-                loop
-                playsInline
-                preload="auto"
                 aria-label="An ANANDA pouch nestled in fresh strawberries"
                 className="block size-full object-cover"
               />

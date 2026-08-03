@@ -37,6 +37,11 @@ export default function Home() {
 
       {/* Section 1 — splash (shared) */}
       <section className="relative flex h-screen items-center justify-center overflow-hidden">
+        {/* No visible page title anywhere in the design (the logo is an
+            <Image>, not text) — Lighthouse a11y/SEO both expect a single
+            top-level heading, so this one is sr-only: same string as the
+            <title> in layout.tsx, present for screen readers/crawlers only. */}
+        <h1 className="sr-only">ANANDA Cocktails — Premium Canned Cocktails</h1>
         {/* Source picked per breakpoint at load: phones get the 720p encode
             (a fraction of the decode cost), md+ keeps the full 1080p file.
             AmbientVideo pauses the loop while the hero is scrolled away. */}

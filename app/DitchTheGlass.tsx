@@ -15,6 +15,8 @@ const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
 const smooth = (t: number) => t * t * (3 - 2 * t);
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 
+const VIDEO_SRC = "/videos/woman-drinking.mp4";
+
 // Photo #0 is the pour image — the diamond grows and lands as this exact slide,
 // so the hand-off from the traveling image into the gallery is invisible. Then
 // continued scrolling steps through the remaining hero_3 photos.
@@ -157,6 +159,14 @@ export default function DitchTheGlass() {
 
     const mm = gsap.matchMedia();
     mm.add("(min-width: 768px) and (prefers-reduced-motion: no-preference)", () => {
+      // Only the desktop, motion-enabled variant ever plays this scene, so
+      // only it should ever fetch the clip — attaching `src` here (instead of
+      // as a static JSX attribute) means the mobile twin's `hidden md:block`
+      // wrapper actually stops the download, not just the paint.
+      if (video && !video.src) {
+        video.src = VIDEO_SRC;
+        video.load();
+      }
       const st = ScrollTrigger.create({
         trigger: section,
         start: "top top",
@@ -275,11 +285,10 @@ export default function DitchTheGlass() {
       >
         <div ref={innerRef} className="absolute inset-0" style={{ willChange: "transform" }}>
           <video
-            src="/videos/woman-drinking.mp4"
-            autoPlay
             muted
             loop
             playsInline
+            preload="none"
             aria-hidden="true"
             className="absolute inset-0 h-full w-full object-cover"
           />
