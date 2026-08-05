@@ -50,7 +50,8 @@
     "ingredients": "Ingredients",
     "close": "Close",
     "prev": "Previous flavour",
-    "next": "Next flavour"
+    "next": "Next flavour",
+    "autoClosing": "All flavours viewed — closing"
   },
   "ageGate": {
     "title": "18+?",

@@ -13,7 +13,7 @@ gsap.registerPlugin(ScrollTrigger);
  * Mobile section — "The RITUAL". Unlike the desktop `RitualCards` fan, the
  * mobile design shows a single static card. The card enters once on scroll
  * (0.85s power3.out fade/scale, ScrollTrigger start "top 85%", once), then the
- * step contents cycle through it every 3s with the same effects as desktop:
+ * step contents cycle through it every 2s with the same effects as desktop:
  * the incoming photo slides in top-to-bottom (conveyor style) and the
  * title/label/caption wipe in left → right (clip-path).
  * Respects prefers-reduced-motion: card drops in static, no cycling.
@@ -32,9 +32,9 @@ const STEP_MEDIA = [
 const CARD = { w: 342.303, h: 491.887 }; // single card (390-frame units)
 
 const N = STEP_MEDIA.length;
-const HOLD = 2; // seconds the contents rest before the next cycle
-const PHOTO_DUR = 0.7; // photo top-to-bottom slide duration
-const TEXT_DUR = 0.6; // text left-to-right reveal duration
+const HOLD = 1.4; // seconds the contents rest before the next cycle
+const PHOTO_DUR = 0.6; // photo top-to-bottom slide duration
+const TEXT_DUR = 0.5; // text left-to-right reveal duration
 const TEXT_DELAY = 0.15; // reveal starts just after the photo begins moving
 
 // Left→right wipe. Top/bottom insets are negative so the clip rectangle extends

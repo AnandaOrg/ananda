@@ -29,6 +29,11 @@
   }
 }
 
+html,
+body {
+  overflow-x: hidden;
+}
+
 body {
   background: var(--background);
   color: var(--foreground);
@@ -115,16 +120,102 @@ body {
 }
 
 /* ── Hero scroll cue ──
-   A slow scale+opacity pulse on the icon so the "scroll down" affordance
-   reads as alive without being distracting. */
-@keyframes scroll-cue-pulse {
-  0%, 100% { transform: scale(1); opacity: 1; }
-  50% { transform: scale(1.18); opacity: 0.55; }
+   1:1 port of hexagoncircle's "CSS Site Scroll Micro Animation"
+   (https://codepen.io/hexagoncircle/pen/aZWOdE): a two-half SVG outline
+   that erases and redraws, a trackball dot that slides/shrinks/fades, and
+   a nudging label — three cycles per 5.5s loop. Keyframe timing and path
+   geometry are the pen's own values; only the color is ported (white →
+   this site's cream, #fff0e5). stroke-dasharray is pulled out of the
+   keyframes into a static rule below since the pen never animates it. */
+@keyframes scroll-cue-nudge-mouse {
+  0% { transform: translateY(0); }
+  22% { transform: translateY(0); }
+  38% { transform: translateY(9px); }
+  48% { transform: translateY(0); }
+  64% { transform: translateY(9px); }
+  74% { transform: translateY(0); }
+  90% { transform: translateY(9px); }
+  100% { transform: translateY(0); }
 }
 
-.scroll-cue-pulse {
-  animation: scroll-cue-pulse 1.8s ease-in-out infinite;
-  transform-origin: center;
+@keyframes scroll-cue-nudge-text {
+  0% { transform: translateY(0) scaleY(1); opacity: 1; }
+  22% { transform: translateY(0) scaleY(1); opacity: 1; }
+  38% { transform: translateY(5px) scaleY(0.9); opacity: 0.5; }
+  48% { transform: translateY(0) scaleY(1); opacity: 1; }
+  64% { transform: translateY(5px) scaleY(0.9); opacity: 0.5; }
+  74% { transform: translateY(0) scaleY(1); opacity: 1; }
+  90% { transform: translateY(5px) scaleY(0.9); opacity: 0.5; }
+  100% { transform: translateY(0) scaleY(1); opacity: 1; }
+}
+
+@keyframes scroll-cue-track {
+  0% { transform: translateY(20px) scale(1); opacity: 1; }
+  22% { transform: translateY(20px) scale(1); opacity: 1; }
+  26% { transform: translateY(30px) scale(0.9); opacity: 1; }
+  34% { transform: translateY(55px) scale(0.1); opacity: 0; }
+  41% { transform: translateY(30px) scale(0); opacity: 0.3; }
+  48% { transform: translateY(20px) scale(1); opacity: 1; }
+  52% { transform: translateY(30px) scale(0.9); opacity: 1; }
+  60% { transform: translateY(55px) scale(0.1); opacity: 0; }
+  67% { transform: translateY(30px) scale(0); opacity: 0.3; }
+  74% { transform: translateY(20px) scale(1); opacity: 1; }
+  78% { transform: translateY(30px) scale(0.9); opacity: 1; }
+  86% { transform: translateY(55px) scale(0.1); opacity: 0; }
+  93% { transform: translateY(30px) scale(0); opacity: 0.3; }
+  100% { transform: translateY(20px) scale(1); opacity: 1; }
+}
+
+@keyframes scroll-cue-draw {
+  0% { stroke-dashoffset: 0; stroke-opacity: 1; }
+  22% { stroke-dashoffset: 0; stroke-opacity: 1; }
+  38% { stroke-dashoffset: 125; stroke-opacity: 1; }
+  38.1% { stroke-dashoffset: 0; stroke-opacity: 0; }
+  48% { stroke-dashoffset: 0; stroke-opacity: 1; }
+  64% { stroke-dashoffset: 125; stroke-opacity: 1; }
+  64.1% { stroke-dashoffset: 0; stroke-opacity: 0; }
+  74% { stroke-dashoffset: 0; stroke-opacity: 1; }
+  90% { stroke-dashoffset: 125; stroke-opacity: 1; }
+  90.1% { stroke-dashoffset: 0; stroke-opacity: 0; }
+  100% { stroke-dashoffset: 0; stroke-opacity: 1; }
+}
+
+@keyframes scroll-cue-draw-back {
+  0% { stroke-dashoffset: 0; stroke-opacity: 1; }
+  22% { stroke-dashoffset: 0; stroke-opacity: 1; }
+  38% { stroke-dashoffset: -114; stroke-opacity: 1; }
+  38.1% { stroke-dashoffset: 0; stroke-opacity: 0; }
+  48% { stroke-dashoffset: 0; stroke-opacity: 1; }
+  64% { stroke-dashoffset: -114; stroke-opacity: 1; }
+  64.1% { stroke-dashoffset: 0; stroke-opacity: 0; }
+  74% { stroke-dashoffset: 0; stroke-opacity: 1; }
+  90% { stroke-dashoffset: -114; stroke-opacity: 1; }
+  90.1% { stroke-dashoffset: 0; stroke-opacity: 0; }
+  100% { stroke-dashoffset: 0; stroke-opacity: 1; }
+}
+
+.scroll-cue-icon {
+  animation: scroll-cue-nudge-mouse 5.5s ease-out infinite;
+}
+
+.scroll-cue-label {
+  display: inline-block;
+  animation: scroll-cue-nudge-text 5.5s ease-out infinite;
+}
+
+.scroll-cue-dot {
+  transform: translateY(20px);
+  animation: scroll-cue-track 5.5s linear infinite;
+}
+
+.scroll-cue-draw-left {
+  stroke-dasharray: 120;
+  animation: scroll-cue-draw 5.5s ease-out infinite;
+}
+
+.scroll-cue-draw-right {
+  stroke-dasharray: 120;
+  animation: scroll-cue-draw-back 5.5s ease-out infinite;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -140,9 +231,23 @@ body {
     animation: none !important;
   }
 
-  .scroll-cue-pulse {
+  .scroll-cue-icon,
+  .scroll-cue-label {
     animation: none !important;
     transform: none !important;
     opacity: 1 !important;
+  }
+
+  .scroll-cue-dot {
+    animation: none !important;
+    transform: translateY(20px) !important;
+    opacity: 1 !important;
+  }
+
+  .scroll-cue-draw-left,
+  .scroll-cue-draw-right {
+    animation: none !important;
+    stroke-dashoffset: 0 !important;
+    stroke-opacity: 1 !important;
   }
 }

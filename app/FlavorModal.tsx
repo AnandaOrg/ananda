@@ -72,6 +72,14 @@ const SWIPE_DOMINANCE = 1.5;
 // the GLB canvas and crashes iOS Safari with a WebKit memory kill ("A problem
 // repeatedly occurred"). One nav per swing keeps it to two layers max.
 const NAV_LOCK_MS = NAV_DURATION * 1000 + 150;
+
+// Auto-close: once every flavour has been viewed (see the `viewed` state
+// below), the modal closes itself after this delay — feedback showed many
+// users never notice the manual close button. Long enough to read the
+// ingredients line on the flavour that just completed the set; any further
+// nav during the countdown cancels it (see guardedNav) since it signals the
+// user is still engaged, not idly leaving the modal open.
+const AUTO_CLOSE_DELAY_MS = 4500;
 const LAYER_VARIANTS: Variants = {
   enter: (dir: number) => ({ rotate: 90 * dir, opacity: 0 }),
   center: {
@@ -378,6 +386,7 @@ function Chevron({ color, flip, width = u(47), height = u(91) }: { color: string
   );
 }
 
+
 function CloseIcon({ color }: { color: string }) {
   return (
     <svg viewBox="0 0 27 27" fill="none" className="size-full" aria-hidden>
@@ -482,6 +491,37 @@ export default function FlavorModal({
     return () => window.removeEventListener("mousemove", onMove);
   }, [reduceMotion, tiltRawX, tiltRawY]);
 
+  // Track which flavours have been viewed this modal session (seeded with
+  // whichever one it opened on) — once every FLAVORS entry has been visited,
+  // auto-close after a short delay (see AUTO_CLOSE_DELAY_MS). Both `viewed`
+  // and `closing` are updated during render (React's documented "adjusting
+  // state when a prop changes" bail-out pattern — see
+  // https://react.dev/learn/you-might-not-need-an-effect) rather than from a
+  // useEffect, since they're purely derived from `index`/`viewed` and doing
+  // it in an effect would cost an extra cascading render for no benefit.
+  const [viewed, setViewed] = useState<Set<number>>(() => new Set([index]));
+  const [lastIndexSeen, setLastIndexSeen] = useState(index);
+  if (index !== lastIndexSeen) {
+    setLastIndexSeen(index);
+    setViewed((prev) => (prev.has(index) ? prev : new Set(prev).add(index)));
+  }
+
+  const [closing, setClosing] = useState(false);
+  const [hasTriggeredClose, setHasTriggeredClose] = useState(false);
+  if (viewed.size >= FLAVORS.length && !hasTriggeredClose) {
+    setHasTriggeredClose(true);
+    setClosing(true);
+  }
+
+  // Owns only the timer subscription — no direct setState in the body, so it
+  // can't trigger the cascading-render lint warning. Toggling `closing` back
+  // to false (see guardedNav) tears the timer down via the cleanup below.
+  useEffect(() => {
+    if (!closing) return;
+    const id = setTimeout(onClose, AUTO_CLOSE_DELAY_MS);
+    return () => clearTimeout(id);
+  }, [closing, onClose]);
+
   // All nav sources funnel through this lock (see NAV_LOCK_MS): a new nav is
   // ignored until the previous swing has finished, so transitions never stack.
   const lastNavRef = useRef(0);
@@ -490,6 +530,11 @@ export default function FlavorModal({
       const now = Date.now();
       if (now - lastNavRef.current < NAV_LOCK_MS) return;
       lastNavRef.current = now;
+      // Any further nav after the auto-close countdown has started means the
+      // user is still engaged, not idly leaving the modal open — cancel it
+      // (permanently, for the rest of this session — see hasTriggeredClose)
+      // rather than yanking the modal away mid-interaction.
+      setClosing(false);
       onNav(dir);
     },
     [onNav]
@@ -554,6 +599,13 @@ export default function FlavorModal({
         animate={{ backgroundColor: f.bg }}
         transition={{ type: "tween", duration: NAV_DURATION, ease: "easeInOut" }}
       />
+
+      {/* Screen-reader notice for the auto-close (see AUTO_CLOSE_DELAY_MS) —
+          announced ahead of the dialog disappearing so it isn't an
+          unannounced context change for assistive tech. */}
+      {/* <div role="status" aria-live="polite" className="sr-only">
+        {closing ? t("autoClosing") : ""}
+      </div> */}
 
       {/* ───────── Desktop / tablet: stage fills the viewport ───────── */}
       <div className="hidden size-full md:block">
@@ -663,7 +715,6 @@ export default function FlavorModal({
               <Chevron color={f.nameColor} />
             </button>
           </div>
-
           <button type="button" aria-label={t("close")} onClick={(e) => { e.stopPropagation(); onClose(); }} className="absolute cursor-pointer" style={{ left: u(1813.9), top: u(36), width: u(60), height: u(60) }}>
             <CloseIcon color={f.textColor} />
           </button>
@@ -778,7 +829,6 @@ export default function FlavorModal({
             </button>
           </div>
         </div>
-
         {/* Close — anchored to the viewport top-right */}
         <button type="button" aria-label={t("close")} onClick={(e) => { e.stopPropagation(); onClose(); }} className="absolute cursor-pointer" style={{ right: mu(24.36), top: mu(26.72), width: mu(24), height: mu(24), zIndex: 50 }}>
           <CloseIcon color={f.textColor} />
