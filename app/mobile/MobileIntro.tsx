@@ -73,8 +73,13 @@ const GALLERY_H_SVH = 0.56;
 const muPx = (n: number, vw: number) => (n / 390) * vw;
 
 // Choreography boundaries (fractions of the pin's scroll progress).
-const GROW_END = 0.35; // diamond finishes rotating + growing here
-const HANDOFF = 0.34; // gallery becomes visible just before the diamond hides
+// GROW_END was 0.35 of a 280%-long pin (0.98 of a viewport-height of scroll)
+// — 30% quicker on mobile means that rotation+grow now only takes 0.7× that
+// scroll distance (0.686vh). The pin's own length (`end` below) is trimmed by
+// the same 0.294vh saved, so the gallery hand-off/step-through phase keeps
+// its original absolute scroll pacing — only the rotation got shorter.
+const GROW_END = 0.2737; // diamond finishes rotating + growing here
+const HANDOFF = 0.2637; // gallery becomes visible just before the diamond hides
 
 export default function MobileIntro() {
   const t = useTranslations("hero");
@@ -150,7 +155,7 @@ export default function MobileIntro() {
       const st = ScrollTrigger.create({
         trigger: section,
         start: "top top",
-        end: "+=280%",
+        end: "+=250.6%", // 280% minus the 29.4% (0.294vh) trimmed from the rotation above
         pin: true,
         scrub: true,
         anticipatePin: 1,

@@ -56,7 +56,7 @@ const VIDEO_SRC = "/videos/kyoto-mobile.mp4";
 // the viewport bottom) and the whole choreography scrubs over this much
 // scroll. Nothing pours "onto" a red that's already there — the red section
 // only rises once the wave has fully landed, same read as desktop.
-const SCRUB_SVH = 60; // scroll distance (svh) the pinned choreography scrubs over
+const SCRUB_SVH = 3; // scroll distance (svh) the pinned choreography scrubs over
 // Stage boundaries, as fractions of the scroll window.
 const FADE_END = 0.22; // video → red background cross-fade completes here — comfortably before ROT_DELAY, so the hand+lemon video is fully gone before any rotation is visible
 const EMERGE_END = 0.35; // pouch fully "out of the video" here
@@ -362,13 +362,19 @@ export default function MobileKyoto() {
     >
       {/* Pinned stage — sticks with its base (the Pathways seam) on the
           viewport bottom while the choreography scrubs, so the red section
-          below can't appear until the pour has fully landed. 100dvh (not svh)
-          so the base hugs the true viewport edge even with the URL bar
-          collapsed — an svh top would float the seam up and leak red below. */}
+          below can't appear until the pour has fully landed. `bottom-0` (not
+          a `top: calc(100dvh - H)` offset) so the browser flushes the base to
+          the CURRENT viewport bottom natively — no dvh arithmetic on our side
+          to drift out of sync with the section's svh-sized scrub buffer below.
+          (A `top` offset computed from dvh grows as the URL bar auto-collapses
+          mid-scroll, but the svh-sized container never does — once dvh outgrew
+          svh, the browser capped the stuck position at the container's
+          too-short bound instead of the true viewport bottom, leaking a cream
+          gap below the settled wave before Pathways appeared.) */}
       <div
         ref={stageRef}
-        className="sticky w-full"
-        style={{ top: `calc(100dvh - ${mu(WAVE_FLOOR_Y)})`, height: mu(WAVE_FLOOR_Y) }}
+        className="sticky bottom-0 w-full"
+        style={{ height: mu(WAVE_FLOOR_Y) }}
       >
       {/* Scene box — the video / pouch stage */}
       <div
