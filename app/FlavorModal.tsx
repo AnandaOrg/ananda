@@ -81,7 +81,7 @@ const NAV_LOCK_MS = NAV_DURATION * 1000 + 150;
 // user is still engaged, not idly leaving the modal open. Mobile skips the
 // pause entirely — swiping through all four is itself the "I'm done"
 // signal there, so it closes the instant the last one is viewed.
-const AUTO_CLOSE_DELAY_MS = 4500;
+const AUTO_CLOSE_DELAY_MS = 2000;
 const AUTO_CLOSE_DELAY_MS_MOBILE = 2000;
 const LAYER_VARIANTS: Variants = {
   enter: (dir: number) => ({ rotate: 90 * dir, opacity: 0 }),
