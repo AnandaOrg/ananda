@@ -32,10 +32,10 @@ const STEP_MEDIA = [
 const CARD = { w: 342.303, h: 491.887 }; // single card (390-frame units)
 
 const N = STEP_MEDIA.length;
-const HOLD = 1.4; // seconds the contents rest before the next cycle
-const PHOTO_DUR = 0.6; // photo top-to-bottom slide duration
-const TEXT_DUR = 0.5; // text left-to-right reveal duration
-const TEXT_DELAY = 0.15; // reveal starts just after the photo begins moving
+const HOLD = 1.3; // seconds the contents rest before the next cycle
+const PHOTO_DUR = 0.5; // photo top-to-bottom slide duration
+const TEXT_DUR = 0.4; // text left-to-right reveal duration
+const TEXT_DELAY = 0.14; // reveal starts just after the photo begins moving
 
 // Left→right wipe. Top/bottom insets are negative so the clip rectangle extends
 // beyond the text box vertically — otherwise the tight line-height 0.8 title

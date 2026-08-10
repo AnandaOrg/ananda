@@ -7,6 +7,7 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 import AboutCopyBlock from "./AboutCopyBlock";
 import VerticalSlider from "./VerticalSlider";
 import { ABOUT_CARD } from "./configs";
+import { attachLockedGalleryStepper } from "./lockedGalleryStepper";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -16,6 +17,12 @@ const smooth = (t: number) => t * t * (3 - 2 * t);
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 
 const VIDEO_SRC = "/videos/woman-drinking.mp4";
+
+// Where the gallery-stepping phase begins (the pour hand-off is fully
+// resolved by here — `handoff` above reaches 1 at prog 0.32 + 0.06).
+// A fast scroll/fling is capped to one gallery slide at a time past this
+// point — see lockedGalleryStepper.ts.
+const GALLERY_STEP_START = 0.38;
 
 // Photo #0 is the pour image — the diamond grows and lands as this exact slide,
 // so the hand-off from the traveling image into the gallery is invisible. Then
@@ -149,8 +156,14 @@ export default function DitchTheGlass() {
       gallery.style.opacity = handoff > 0 ? "1" : "0";
       gallery.style.clipPath = `inset(0 0 ${(1 - handoff) * 100}% 0)`;
 
-      // step the gallery through its photos over the rest of the pin
-      const step = clamp(Math.floor(((prog - 0.38) / 0.62) * PHOTOS.length), 0, PHOTOS.length - 1);
+      // step the gallery through its photos over the rest of the pin — how
+      // fast `prog` is allowed to move through this stretch is capped by
+      // attachLockedGalleryStepper below, so this stays a plain derivation.
+      const step = clamp(
+        Math.floor(((prog - GALLERY_STEP_START) / (1 - GALLERY_STEP_START)) * PHOTOS.length),
+        0,
+        PHOTOS.length - 1,
+      );
       if (step !== indexRef.current) {
         indexRef.current = step;
         setIndex(step);
@@ -178,7 +191,12 @@ export default function DitchTheGlass() {
       });
       measure();
       render(st.progress);
-      return () => st.kill();
+      const detachStepper = attachLockedGalleryStepper({
+        trigger: st,
+        boundary: GALLERY_STEP_START,
+        count: PHOTOS.length,
+      });
+      return () => { detachStepper(); st.kill(); };
     });
 
     // Reduced motion: no pin/scroll-hijack — show the landed "about" layout
