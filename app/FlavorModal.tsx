@@ -78,8 +78,11 @@ const NAV_LOCK_MS = NAV_DURATION * 1000 + 150;
 // users never notice the manual close button. Long enough to read the
 // ingredients line on the flavour that just completed the set; any further
 // nav during the countdown cancels it (see guardedNav) since it signals the
-// user is still engaged, not idly leaving the modal open.
+// user is still engaged, not idly leaving the modal open. Mobile skips the
+// pause entirely — swiping through all four is itself the "I'm done"
+// signal there, so it closes the instant the last one is viewed.
 const AUTO_CLOSE_DELAY_MS = 4500;
+const AUTO_CLOSE_DELAY_MS_MOBILE = 2000;
 const LAYER_VARIANTS: Variants = {
   enter: (dir: number) => ({ rotate: 90 * dir, opacity: 0 }),
   center: {
@@ -518,7 +521,8 @@ export default function FlavorModal({
   // to false (see guardedNav) tears the timer down via the cleanup below.
   useEffect(() => {
     if (!closing) return;
-    const id = setTimeout(onClose, AUTO_CLOSE_DELAY_MS);
+    const isMobile = window.matchMedia("(max-width: 767px)").matches;
+    const id = setTimeout(onClose, isMobile ? AUTO_CLOSE_DELAY_MS_MOBILE : AUTO_CLOSE_DELAY_MS);
     return () => clearTimeout(id);
   }, [closing, onClose]);
 
