@@ -19,7 +19,7 @@ function Socials({ scale }: { scale: (n: number) => string }) {
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <a href="https://www.facebook.com/anandacocktails.eu/" target="_blank" rel="noopener noreferrer"><img src="/m-facebook.svg" alt="Facebook" style={{ width: scale(39), height: scale(39) }} /></a>
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <a href="https://www.instagram.com/anandacocktails/" target="_blank" rel="noopener noreferrer"><img src="/m-instagram.svg" alt="X" style={{ width: scale(39), height: scale(39) }} /></a>
+      <a href="https://www.instagram.com/ananda_cocktails_bg/" target="_blank" rel="noopener noreferrer"><img src="/m-instagram.svg" alt="X" style={{ width: scale(39), height: scale(39) }} /></a>
     </div>
   );
 }

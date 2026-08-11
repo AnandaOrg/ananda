@@ -28,7 +28,7 @@ const organizationJsonLd = {
   url: SITE_URL,
   logo: `${SITE_URL}/ananda-logo.svg`,
   sameAs: [
-    "https://www.instagram.com/anandacocktails/",
+    "https://www.instagram.com/ananda_cocktails_bg/",
     "https://www.facebook.com/anandacocktails.eu/",
     "https://www.linkedin.com/company/ananda-cocktails",
   ],

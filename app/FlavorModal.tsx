@@ -75,14 +75,11 @@ const NAV_LOCK_MS = NAV_DURATION * 1000 + 150;
 
 // Auto-close: once every flavour has been viewed (see the `viewed` state
 // below), the modal closes itself after this delay — feedback showed many
-// users never notice the manual close button. Long enough to read the
-// ingredients line on the flavour that just completed the set; any further
-// nav during the countdown cancels it (see guardedNav) since it signals the
-// user is still engaged, not idly leaving the modal open. Mobile skips the
-// pause entirely — swiping through all four is itself the "I'm done"
-// signal there, so it closes the instant the last one is viewed.
-const AUTO_CLOSE_DELAY_MS = 2000;
-const AUTO_CLOSE_DELAY_MS_MOBILE = 2000;
+// users never notice the manual close button. Short enough to read as
+// automatic rather than a stall; any further nav during the countdown
+// cancels it (see guardedNav) since it signals the user is still engaged,
+// not idly leaving the modal open. Same on mobile and desktop.
+const AUTO_CLOSE_DELAY_MS = 1200;
 const LAYER_VARIANTS: Variants = {
   enter: (dir: number) => ({ rotate: 90 * dir, opacity: 0 }),
   center: {
@@ -495,36 +492,31 @@ export default function FlavorModal({
   }, [reduceMotion, tiltRawX, tiltRawY]);
 
   // Track which flavours have been viewed this modal session (seeded with
-  // whichever one it opened on) — once every FLAVORS entry has been visited,
-  // auto-close after a short delay (see AUTO_CLOSE_DELAY_MS). Both `viewed`
-  // and `closing` are updated during render (React's documented "adjusting
-  // state when a prop changes" bail-out pattern — see
+  // whichever one it opened on). `viewed` is updated during render (React's
+  // documented "adjusting state when a prop changes" bail-out pattern — see
   // https://react.dev/learn/you-might-not-need-an-effect) rather than from a
-  // useEffect, since they're purely derived from `index`/`viewed` and doing
-  // it in an effect would cost an extra cascading render for no benefit.
+  // useEffect, since it's purely derived from `index` and doing it in an
+  // effect would cost an extra cascading render for no benefit.
   const [viewed, setViewed] = useState<Set<number>>(() => new Set([index]));
   const [lastIndexSeen, setLastIndexSeen] = useState(index);
   if (index !== lastIndexSeen) {
     setLastIndexSeen(index);
     setViewed((prev) => (prev.has(index) ? prev : new Set(prev).add(index)));
   }
+  const closing = viewed.size >= FLAVORS.length;
 
-  const [closing, setClosing] = useState(false);
-  const [hasTriggeredClose, setHasTriggeredClose] = useState(false);
-  if (viewed.size >= FLAVORS.length && !hasTriggeredClose) {
-    setHasTriggeredClose(true);
-    setClosing(true);
-  }
-
-  // Owns only the timer subscription — no direct setState in the body, so it
-  // can't trigger the cascading-render lint warning. Toggling `closing` back
-  // to false (see guardedNav) tears the timer down via the cleanup below.
+  // Once every flavour has been viewed, auto-close AUTO_CLOSE_DELAY_MS after
+  // the most recent nav — `index` in the dependency array restarts the timer
+  // on every further nav (any nav "signals the user is still engaged"), so it
+  // fires only once navigation actually stops, however many navs that takes.
+  // `viewed` only grows, so once `closing` goes true it stays true — unlike
+  // an earlier one-shot-latch version of this, a later nav can delay the
+  // close but can never disable it for the rest of the session.
   useEffect(() => {
     if (!closing) return;
-    const isMobile = window.matchMedia("(max-width: 767px)").matches;
-    const id = setTimeout(onClose, isMobile ? AUTO_CLOSE_DELAY_MS_MOBILE : AUTO_CLOSE_DELAY_MS);
+    const id = setTimeout(onClose, AUTO_CLOSE_DELAY_MS);
     return () => clearTimeout(id);
-  }, [closing, onClose]);
+  }, [closing, index, onClose]);
 
   // All nav sources funnel through this lock (see NAV_LOCK_MS): a new nav is
   // ignored until the previous swing has finished, so transitions never stack.
@@ -534,11 +526,6 @@ export default function FlavorModal({
       const now = Date.now();
       if (now - lastNavRef.current < NAV_LOCK_MS) return;
       lastNavRef.current = now;
-      // Any further nav after the auto-close countdown has started means the
-      // user is still engaged, not idly leaving the modal open — cancel it
-      // (permanently, for the rest of this session — see hasTriggeredClose)
-      // rather than yanking the modal away mid-interaction.
-      setClosing(false);
       onNav(dir);
     },
     [onNav]

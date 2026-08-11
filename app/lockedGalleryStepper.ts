@@ -4,74 +4,79 @@ import type { ScrollTrigger } from "gsap/ScrollTrigger";
 
 gsap.registerPlugin(ScrollToPlugin);
 
-const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
-
 export interface LockedGalleryStepperOptions {
   /** The already-created scrubbed ScrollTrigger driving this section's pin. */
   trigger: ScrollTrigger;
   /** Fraction of the pin's progress where the gallery-stepping phase begins. */
   boundary: number;
-  /** Number of gallery slides stepped through between `boundary` and progress 1. */
+  /** Number of gallery slides stepped through once in the zone. */
   count: number;
-  /** Seconds the scroll-position jump between slides takes. */
-  jumpDuration?: number;
-  /** Seconds input is swallowed after a jump, so each slide is seen before the next can trigger. */
+  /** Current slide index — read fresh on every gesture, never cached. */
+  getIndex: () => number;
+  /** Called with the next index when a gesture advances/retreats a slide. */
+  onStep: (index: number) => void;
+  /** Seconds input is swallowed after a step, so each slide is seen before the next can trigger. */
   lockDuration?: number;
+  /** Seconds the release jump (past the first/last slide) takes. */
+  releaseDuration?: number;
   /** Minimum vertical touch drag (px) that counts as one gesture. */
   touchThreshold?: number;
 }
 
 /**
  * Caps a scrubbed ScrollTrigger's gallery-stepping tail (progress from
- * `boundary` to 1, evenly split into `count` slides) to one slide per scroll
- * gesture, no matter how hard or fast the user scrolls or flings. Wheel/touch
- * input inside that range is intercepted and converted into a single
- * deliberate jump of the real scroll position, one slide at a time — the
- * caller's existing scrub `onUpdate` keeps deriving the slide index from
- * progress exactly as before, so this only throttles how fast progress is
- * allowed to move through that stretch. At either edge (first/last slide)
- * input passes straight through untouched so the pin still releases
- * naturally into whatever comes before/after it.
+ * `boundary` to 1) to one slide per scroll gesture, no matter how hard or
+ * fast the user scrolls or flings. While in that range, wheel/touch input is
+ * intercepted and (a) advances/retreats `index` by exactly one via `onStep` —
+ * real scroll position is left completely alone, so this never has to
+ * compute or land on a precise mid-pin target — or (b), at the first/last
+ * slide, releases by jumping scroll straight to the pin's own `start`/`end`
+ * (always valid, since those come directly off the trigger) so the pin
+ * unpins into whatever comes before/after it.
  */
 export function attachLockedGalleryStepper({
   trigger,
   boundary,
   count,
-  jumpDuration = 0.3,
-  lockDuration = 0.75,
+  getIndex,
+  onStep,
+  lockDuration = 0.6,
+  releaseDuration = 0.4,
   touchThreshold = 24,
 }: LockedGalleryStepperOptions) {
-  const interval = (1 - boundary) / count;
   let locked = false;
   let inZone = false;
   let touchY = 0;
-  let activeTween: gsap.core.Tween | null = null;
+  let releaseTween: gsap.core.Tween | null = null;
   let pendingUnlock: gsap.core.Tween | null = null;
 
-  const stepIndex = (prog: number) =>
-    clamp(Math.floor(((prog - boundary) / (1 - boundary)) * count), 0, count - 1);
+  const inStepZone = () => trigger.progress >= boundary && trigger.progress < 1;
 
-  const jumpTo = (targetProg: number) => {
-    const y = trigger.start + clamp(targetProg, 0, 1) * (trigger.end - trigger.start);
+  const release = (edge: "start" | "end") => {
     locked = true;
-    activeTween?.kill();
-    activeTween = gsap.to(window, {
-      scrollTo: { y, autoKill: false },
-      duration: jumpDuration,
+    releaseTween?.kill();
+    releaseTween = gsap.to(window, {
+      scrollTo: { y: edge === "end" ? trigger.end + 2 : Math.max(0, trigger.start - 2), autoKill: false },
+      duration: releaseDuration,
       ease: "power2.inOut",
+      onComplete() { locked = false; },
     });
-    pendingUnlock?.kill();
-    pendingUnlock = gsap.delayedCall(lockDuration, () => { locked = false; });
   };
 
   // Returns true when this gesture was consumed (caller should preventDefault it).
   const tryStep = (dir: 1 | -1) => {
-    const prog = trigger.progress;
-    if (prog < boundary || prog >= 1) return false; // outside the stepping zone
-    if (locked) return true; // mid-jump — swallow the extra input
-    const next = stepIndex(prog) + dir;
-    if (next < 0 || next > count - 1) return false; // at an edge — release
-    jumpTo(boundary + next * interval);
+    if (!inStepZone()) return false; // outside the stepping zone
+    if (locked) return true; // mid-step/release — swallow the extra input
+    const cur = getIndex();
+    const next = cur + dir;
+    if (next < 0 || next > count - 1) {
+      release(dir > 0 ? "end" : "start");
+      return true;
+    }
+    locked = true;
+    onStep(next);
+    pendingUnlock?.kill();
+    pendingUnlock = gsap.delayedCall(lockDuration, () => { locked = false; });
     return true;
   };
 
@@ -81,13 +86,12 @@ export function attachLockedGalleryStepper({
 
   const onTouchStart = (e: TouchEvent) => {
     touchY = e.touches[0].clientY;
-    inZone = trigger.progress >= boundary && trigger.progress < 1;
+    inZone = inStepZone();
   };
 
   const onTouchMove = (e: TouchEvent) => {
     if (!inZone) {
-      const prog = trigger.progress;
-      if (prog >= boundary && prog < 1) {
+      if (inStepZone()) {
         // Crossed into the zone mid-drag — start tracking fresh from here so
         // at most one touchmove tick's worth of native scroll leaks through.
         inZone = true;
@@ -102,7 +106,7 @@ export function attachLockedGalleryStepper({
       e.preventDefault();
       touchY = e.touches[0].clientY;
     } else {
-      inZone = false; // at an edge — let the rest of this drag exit natively
+      inZone = false; // outside the zone entirely now — let the rest of this drag go
     }
   };
 
@@ -118,7 +122,7 @@ export function attachLockedGalleryStepper({
     window.removeEventListener("touchstart", onTouchStart);
     window.removeEventListener("touchmove", onTouchMove);
     window.removeEventListener("touchend", onTouchEnd);
-    activeTween?.kill();
+    releaseTween?.kill();
     pendingUnlock?.kill();
   };
 }

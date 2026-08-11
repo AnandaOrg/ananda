@@ -155,19 +155,9 @@ export default function DitchTheGlass() {
       // above the slot and the video never moves — it is simply covered.
       gallery.style.opacity = handoff > 0 ? "1" : "0";
       gallery.style.clipPath = `inset(0 0 ${(1 - handoff) * 100}% 0)`;
-
-      // step the gallery through its photos over the rest of the pin — how
-      // fast `prog` is allowed to move through this stretch is capped by
-      // attachLockedGalleryStepper below, so this stays a plain derivation.
-      const step = clamp(
-        Math.floor(((prog - GALLERY_STEP_START) / (1 - GALLERY_STEP_START)) * PHOTOS.length),
-        0,
-        PHOTOS.length - 1,
-      );
-      if (step !== indexRef.current) {
-        indexRef.current = step;
-        setIndex(step);
-      }
+      // Which photo is showing past this point is owned by
+      // attachLockedGalleryStepper below (one photo per scroll gesture), not
+      // derived from `prog` — see indexRef/setIndex in its onStep callback.
     };
 
     const mm = gsap.matchMedia();
@@ -195,6 +185,8 @@ export default function DitchTheGlass() {
         trigger: st,
         boundary: GALLERY_STEP_START,
         count: PHOTOS.length,
+        getIndex: () => indexRef.current,
+        onStep: (i) => { indexRef.current = i; setIndex(i); },
       });
       return () => { detachStepper(); st.kill(); };
     });

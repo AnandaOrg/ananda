@@ -1,4 +1,4 @@
-export const CAROUSEL_AUTOPLAY_SPEED = 10; // px/s
+export const CAROUSEL_AUTOPLAY_SPEED = 5; // px/s
 
 /** Canonical production origin — used for metadataBase, robots.ts, and sitemap.ts. */
 export const SITE_URL = "https://www.anandacocktails.eu";

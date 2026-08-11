@@ -74,15 +74,17 @@ const GALLERY_H_SVH = 0.56;
 const muPx = (n: number, vw: number) => (n / 390) * vw;
 
 // Choreography boundaries (fractions of the pin's scroll progress).
-// GROW_END was 0.35 of a 280%-long pin (0.98vh) before an initial 30% speedup
-// took it to 0.2737 of a 250.6%-long pin (0.686vh). A second 30% speedup
-// shrinks the grow+rotate window again, to 0.7 × 0.686vh = 0.4802vh. The
-// pin's own length (`end` below) is trimmed by the same 0.2058vh saved, so
-// the gallery hand-off/step-through phase keeps its original absolute scroll
-// pacing — only the rotation got shorter, twice over. HANDOFF keeps the same
-// 0.01 lead over GROW_END so the diamond-to-gallery crossfade still overlaps.
-const GROW_END = 0.2088; // diamond finishes rotating + growing here
-const HANDOFF = 0.1988; // gallery becomes visible just before the diamond hides
+// GROW_END went 0.98vh → 0.686vh → 0.4802vh over two 30% speedups (see git
+// history). Neither was short enough to reliably finish inside one mobile
+// scroll/swipe, so this pass sets an absolute target instead of another
+// relative cut: the grow+rotate window is now 0.20vh — comfortably less than
+// a single scroll gesture on any phone. The pin's own length (`end` below)
+// is trimmed by the same 0.2802vh saved, so the gallery hand-off/step-through
+// phase keeps its original absolute scroll pacing — only the rotation got
+// shorter. HANDOFF keeps the same 0.01 lead over GROW_END so the
+// diamond-to-gallery crossfade still overlaps.
+const GROW_END = 0.099; // diamond finishes rotating + growing here
+const HANDOFF = 0.089; // gallery becomes visible just before the diamond hides
 
 export default function MobileIntro() {
   const t = useTranslations("hero");
@@ -141,16 +143,9 @@ export default function MobileIntro() {
       frame.style.opacity = prog >= GROW_END ? "0" : "1";
       copy.style.opacity = String(clamp((prog - GROW_END) / 0.1, 0, 1));
 
-      // 4) Step the gallery through its slides over the rest of the pin.
-      const step = clamp(
-        Math.floor(((prog - GROW_END) / (1 - GROW_END)) * GALLERY.length),
-        0,
-        GALLERY.length - 1,
-      );
-      if (step !== indexRef.current) {
-        indexRef.current = step;
-        setIndex(step);
-      }
+      // 4) Which slide is showing past this point is owned by
+      // attachLockedGalleryStepper below (one slide per scroll gesture), not
+      // derived from `prog` — see indexRef/setIndex in its onStep callback.
     };
 
     const mm = gsap.matchMedia();
@@ -158,7 +153,7 @@ export default function MobileIntro() {
       const st = ScrollTrigger.create({
         trigger: section,
         start: "top top",
-        end: "+=230.02%", // 250.6% minus the 20.58% (0.2058vh) trimmed from the second rotation speedup
+        end: "+=202%", // 230.02% minus the 28.02% (0.2802vh) trimmed to hit the one-scroll GROW_END target above
         pin: true,
         scrub: true,
         anticipatePin: 1,
@@ -170,6 +165,8 @@ export default function MobileIntro() {
         trigger: st,
         boundary: GROW_END,
         count: GALLERY.length,
+        getIndex: () => indexRef.current,
+        onStep: (i) => { indexRef.current = i; setIndex(i); },
       });
       return () => { detachStepper(); st.kill(); };
     });
