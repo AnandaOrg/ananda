@@ -74,17 +74,24 @@ const GALLERY_H_SVH = 0.56;
 const muPx = (n: number, vw: number) => (n / 390) * vw;
 
 // Choreography boundaries (fractions of the pin's scroll progress).
-// GROW_END went 0.98vh → 0.686vh → 0.4802vh over two 30% speedups (see git
-// history). Neither was short enough to reliably finish inside one mobile
-// scroll/swipe, so this pass sets an absolute target instead of another
-// relative cut: the grow+rotate window is now 0.20vh — comfortably less than
-// a single scroll gesture on any phone. The pin's own length (`end` below)
-// is trimmed by the same 0.2802vh saved, so the gallery hand-off/step-through
-// phase keeps its original absolute scroll pacing — only the rotation got
-// shorter. HANDOFF keeps the same 0.01 lead over GROW_END so the
-// diamond-to-gallery crossfade still overlaps.
-const GROW_END = 0.099; // diamond finishes rotating + growing here
-const HANDOFF = 0.089; // gallery becomes visible just before the diamond hides
+// GROW_END went 0.98vh → 0.686vh → 0.4802vh → 0.20vh over three passes (see
+// git history) — 0.20vh still wasn't reliably a single scroll/swipe on a real
+// device, so this cuts it much harder: the grow+rotate window is now 0.08vh
+// — about 60-75px on a typical phone, well under even a light scroll tick.
+// The pin's own length (`end` below) is trimmed by the same 0.12vh saved, so
+// the gallery hand-off/step-through phase keeps its original absolute scroll
+// pacing — only the rotation got shorter. HANDOFF keeps the same 0.01 lead
+// over GROW_END so the diamond-to-gallery crossfade still overlaps.
+//
+// NOTE: this is still a continuous-scrub distance, not a hard gesture lock —
+// it's a very-likely bet, not a guarantee, for the same reason the pre-lock
+// gallery stepping wasn't: a small enough scroll input can still land short
+// of it. A true guarantee would mean giving this phase the same lock/atomic-
+// jump treatment as attachLockedGalleryStepper (see lockedGalleryStepper.ts)
+// — deliberately not done here yet since that mechanism just broke gallery
+// stepping in production and the fix for that hasn't been confirmed working.
+const GROW_END = 0.0421; // diamond finishes rotating + growing here
+const HANDOFF = 0.0321; // gallery becomes visible just before the diamond hides
 
 export default function MobileIntro() {
   const t = useTranslations("hero");
@@ -153,7 +160,7 @@ export default function MobileIntro() {
       const st = ScrollTrigger.create({
         trigger: section,
         start: "top top",
-        end: "+=202%", // 230.02% minus the 28.02% (0.2802vh) trimmed to hit the one-scroll GROW_END target above
+        end: "+=190%", // 202% minus the 12% (0.12vh) trimmed to hit the harder one-scroll GROW_END cut above
         pin: true,
         scrub: true,
         anticipatePin: 1,

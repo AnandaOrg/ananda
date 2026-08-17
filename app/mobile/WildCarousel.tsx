@@ -52,6 +52,12 @@ export default function WildCarousel({
   const interacting = useRef(false);
   const autoRaf = useRef(0);
   const autoTime = useRef(0);
+  // Full-precision autoplay position — `scrollLeft` only stores whole pixels,
+  // so accumulating by reading it back each frame loses the sub-pixel
+  // remainder almost every frame (autoplay speeds under ~1px/frame would
+  // round away to nothing, which reads as "frozen"). This tracks the real
+  // position separately and only ever writes the rounded pixel to the DOM.
+  const scrollPos = useRef(0);
 
   const n = items.length;
   const looped = Array.from({ length: COPIES }, () => items).flat();
@@ -78,9 +84,11 @@ export default function WildCarousel({
       const x = c.scrollLeft;
       if (x < oc * 0.5) {
         c.scrollLeft = x + oc;
+        scrollPos.current += oc;
         if (drag.current.active) drag.current.startScroll += oc;
       } else if (x > oc * 1.5) {
         c.scrollLeft = x - oc;
+        scrollPos.current -= oc;
         if (drag.current.active) drag.current.startScroll -= oc;
       }
     };
@@ -110,11 +118,20 @@ export default function WildCarousel({
       autoTime.current = 0;
       const loop = (t: number) => {
         if (!interacting.current) {
-          if (ref.current && autoTime.current > 0) {
-            // cap dt so a backgrounded tab doesn't cause a position lurch on return;
-            // sqrt easing makes slow speeds feel glidy rather than mechanical
-            const dt = Math.min(t - autoTime.current, 50);
-            ref.current.scrollLeft += autoplay * Math.sqrt(dt / 1000);
+          if (ref.current) {
+            if (autoTime.current > 0) {
+              // cap dt so a backgrounded tab doesn't cause a position lurch on return;
+              // sqrt easing makes slow speeds feel glidy rather than mechanical
+              const dt = Math.min(t - autoTime.current, 50);
+              scrollPos.current += autoplay * Math.sqrt(dt / 1000);
+              ref.current.scrollLeft = Math.round(scrollPos.current);
+            } else {
+              // Fresh baseline (first active frame after mount, an interaction
+              // pause, or momentum settling) — resync from the DOM's actual
+              // position first so autoplay picks up from there, not wherever
+              // it last left off.
+              scrollPos.current = ref.current.scrollLeft;
+            }
           }
           autoTime.current = t;
         } else {
