@@ -286,7 +286,7 @@ export default function MobileKyoto() {
             spillIdleRef.current = gsap.to(inner, {
               scaleX: 1.02,
               skewX: 1.1,
-              duration: 2.4,
+              duration: 4,
               ease: "sine.inOut",
               yoyo: true,
               repeat: -1,

@@ -93,6 +93,22 @@ const muPx = (n: number, vw: number) => (n / 390) * vw;
 const GROW_END = 0.0421; // diamond finishes rotating + growing here
 const HANDOFF = 0.0321; // gallery becomes visible just before the diamond hides
 
+// Where the locked one-image-per-gesture gallery stepping (see
+// attachLockedGalleryStepper below) engages — deliberately LATER than
+// GROW_END, not right at it. A touch gesture that's already scrolling can't
+// be intercepted mid-flight: the browser locks in "this is a native scroll"
+// within the first ~10-15px of a touch, and ignores preventDefault() called
+// later in that same gesture. GROW_END is now so short that virtually every
+// swipe that finishes the rotation is already carrying straight into the
+// gallery zone in one continuous motion, so locking right at GROW_END meant
+// that same swipe just slid through uncontrolled and the gallery index never
+// advanced. This buffer (past GROW_END + the copy fade-in's own 0.1 window,
+// so nothing visual is left mid-fade when locking kicks in) gives that swipe
+// room to actually end before the lock engages, so a FRESH touch starts the
+// locked phase instead. Same caveat as GROW_END's own target: very likely,
+// not a hard guarantee — an unusually long single fling could still span it.
+const GALLERY_STEP_START = 0.15;
+
 export default function MobileIntro() {
   const t = useTranslations("hero");
   const tAbout = useTranslations("about");
@@ -170,7 +186,7 @@ export default function MobileIntro() {
       render(st.progress);
       const detachStepper = attachLockedGalleryStepper({
         trigger: st,
-        boundary: GROW_END,
+        boundary: GALLERY_STEP_START,
         count: GALLERY.length,
         getIndex: () => indexRef.current,
         onStep: (i) => { indexRef.current = i; setIndex(i); },
