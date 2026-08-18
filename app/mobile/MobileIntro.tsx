@@ -7,7 +7,6 @@ import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import VerticalSlider from "../VerticalSlider";
 import { mu, MU_VAR } from "./scale";
-import { attachLockedGalleryStepper } from "../lockedGalleryStepper";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -93,21 +92,18 @@ const muPx = (n: number, vw: number) => (n / 390) * vw;
 const GROW_END = 0.0421; // diamond finishes rotating + growing here
 const HANDOFF = 0.0321; // gallery becomes visible just before the diamond hides
 
-// Where the locked one-image-per-gesture gallery stepping (see
-// attachLockedGalleryStepper below) engages — deliberately LATER than
-// GROW_END, not right at it. A touch gesture that's already scrolling can't
-// be intercepted mid-flight: the browser locks in "this is a native scroll"
-// within the first ~10-15px of a touch, and ignores preventDefault() called
-// later in that same gesture. GROW_END is now so short that virtually every
-// swipe that finishes the rotation is already carrying straight into the
-// gallery zone in one continuous motion, so locking right at GROW_END meant
-// that same swipe just slid through uncontrolled and the gallery index never
-// advanced. This buffer (past GROW_END + the copy fade-in's own 0.1 window,
-// so nothing visual is left mid-fade when locking kicks in) gives that swipe
-// room to actually end before the lock engages, so a FRESH touch starts the
-// locked phase instead. Same caveat as GROW_END's own target: very likely,
-// not a hard guarantee — an unusually long single fling could still span it.
+// Where the gallery's auto-advancing slideshow (see GALLERY_AUTOPLAY_MS
+// below) starts — deliberately LATER than GROW_END, not right at it, so the
+// slides don't start changing themselves while the diamond-grow animation or
+// the copy fade-in (which finishes GROW_END + 0.1 later) are still visibly
+// resolving. Scrolling itself is never intercepted on mobile — the user can
+// keep scrolling through and past the gallery at any speed; the slideshow
+// just runs on its own clock underneath.
 const GALLERY_STEP_START = 0.15;
+// One slide's full on-screen time: the 2s reveal wipe (VerticalSlider's
+// `duration`) plus a beat to actually look at the photo before the next one
+// starts painting over it.
+const GALLERY_AUTOPLAY_MS = 4000;
 
 export default function MobileIntro() {
   const t = useTranslations("hero");
@@ -166,9 +162,29 @@ export default function MobileIntro() {
       frame.style.opacity = prog >= GROW_END ? "0" : "1";
       copy.style.opacity = String(clamp((prog - GROW_END) / 0.1, 0, 1));
 
-      // 4) Which slide is showing past this point is owned by
-      // attachLockedGalleryStepper below (one slide per scroll gesture), not
-      // derived from `prog` — see indexRef/setIndex in its onStep callback.
+      // 4) Which slide is showing past this point is driven by the autoplay
+      // timer below (see GALLERY_AUTOPLAY_MS), not derived from `prog` —
+      // scroll itself is left completely alone here.
+    };
+
+    // Auto-advances `index` on a clock once the pin's progress enters the
+    // gallery zone (GALLERY_STEP_START); stops the instant it leaves (scrolled
+    // back above it, or the pin has fully released past prog 1). Scroll is
+    // never intercepted — the user can scroll through the whole zone without
+    // waiting to see every slide, unlike the old one-per-gesture lock.
+    let autoplayId: ReturnType<typeof setInterval> | null = null;
+    const inGalleryZone = (prog: number) => prog >= GALLERY_STEP_START && prog < 1;
+    const syncAutoplay = (prog: number) => {
+      if (inGalleryZone(prog)) {
+        if (autoplayId) return;
+        autoplayId = setInterval(() => {
+          indexRef.current = (indexRef.current + 1) % GALLERY.length;
+          setIndex(indexRef.current);
+        }, GALLERY_AUTOPLAY_MS);
+      } else if (autoplayId) {
+        clearInterval(autoplayId);
+        autoplayId = null;
+      }
     };
 
     const mm = gsap.matchMedia();
@@ -180,18 +196,15 @@ export default function MobileIntro() {
         pin: true,
         scrub: true,
         anticipatePin: 1,
-        onUpdate: (self) => render(self.progress),
-        onRefresh: (self) => render(self.progress),
+        onUpdate: (self) => { render(self.progress); syncAutoplay(self.progress); },
+        onRefresh: (self) => { render(self.progress); syncAutoplay(self.progress); },
       });
       render(st.progress);
-      const detachStepper = attachLockedGalleryStepper({
-        trigger: st,
-        boundary: GALLERY_STEP_START,
-        count: GALLERY.length,
-        getIndex: () => indexRef.current,
-        onStep: (i) => { indexRef.current = i; setIndex(i); },
-      });
-      return () => { detachStepper(); st.kill(); };
+      syncAutoplay(st.progress);
+      return () => {
+        if (autoplayId) clearInterval(autoplayId);
+        st.kill();
+      };
     });
 
     // Reduced motion: no pin/scroll-hijack — show the landed gallery layout
@@ -229,23 +242,31 @@ export default function MobileIntro() {
         {t("eyebrow")}
       </p>
 
-      {/* Heading — one word per line, left aligned. Anek Kannada 700,
-          line-height 80%, letter-spacing -8%, 60px horizontal insets.
-          Per-locale size: the design's 106 fits EN's "Liquid"/"Move." but not
-          BG's "БЛАЖЕНСТВО." — at 48 the widest BG word ends ~37mu inside the
-          390 frame instead of past its right edge. */}
+      {/* Heading — one word per line, each line still flush left against the
+          others (no per-line text-align change). EN keeps the fixed 60mu
+          inset box (design intent, matches the Figma frame). BG's line
+          lengths vary far more (ЗА vs ДВИЖЕНИЕ.) than EN's, so a fixed-width
+          box left ~37mu of dead space on its right that made the whole block
+          read as pushed left — BG instead gets an auto (shrink-to-fit) width
+          box, sized to its longest line and centered as a UNIT via
+          left:50%+translateX(-50%), so the block sits centered with equal
+          gaps on both sides while every line inside it stays left-aligned
+          relative to the others. Anek Kannada 700, line-height 80%,
+          letter-spacing -8%. Per-locale size: the design's 106 fits EN's
+          "Liquid"/"Move." but not BG's "БЛАЖЕНСТВО." */}
       <h2
         className="absolute font-bold uppercase"
         style={{
-          left: mu(60),
           top: mu(100),
-          width: mu(270),
           fontFamily: "var(--font-display)",
           fontWeight: 700,
           fontSize: locale === "bg" ? mu(48) : mu(106),
           lineHeight: 0.8,
           // Golos (BG) needs looser tracking than Anek's design value.
           letterSpacing: locale === "bg" ? "-0.03em" : "-0.08em",
+          ...(locale === "bg"
+            ? { left: "50%", transform: "translateX(-50%)" }
+            : { left: mu(60), width: mu(270) }),
         }}
       >
         {/* Keyed by line index (not word) so a locale switch updates the text
@@ -270,7 +291,7 @@ export default function MobileIntro() {
           willChange: "opacity",
         }}
       >
-        <VerticalSlider images={GALLERY} index={index} frame reveal duration={0.7} eagerCount={2} style={{ width: "100%", height: "100%" }} />
+        <VerticalSlider images={GALLERY} index={index} frame reveal duration={2} eagerCount={2} style={{ width: "100%", height: "100%" }} />
       </div>
 
       {/* Drinking clip — diamond frame rotates AND grows into the gallery box;

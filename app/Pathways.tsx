@@ -150,14 +150,16 @@ export default function Pathways() {
       y: (rect.top + rect.height / 2) / window.innerHeight,
     };
     // Keep it spinning through the tilt so it's still spinning when it hits 90°.
-    setTimeout(() => glbRef.current?.spin360(), 650);
-    // Beat 2: at ~90° (tilt ~1s), the still-spinning bottle becomes the modal —
-    // the modal scales out of the bottle's captured position and its own bottle
-    // keeps spinning, so the spinning element hands off into the modal.
+    // 1650 = spin360's 1.7s duration minus a 50ms lead, same as before scaling.
+    setTimeout(() => glbRef.current?.spin360(), 1650);
+    // Beat 2: at ~90° (tilt ~2.4s, see GlbViewer's spin()), the still-spinning
+    // bottle becomes the modal — the modal scales out of the bottle's captured
+    // position and its own bottle keeps spinning, so the spinning element hands
+    // off into the modal.
     setTimeout(() => open(i, origin,
       () => { glbRef.current?.resetTilt(); onClosed?.(); },
       () => glbRef.current?.spin360(),
-    ), 1000);
+    ), 2400);
   }, [open]);
 
   const KYOTO_INDEX = 3;

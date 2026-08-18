@@ -120,16 +120,19 @@ export default function MobilePathways() {
       y: (rect.top + rect.height / 2) / window.innerHeight,
     };
     // Keep it spinning through the tilt so it's still spinning when it hits 90°.
-    setTimeout(() => glbRef.current?.spin360(), 650);
-    // Once the modal fully covers the viewport (opens at 1000ms + ~700ms entry
-    // transition), release this viewer's GPU memory: its four resident models
-    // sit invisible under the modal yet count against the same WebKit per-tab
-    // budget the modal needs to stream its own pouches — the combined footprint
-    // is what still memory-killed the tab when toggling between flavours.
-    // Cancelled if the modal closes before the timer lands.
-    const suspendTimer = setTimeout(() => glbRef.current?.suspend(), 2200);
-    // Beat 2: at ~90° the still-spinning bottle becomes the modal — the modal
-    // scales out of the captured position, its own bottle continuing the spin.
+    // 1650 = spin360's 1.7s duration minus a 50ms lead, same as before scaling.
+    setTimeout(() => glbRef.current?.spin360(), 1650);
+    // Once the modal fully covers the viewport (opens at 2400ms + ~700ms entry
+    // transition, plus the same slack as before scaling), release this viewer's
+    // GPU memory: its four resident models sit invisible under the modal yet
+    // count against the same WebKit per-tab budget the modal needs to stream
+    // its own pouches — the combined footprint is what still memory-killed the
+    // tab when toggling between flavours. Cancelled if the modal closes before
+    // the timer lands.
+    const suspendTimer = setTimeout(() => glbRef.current?.suspend(), 3600);
+    // Beat 2: at ~90° (tilt ~2.4s, see GlbViewer's spin()) the still-spinning
+    // bottle becomes the modal — the modal scales out of the captured
+    // position, its own bottle continuing the spin.
     setTimeout(() => open(i, origin,
       () => {
         // Close starts: bring the GPU side back (re-upload hitch hidden behind
@@ -140,7 +143,7 @@ export default function MobilePathways() {
         onClosed?.();
       },
       () => glbRef.current?.spin360(),
-    ), 1000);
+    ), 2400);
   }, [open]);
 
   const KYOTO_INDEX = 3;

@@ -259,7 +259,7 @@ export default function DitchTheGlass() {
           willChange: "clip-path, opacity",
         }}
       >
-        <VerticalSlider images={PHOTOS} index={index} frame reveal duration={0.7} style={{ width: "100%", height: "100%" }} />
+        <VerticalSlider images={PHOTOS} index={index} frame reveal duration={2} style={{ width: "100%", height: "100%" }} />
       </div>
 
       {/* Copy — upper right; fades + slides in as the image travels to the slot. */}
