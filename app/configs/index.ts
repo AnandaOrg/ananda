@@ -4,13 +4,6 @@ export const CAROUSEL_AUTOPLAY_SPEED = 5; // px/s
 export const SITE_URL = "https://www.anandacocktails.eu";
 
 /**
- * "What we're about" pinned gallery: scroll distance per image, as a fraction of
- * viewport height. Total pinned scroll = count × this × 100vh. Higher = slower,
- * more deliberate stepping through the photos.
- */
-export const ABOUT_REVEAL_STEP_VH = 0.7;
-
-/**
  * Geometry of the "What we're about" gallery card (left slot), in viewport units.
  * SHARED so the `DitchTheGlass` pour image can travel to the exact same box that
  * `AboutCollage` then pins its gallery into — the two sections hand off seamlessly.

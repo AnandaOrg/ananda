@@ -56,7 +56,13 @@ const VIDEO_SRC = "/videos/kyoto-mobile.mp4";
 // the viewport bottom) and the whole choreography scrubs over this much
 // scroll. Nothing pours "onto" a red that's already there — the red section
 // only rises once the wave has fully landed, same read as desktop.
-const SCRUB_SVH = 3; // scroll distance (svh) the pinned choreography scrubs over
+// Scroll distance (svh) the pinned choreography scrubs over. Every stage
+// (fade, emerge, the 0→160° tip, the pour) is a fixed FRACTION of this one
+// window, so raising it slows all of them together without changing their
+// relative timing — the tip specifically read as too fast/abrupt at 3;
+// widening the whole window gives it (and everything else) more physical
+// scroll to spread across.
+const SCRUB_SVH = 4.5;
 // Stage boundaries, as fractions of the scroll window.
 const FADE_END = 0.22; // video → red background cross-fade completes here — comfortably before ROT_DELAY, so the hand+lemon video is fully gone before any rotation is visible
 const EMERGE_END = 0.35; // pouch fully "out of the video" here

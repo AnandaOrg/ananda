@@ -21,7 +21,12 @@ export default function MobileAbout() {
               smallFontSize={mu(15.48)}
               paraSpacing={locale === "bg" ? mu(16) : undefined}
               className="font-bold"
-              style={{ fontFamily: "var(--font-display)", color: "var(--terracotta)", letterSpacing: mu(locale === "bg" ? -0.48 : -0.96), fontSize: mu(24), lineHeight: 1.15 }}
+              // alignSelf: stretch — the parent's items-center otherwise lets this
+              // block size to its own (unwrapped) content width instead of the
+              // available column width, since it has no explicit width of its
+              // own; that only reliably shows up as a single overflowing line on
+              // some engines (reported on iPhone 16 Pro Safari), not others.
+              style={{ fontFamily: "var(--font-display)", color: "var(--terracotta)", letterSpacing: mu(locale === "bg" ? -0.48 : -0.96), fontSize: mu(24), lineHeight: 1.15, alignSelf: "stretch" }}
             />
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/s5-mandala.svg" alt="" style={{ width: mu(140.075), height: mu(146.594) }} />

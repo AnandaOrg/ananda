@@ -416,18 +416,16 @@ function Scene({ f }: { f: Flavor }) {
 function MobileScene({ f }: { f: Flavor }) {
   return (
     <>
-      {/* Mandala — measured off the Product_Santorini_Mobile frame: a 465mu
-          circle anchored to the SCREEN top at −107, i.e. sized so the circle
-          just covers both top corners (centre (195,126), r≈233) and its bottom
-          arc lands at design y≈357, leaving flat colour behind the
-          ingredients. Screen-anchored (not the bottom-anchored fruit frame) so
-          taller viewports keep the top bleed instead of sliding it down. */}
+      {/* Mandala — per Product_Kyoto_Mobile, a 440mu circle anchored to the
+          SCREEN top at −107. Screen-anchored (not the bottom-anchored fruit
+          frame) so taller viewports keep the top bleed instead of sliding it
+          down. */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src={f.pattern}
         alt=""
         className="pointer-events-none absolute left-1/2 -translate-x-1/2 -translate-y-1/4"
-        style={{ top: mu(-107), width: mu(465), height: mu(465) }}
+        style={{ top: mu(-107), width: mu(440), height: mu(440) }}
       />
       {/* Top-anchored fruits — the corner decorations along the artboard's top
           edge. Same 680 mu space, pinned to the screen top so the design
@@ -813,10 +811,10 @@ export default function FlavorModal({
         <div className="absolute bottom-0 left-0 w-full" style={{ height: mu(680), pointerEvents: "none", zIndex: 50 }}>
           <div className="absolute flex items-center justify-between" style={{ left: mu(21.67), top: mu(594.83), width: mu(346.667), height: mu(38) }}>
             <button type="button" aria-label={t("prev")} onClick={(e) => { e.stopPropagation(); guardedNav(-1); }} className="cursor-pointer" style={{ pointerEvents: "auto" }}>
-              <Chevron color={f.nameColor} flip width={mu(12.484)} height={mu(24.586)} />
+              <Chevron color={f.nameColor} flip width={mu(13)} height={mu(25)} />
             </button>
             <button type="button" aria-label={t("next")} onClick={(e) => { e.stopPropagation(); guardedNav(1); }} className="cursor-pointer" style={{ pointerEvents: "auto" }}>
-              <Chevron color={f.nameColor} width={mu(12.484)} height={mu(24.586)} />
+              <Chevron color={f.nameColor} width={mu(13)} height={mu(25)} />
             </button>
           </div>
         </div>

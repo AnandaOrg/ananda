@@ -148,12 +148,21 @@ function cloneMaterials(
 
 // Scroll-driven turntable (Pathways/MobilePathways only — noScroll viewers,
 // e.g. the flavour modal, never read this): how many full revolutions the
-// model makes across the whole scroll-tracked region (frac 0→1). A full
-// turn (1) read as spinning too fast for how little scroll it took to get
-// there; cut to a quarter-turn so the bottle turns noticeably less per pixel
-// scrolled. Easy to retune further — this is a bet on "slower", not a
-// measured target.
-const SCROLL_TURNTABLE_TURNS = 0.1;
+// model makes across the whole scroll-tracked region (frac 0→1). A full turn
+// across the WHOLE section's scroll distance is the intended look (it should
+// visibly complete 360° by the time you've scrolled through) — the "too
+// fast" complaints earlier were about the separate Kyoto auto-open spin/tilt
+// sequence in openWithSpin, not this one.
+// Split per breakpoint: MobilePathways' section is only 1176mu tall at a
+// 390mu-wide frame vs Pathways' 2000u tall at 1440u wide — proportionally
+// much shorter relative to viewport width — so the identical "1 full turn
+// over frac 0→1" code completes over noticeably less real scroll distance on
+// a phone, reading as faster there even though nothing else differs. Scaled
+// down to land near the same rotation RATE (degrees per scroll distance) as
+// desktop. A bet based on the two sections' relative heights, not a live
+// measurement — retune if it's still off.
+const SCROLL_TURNTABLE_TURNS_DESKTOP = 1;
+const SCROLL_TURNTABLE_TURNS_PHONE = 0.65;
 
 const GlbViewer = forwardRef<GlbViewerHandle, Props>(function GlbViewer({
   models,
@@ -604,7 +613,7 @@ const GlbViewer = forwardRef<GlbViewerHandle, Props>(function GlbViewer({
         // the whole canvas in CSS (below). Scroll drives a TURNTABLE on Y (model
         // stays upright); the spin offset (nav / spinOnMount / spin360) adds to it.
         const rotFrac = noScroll ? 0 : frac;
-        const turntableY = rotFrac * Math.PI * 2 * SCROLL_TURNTABLE_TURNS;
+        const turntableY = rotFrac * Math.PI * 2 * (isPhone ? SCROLL_TURNTABLE_TURNS_PHONE : SCROLL_TURNTABLE_TURNS_DESKTOP);
         const spinY = spinOffsetRef.current.value;
         const flipY = flipOffsetRef.current.value;
         const tilt = tiltRef.current.value;

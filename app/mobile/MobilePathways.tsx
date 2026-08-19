@@ -111,6 +111,15 @@ export default function MobilePathways() {
     // Mark that a modal has now been opened, so the Kyoto scroll auto-open below
     // never fires once the user has already engaged with the flavour overlay.
     modalOpenedRef.current = true;
+    // Lock scroll for the whole spin-up → modal-open handoff: the GLB centre
+    // captured below is a viewport-relative snapshot, so scrolling mid-spin
+    // would hand the modal a stale `origin` and it'd scale out of the wrong
+    // spot. Locks <html>, not <body> — FlavorModal owns body's own overflow
+    // lock/restore; pre-touching body here would make it capture "hidden" as
+    // the "original" value and restore to that forever.
+    const html = document.documentElement;
+    const prevHtmlOverflow = html.style.overflow;
+    html.style.overflow = "hidden";
     // Beat 1: tilt to 90° AND start spinning at the same time.
     glbRef.current?.spin();
     glbRef.current?.spin360();
@@ -137,6 +146,7 @@ export default function MobilePathways() {
       () => {
         // Close starts: bring the GPU side back (re-upload hitch hidden behind
         // the modal's exit animation) BEFORE the tilt-reset needs to render.
+        html.style.overflow = prevHtmlOverflow;
         clearTimeout(suspendTimer);
         glbRef.current?.resume();
         glbRef.current?.resetTilt();
@@ -162,10 +172,8 @@ export default function MobilePathways() {
     // past Kyoto before this ever fires (ScrollTrigger's update is
     // rAF-throttled, and inertial scrolling coasts without further touch
     // events to intercept) — snap back to exactly the Kyoto position first,
-    // while the page is still scrollable, THEN freeze it. Locks <html>, not
-    // <body> — FlavorModal owns body's own overflow lock/restore; pre-touching
-    // body here would make it capture "hidden" as the "original" value and
-    // restore to that forever.
+    // while the page is still scrollable — openWithSpin below locks it
+    // immediately after.
     const el = scrollRef.current;
     if (el) {
       const rect = el.getBoundingClientRect();
@@ -177,13 +185,8 @@ export default function MobilePathways() {
       const targetY = kyotoFrac * rect.height + absTop - window.innerHeight * 0.5;
       window.scrollTo({ top: targetY, behavior: "auto" });
     }
-    const html = document.documentElement;
-    const prevHtmlOverflow = html.style.overflow;
-    html.style.overflow = "hidden";
 
-    openWithSpin(KYOTO_INDEX, () => {
-      html.style.overflow = prevHtmlOverflow;
-    });
+    openWithSpin(KYOTO_INDEX);
   }, [kyotoTransitionAt, openWithSpin]);
 
   // A reload resets the in-memory one-shot refs — if the previous page
