@@ -164,7 +164,7 @@ export default function MobileRitual() {
               className="absolute flex flex-col items-start"
               style={{ left: mu(38.72), top: mu(37.62), width: mu(260.411), gap: mu(11.22) }}
             >
-              <div className="flex w-full items-end justify-between uppercase text-[#fff0e5]">
+              <div className="flex w-full items-baseline justify-between uppercase text-[#fff0e5]">
                 {/* Title — layered per step, revealed left → right. BG titles
                     ("ЗАВЪРТНИ") are longer and share this row with the wider
                     "[СТЪПКА 0X]" label, so BG steps down to keep the pair

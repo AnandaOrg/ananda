@@ -62,7 +62,7 @@ const VIDEO_SRC = "/videos/kyoto-mobile.mp4";
 // relative timing — the tip specifically read as too fast/abrupt at 3;
 // widening the whole window gives it (and everything else) more physical
 // scroll to spread across.
-const SCRUB_SVH = 4.5;
+const SCRUB_SVH = 6.5;
 // Stage boundaries, as fractions of the scroll window.
 const FADE_END = 0.22; // video → red background cross-fade completes here — comfortably before ROT_DELAY, so the hand+lemon video is fully gone before any rotation is visible
 const EMERGE_END = 0.35; // pouch fully "out of the video" here
@@ -90,7 +90,7 @@ const SCENE_H = 447.7;
 // pouch (the old 20%/60% rest + emerge offset landed here), so the cutout
 // emerges dead-centre in the frame.
 const POUCH_W = 444.7; // img side in mobile design px
-const POUCH_X = "47%";
+const POUCH_X = "40%";
 const POUCH_Y = "70%";
 // The pour is the SPILL — `/c-wave.svg` in its natural orientation, a wavy
 // mound with a pointy PEAK anchored to the cap so the liquid reads as coming
@@ -103,7 +103,7 @@ const POUCH_Y = "70%";
 // section's own height (see the `height` below), so Pathways naturally gets
 // pushed down to make room — no separate parent height to touch, unlike desktop.
 const WAVE_FLOOR_Y = 643.18;
-const SPILL_OVERLAP = 40; // how far (mobile design px) the base laps past the seam onto Pathways' red
+const SPILL_OVERLAP = 60; // how far (mobile design px) the base laps past the seam onto Pathways' red
 // Cap (spout) geometry — the pouch's centre plus the cap's rotated offset gives
 // the cap's (x, y) every frame; the spill's peak is pinned there.
 const POUCH_CX = (parseFloat(POUCH_X) / 100) * SCENE_W; // pouch centre x (design px)
