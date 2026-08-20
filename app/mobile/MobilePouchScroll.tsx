@@ -3,13 +3,6 @@
 import { useEffect, useRef } from "react";
 import { mu } from "./scale";
 
-/**
- * The product pouch in the mobile collage, rotating a full turn (158.5° → +360°)
- * as it scrolls through the viewport — the mobile port of the desktop
- * PouchScroll. Geometry matches the static overlay it replaces; only the
- * rotation is now scroll-linked.
- */
-
 const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
 
 export default function MobilePouchScroll() {
@@ -56,7 +49,6 @@ export default function MobilePouchScroll() {
           className="relative overflow-hidden"
           style={{ width: mu(119.499), height: mu(191.458), boxShadow: `${mu(5.113)} ${mu(3.719)} ${mu(13.34)} 0 rgba(0,0,0,0.25)` }}
         >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src="/c-pouch.png"
             alt="ANANDA cocktail pouch"

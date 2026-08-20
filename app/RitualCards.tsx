@@ -11,83 +11,41 @@ gsap.registerPlugin(ScrollTrigger);
 const u = (n: number) => `calc(var(--u) * ${n})`;
 const CREAM = "#fff0e5";
 
-// Card outer dimensions (Figma) and the fixed internal layout of every card.
-// The three card frames never move — only the step contents cycle through
-// them — so these offsets are identical for all cards.
 const CARD = { w: 480, h: 720 };
-// Positions/fonts are in the same canvas-u space as CARD, re-fitted to the
-// 480×720 frame (scaled from the original 620.422×863.666 design).
 const REL = {
   photo: { left: 72.96, top: 143.63, w: 320, h: 420 },
-  // Anchored by its RIGHT edge at the card's 54.31 side margin (Figma's
-  // left 342.64 + the EN label width lands exactly there) so the longer BG
-  // labels grow inward instead of spilling past the card edge.
   label: { right: 54.31, top: 68.78, font: 10.83, pad: [7.74, 10.83], ls: 0.76 },
-  // fontBg: the BG titles are longer ("ЗАВЪРТНИ") and render in Golos Text,
-  // so they need a smaller size (tracking scaled to match) to stay inside
-  // the box — past the card edge the cream text vanishes into the page.
   title: { left: 54.31, top: 49.9, w: 331.65, font: 74.27, ls: -5.94, fontBg: 56, lsBg: -1.68 },
-  // left matches photo.left so the body copy lines up with the photo above
-  // it; w spans the rest of the card's width (CARD.w - left) instead of a
-  // fixed figma width, so it uses the full available row. top sits exactly
-  // 28 below the photo's bottom edge (photo.top + photo.h + 28).
   body: { left: 72.96, top: 591.63, w: 300, font: 12.38, pad: [7.74, 10.83], ls: 0.12 },
 };
 
-// Photo + alt per step; labels/titles/bodies come from the locale dictionary
-// (messages/*.json, `ritual.step*`).
-// TODO: the Twist photo (/s5-step2.png) is due for a replacement showing the
-// cap being twisted open — swap the asset in public/ when the client sends it
-// (the same file is used by mobile/MobileRitual).
 const STEP_MEDIA = [
   { src: "/s5-step1.png", alt: "ANANDA pouches chilling in a cooler of ice" },
   { src: "/s5-step2.png", alt: "Snapping open the high-flow cap" },
   { src: "/s5-step3.png", alt: "Sipping an ANANDA pouch on the dancefloor" },
 ];
 
-// The three fixed frame positions, ordered front → left → right: a horizontal
-// hand-of-cards fan, centered on the 1440 canvas. The side frames sit behind
-// the front frame at 0.76 scale, tilted ∓8°; all fully opaque. Frames stay
-// put — `x`/`y` are CSS left/top on the canvas (same card size for every
-// frame, so equal `y` keeps the three centers on one line).
-//
-// Every frame always renders its full label/title/body (no side-frame hiding
-// or clipping) — the front card's straight edge is what conceals the side
-// frames' text. At this GAP (moved 20% closer than the original ±390) the
-// front card's edge lands INSIDE the left frame's body box and the right
-// frame's title box instead of past their far edge, so a sliver of that text
-// is visibly exposed beside the front card. Accepted tradeoff for the
-// tighter fan; see git history for the wider, fully-concealing spacing.
-// y shifted up 989.86u with the manifesto's extraction out of Ritual.tsx
-// (was 1661 on the old 3942.548-tall canvas).
 const SLOTS = [
-  { x: 480, y: 671.14, rotation: 0, scale: 1, z: 3 }, // front / center
-  { x: 178, y: 671.14, rotation: -20, scale: 0.76, z: 2 }, // left
-  { x: 802, y: 671.14, rotation: 20, scale: 0.76, z: 1 }, // right
+  { x: 480, y: 671.14, rotation: 0, scale: 1, z: 3 },
+  { x: 178, y: 671.14, rotation: -20, scale: 0.76, z: 2 },
+  { x: 802, y: 671.14, rotation: 20, scale: 0.76, z: 1 },
 ];
 
-const N = STEP_MEDIA.length; // === SLOTS.length === 3
-const HOLD = 1.4; // seconds the contents rest before the next cycle
-const PHOTO_DUR = 0.6; // photo slide duration
-const TEXT_DUR = 0.5; // text left-to-right reveal duration
-const TEXT_DELAY = 0.15; // reveal starts just after the photo begins moving
+const N = STEP_MEDIA.length;
+const HOLD = 1.4;
+const PHOTO_DUR = 0.6;
+const TEXT_DUR = 0.5;
+const TEXT_DELAY = 0.15;
 
-// Per-frame photo slide axis, keyed by SLOTS index (front, left, right):
-// the center card keeps the original top → bottom slide, while the side
-// cards reveal toward the center — right → left on the left card, left →
-// right on the right card. `enter` is also where the outgoing photo is
-// parked after it exits, so it re-enters from the same side next cycle.
 const REVEAL = [
-  { prop: "yPercent", enter: -100, exit: 100 }, // front / center: top → bottom
-  { prop: "xPercent", enter: 100, exit: -100 }, // left: right → left
-  { prop: "xPercent", enter: -100, exit: 100 }, // right: left → right
+  { prop: "yPercent", enter: -100, exit: 100 },
+  { prop: "xPercent", enter: 100, exit: -100 },
+  { prop: "xPercent", enter: -100, exit: 100 },
 ] as const;
 
-const CLIP_HIDDEN = "inset(0% 100% 0% 0%)"; // fully clipped from the right
+const CLIP_HIDDEN = "inset(0% 100% 0% 0%)";
 const CLIP_SHOWN = "inset(0% 0% 0% 0%)";
 
-// Frame f displays step ((f + tick) mod N) — every cycle the step contents
-// advance one frame while the frames themselves stay put.
 const stepOf = (frame: number, tick: number) => (frame + tick) % N;
 
 export default function RitualCards() {
@@ -112,8 +70,6 @@ export default function RitualCards() {
     const textsOf = (el: HTMLDivElement, k: number) =>
       Array.from(el.querySelectorAll<HTMLElement>(`[data-text-step="${k}"]`));
 
-    // Seed content: frame f starts on step f; the other layers wait hidden
-    // (photos parked at their frame's entry side, texts fully clipped).
     frames.forEach((el, f) => {
       const { prop, enter } = REVEAL[f];
       photosOf(el).forEach((ph, k) => gsap.set(ph, { [prop]: k === f ? 0 : enter }));
@@ -132,8 +88,6 @@ export default function RitualCards() {
         const oldK = stepOf(f, prev);
         const newK = stepOf(f, tick);
         const photos = photosOf(el);
-        // Conveyor slide: the incoming photo enters from this frame's entry
-        // side while the outgoing one exits the opposite side at the same speed.
         const { prop, enter, exit } = REVEAL[f];
         gsap.fromTo(photos[newK], { [prop]: enter }, { [prop]: 0, duration: PHOTO_DUR, ease: "power2.inOut" });
         gsap.to(photos[oldK], {
@@ -142,7 +96,6 @@ export default function RitualCards() {
           ease: "power2.inOut",
           onComplete: () => gsap.set(photos[oldK], { [prop]: enter }),
         });
-        // Texts: the old step vanishes, the new one wipes in left → right.
         gsap.set(textsOf(el, oldK), { clipPath: CLIP_HIDDEN });
         gsap.fromTo(
           textsOf(el, newK),
@@ -154,12 +107,10 @@ export default function RitualCards() {
     }
 
     if (reduce) {
-      // No entrance, no cycle: drop the fan straight into place.
       frames.forEach((el, i) => gsap.set(el, { rotation: SLOTS[i].rotation, scale: SLOTS[i].scale, opacity: 1 }));
       return () => gsap.killTweensOf(frames);
     }
 
-    // Seed the fan pose, hidden, ready for the entrance.
     frames.forEach((el, i) => gsap.set(el, { rotation: SLOTS[i].rotation, scale: SLOTS[i].scale, opacity: 0 }));
 
     const st = ScrollTrigger.create({
@@ -167,8 +118,6 @@ export default function RitualCards() {
       start: "top 85%",
       once: true,
       onEnter() {
-        // Fan out: each frame starts gathered at the front slot, then spreads
-        // to its own slot with the stagger.
         const px = layer.offsetWidth / 1440;
         frames.forEach((el, i) => {
           const slot = SLOTS[i];
@@ -211,23 +160,14 @@ export default function RitualCards() {
           className="absolute"
           style={{ left: u(slot.x), top: u(slot.y), width: u(CARD.w), height: u(CARD.h), opacity: 0, zIndex: slot.z }}
         >
-          {/* Card silhouette (border stays put; only the contents cycle) */}
           <div style={{ position: "absolute", inset: 0, transform: "rotate(180deg)" }}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/s5-card2.svg" alt="" className="block size-full" />
           </div>
 
-          {/* Photo window — all step photos stacked; the active one slides in on
-              each cycle along this frame's REVEAL axis (top-to-bottom on the
-              center card, side-in-toward-center on the left/right cards) */}
           <div
             className="absolute overflow-hidden"
             style={{ left: u(REL.photo.left), top: u(REL.photo.top), width: u(REL.photo.w), height: u(REL.photo.h) }}
           >
-            {/* No inline transform on the layers — the GSAP seed owns the
-                REVEAL axis (x/yPercent) before the frame becomes visible (an
-                inline transform would
-                compound with it and strand the photo off-window). */}
             {steps.map((s) => (
               <div key={s.src} data-photo className="absolute inset-0">
                 <Image src={s.src} alt={s.alt} fill sizes="40vw" className="object-cover" />
@@ -235,11 +175,6 @@ export default function RitualCards() {
             ))}
           </div>
 
-          {/* Label, title, body — layered per step, revealed left → right.
-              Every frame renders all three (the mild 9° tilt keeps the
-              rotated corners from lifting past the front card's straight
-              top/bottom edge, so the overlap covers side-frame text cleanly
-              instead of leaking a mid-word fragment). */}
           <div
             className="absolute grid"
             style={{ right: u(REL.label.right), top: u(REL.label.top), padding: `${u(REL.label.pad[0])} ${u(REL.label.pad[1])}`, justifyItems: "end" }}

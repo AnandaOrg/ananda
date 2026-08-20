@@ -9,27 +9,16 @@ import { LOCALES, LOCALE_COOKIE, type AppLocale } from "@/i18n/config";
 
 gsap.registerPlugin(ScrollTrigger);
 
-/** Persist the locale for a year; read back server-side in i18n/request.ts. */
 function setLocaleCookie(next: AppLocale) {
   document.cookie = `${LOCALE_COOKIE}=${next}; path=/; max-age=31536000; samesite=lax`;
 }
 
-/**
- * Fixed EN/BG toggle (top right). Persists the choice in the locale cookie and
- * refreshes the RSC tree so the server re-renders with the new dictionary —
- * no `[locale]` routing, the URL never changes. z-40 keeps it under the
- * flavour modal (z-50). Hidden over the hero splash (the first 100vh) — it
- * fades in once the scroll reaches the "Ditch the glass" section.
- */
 export default function LanguageSwitcher() {
   const locale = useLocale();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [visible, setVisible] = useState(false);
 
-  // Show only past the hero: the splash section is exactly 100vh, so once
-  // scrollY passes ~3/4 of it the "Ditch the glass" section dominates the
-  // viewport. rAF-throttled, and re-checked on resize (vh changes).
   useEffect(() => {
     let raf = 0;
     const check = () => {
@@ -49,8 +38,6 @@ export default function LanguageSwitcher() {
     };
   }, []);
 
-  // Copy lengths differ per locale, which moves section heights around —
-  // re-measure every pinned/scrubbed timeline once the new text is in.
   useEffect(() => {
     const id = window.setTimeout(() => ScrollTrigger.refresh(), 400);
     return () => window.clearTimeout(id);
@@ -76,8 +63,6 @@ export default function LanguageSwitcher() {
         backdropFilter: "blur(4px)",
         WebkitBackdropFilter: "blur(4px)",
         opacity: !visible ? 0 : isPending ? 0.6 : 1,
-        // visibility keeps the hidden pill out of the tab order / a11y tree;
-        // it flips after the fade-out and before the fade-in.
         visibility: visible ? "visible" : "hidden",
         pointerEvents: visible ? "auto" : "none",
         transform: visible ? "translateY(0)" : "translateY(-8px)",

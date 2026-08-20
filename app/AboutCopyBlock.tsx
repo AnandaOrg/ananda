@@ -5,11 +5,6 @@ import { useLocale, useTranslations } from "next-intl";
 
 const u = (n: number) => `calc(var(--u) * ${n})`;
 
-/**
- * "What we're about" eyebrow + copy. Layout-neutral: the parent column places it;
- * this component only owns the type tokens and the one-shot slide-in reveal that
- * fires as the section enters the viewport.
- */
 export default function AboutCopyBlock({
   className,
   style,
@@ -17,11 +12,6 @@ export default function AboutCopyBlock({
 }: {
   className?: string;
   style?: React.CSSProperties;
-  /**
-   * Skip the scroll-triggered reveal and render fully visible immediately. Used
-   * when an upstream section (DitchTheGlass) already faded this copy in during
-   * its travel, so the hand-off is seamless and the text doesn't re-animate.
-   */
   revealed?: boolean;
 }) {
   const t = useTranslations("about");
@@ -85,7 +75,6 @@ export default function AboutCopyBlock({
       </div>
 
       <div style={{ padding: `${u(10)} ${u(14)}` }}>
-        {/* BG runs the copy-brief sizing (16 → 20u); EN keeps the original. */}
         <div
           style={{
             fontFamily: "var(--font-body)",

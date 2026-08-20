@@ -3,15 +3,6 @@ import RitualCards from "./RitualCards";
 import WildCarousel from "./mobile/WildCarousel";
 import { CAROUSEL_AUTOPLAY_SPEED } from "./configs";
 
-/**
- * Section 5 — "The Ritual" / "ANANDA in the Wild" (Figma node 74:8391, a
- * 1440-wide cream frame). Same width-scaling canvas as the other sections:
- * `--u = 100cqw / 1440`, every length `calc(var(--u) * figma-px)`.
- * The intro manifesto that used to open this section now lives in its own
- * `Manifesto.tsx` before the flavours; every offset here shifted up by
- * 989.86u and the canvas shrank accordingly.
- */
-
 const u = (n: number) => `calc(var(--u) * ${n})`;
 const RED = "#eb4638";
 
@@ -35,7 +26,6 @@ export default function Ritual() {
         className="relative mx-auto"
         style={{ ["--u" as string]: "calc(100cqw / 1440)", width: u(1440), height: u(2952.688) }}
       >
-        {/* HOW IT WORKS */}
         <div className="absolute" style={{ left: u(67), top: u(271.98), padding: `${u(10)} ${u(14)}` }}>
           <p
             className="whitespace-nowrap uppercase"
@@ -45,7 +35,6 @@ export default function Ritual() {
           </p>
         </div>
 
-        {/* THE RITUAL */}
         <p
           className="absolute font-bold uppercase"
           style={{
@@ -55,7 +44,6 @@ export default function Ritual() {
             fontFamily: "var(--font-display)",
             fontSize: u(180),
             lineHeight: 0.8,
-            // BG (Golos) relaxes the -0.08em Anek tracking to -0.03em.
             letterSpacing: u(bg ? -5.4 : -14.4),
             color: RED,
           }}
@@ -63,10 +51,8 @@ export default function Ritual() {
           {tRitual("title")}
         </p>
 
-        {/* Step cards — scroll-triggered rotation entrance */}
         <RitualCards />
 
-        {/* OUR COLLECTIVE — sits 400px below the card block */}
         <div className="absolute" style={{ left: u(67), top: u(1791.14), padding: `${u(10)} ${u(14)}` }}>
           <p
             className="whitespace-nowrap uppercase"
@@ -76,7 +62,6 @@ export default function Ritual() {
           </p>
         </div>
 
-        {/* ANANDA IN THE WILD */}
         <div
           className="absolute font-bold uppercase"
           style={{
@@ -86,7 +71,6 @@ export default function Ritual() {
             fontFamily: "var(--font-display)",
             fontSize: u(180),
             lineHeight: 0.8,
-            // BG (Golos) relaxes the -0.08em Anek tracking to -0.03em.
             letterSpacing: u(bg ? -5.4 : -14.4),
             color: RED,
           }}
@@ -95,7 +79,6 @@ export default function Ritual() {
           <p className="whitespace-nowrap">{tWild("title2")}</p>
         </div>
 
-        {/* Flavour tags */}
         <div className="absolute flex items-center" style={{ left: u(81), top: u(2167.8), gap: u(14) }}>
           {tags.map((t) => (
             <span
@@ -118,7 +101,6 @@ export default function Ritual() {
           ))}
         </div>
 
-        {/* "In the wild" photo carousel — drag / scroll through the gallery */}
         <div className="absolute" style={{ left: 0, top: u(2300.63), width: u(1440) }}>
           <WildCarousel
             items={WILD}

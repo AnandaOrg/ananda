@@ -11,18 +11,10 @@ export interface MarqueeImage {
 
 interface Props {
   images: MarqueeImage[];
-  /** Pixels per second. Default 40. */
   speed?: number;
-  /** Scroll direction. Default "up". */
   direction?: "up" | "down";
-  /** Gap in px between images. Default 12. */
   gap?: number;
-  /** Pause animation on hover. Default true. */
   pauseOnHover?: boolean;
-  /**
-   * Display height of each image slot in px. Default 200.
-   * next/image requires explicit container height when using fill mode.
-   */
   imageHeight?: number;
   className?: string;
   style?: React.CSSProperties;
@@ -57,9 +49,6 @@ export default function VerticalMarqueeGallery({
   const shouldAnimate = images.length > 1 && halfHeight !== null && halfHeight > 0;
   const duration = shouldAnimate ? halfHeight / speed : 0;
 
-  // Animation class is a plain global class name (defined in globals.css).
-  // CSS Module keyframe scoping is unreliable in Next.js 16 App Router —
-  // globals.css guarantees the @keyframes are always available before paint.
   const animateClass = shouldAnimate
     ? direction === "up"
       ? "vmg-animate-up"
@@ -85,12 +74,10 @@ export default function VerticalMarqueeGallery({
         className={trackClass}
         style={shouldAnimate ? { animationDuration: `${duration}s` } : undefined}
       >
-        {/* Primary copy — measured by ResizeObserver */}
         <div ref={firstCopyRef}>
           <ImageList images={images} imageHeight={imageHeight} gap={gap} priorityCount={2} />
         </div>
 
-        {/* Duplicate — aria-hidden so screen readers don't read images twice */}
         <div aria-hidden="true">
           <ImageList images={images} imageHeight={imageHeight} gap={gap} priorityCount={0} />
         </div>

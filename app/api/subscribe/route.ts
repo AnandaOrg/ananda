@@ -1,9 +1,6 @@
 import { NextResponse } from "next/server";
 import { parse } from "tldts";
 
-// local@domain shape (no spaces, single @) — the domain is then validated by
-// tldts against its bundled Public Suffix List snapshot: only domains ending
-// in a real ICANN TLD pass (rejects `user@localhost`, `a@b.notarealtld`).
 const EMAIL_SHAPE = /^[^\s@]+@([^\s@]+)$/;
 
 const isValidEmail = (email: string): boolean => {

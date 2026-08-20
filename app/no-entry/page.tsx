@@ -1,13 +1,6 @@
 import Image from "next/image";
 import { getTranslations } from "next-intl/server";
 
-/**
- * Landing page for visitors who answered "I'm out" on the age gate. Reuses
- * the gate's visual language — brand-red ground, the torn-paper card
- * (organic-bg-shape.svg) scaled via `--agu = 100cqw / 625` — so the refusal
- * still reads as part of the site. Deliberately a dead end: no link back in.
- */
-
 const gu = (n: number) => `calc(var(--agu) * ${n})`;
 
 export default async function NoEntryPage() {
@@ -30,7 +23,6 @@ export default async function NoEntryPage() {
         className="relative"
         style={{
           containerType: "inline-size",
-          // Same card sizing as the age gate (AgeGate.tsx).
           width: "min(92vw, max(340px, 31.5vw))",
           aspectRatio: "625 / 391",
           ["--agu" as string]: "calc(100cqw / 625)",

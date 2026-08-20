@@ -2,18 +2,8 @@ import AmbientVideo from "../AmbientVideo";
 import ScrollVideoCanvas from "../ScrollVideoCanvas";
 import { mu, MU_VAR, maskStyle } from "./scale";
 
-/**
- * Mobile twin of the AboutCollage media (desktop): the scroll-scrubbed
- * pineapple frame sequence and the strawberries looping video (autoplays on
- * load) with their organic masks.
- * Layout per the mobile Figma: the pineapple column sits flush against the
- * right edge; the strawberries photo (rotated −90° like desktop so the KYOTO
- * pouch stands upright) sits lower-left. All lengths are desktop values
- * × 0.404 (pineapple) / × 0.308 (strawberries), in `--mu` units. (md:hidden)
- */
-
 const PINE = { top: 40, w: 160, h: 320 };
-const STRAW = { left: 9, top: 93, w: 231, h: 186 }; // visual (post-rotation) box
+const STRAW = { left: 9, top: 93, w: 231, h: 186 };
 const PAD_BOTTOM = 40;
 const SECTION_H = PINE.top + PINE.h + PAD_BOTTOM;
 
@@ -24,7 +14,6 @@ export default function MobileCollageMedia() {
       style={{ containerType: "inline-size" }}
     >
       <div className="relative" style={{ ...MU_VAR, height: mu(SECTION_H) }}>
-        {/* Pineapple — GSAP scroll-scrubbed */}
         <ScrollVideoCanvas
           frameBase="/frames/ananas/"
           frameCount={120}
@@ -39,8 +28,6 @@ export default function MobileCollageMedia() {
           }}
         />
 
-        {/* Strawberries — ambient looping video, autoplays on load (NOT
-            scroll-driven, unlike the pineapple); paused while off screen */}
         <div
           className="absolute flex items-center justify-center"
           style={{ left: mu(STRAW.left), top: mu(STRAW.top), width: mu(STRAW.w), height: mu(STRAW.h) }}

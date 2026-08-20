@@ -58,7 +58,6 @@ export default function PouchScroll() {
             boxShadow: `${u(11)} ${u(8)} ${u(28.7)} 0 rgba(0,0,0,0.25)`,
           }}
         >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src="/c-pouch.png"
             alt="ANANDA cocktail pouch"

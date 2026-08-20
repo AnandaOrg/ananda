@@ -4,10 +4,6 @@ import RevealStatement from "../RevealStatement";
 import { MANIFESTO_MOBILE } from "../manifesto-copy";
 import type { AppLocale } from "@/i18n/config";
 
-/** Mobile section — the ANANDA manifesto statement + mandala. Sits between
- *  MobilePathways and MobileRitual (Hero → About → Flavors → Manifesto →
- *  Ritual → …), mirroring the desktop `Manifesto` section. EN flows as one
- *  paragraph; BG keeps the dictionary-entry paragraphs. */
 export default function MobileAbout() {
   const locale = useLocale() as AppLocale;
 
@@ -21,14 +17,8 @@ export default function MobileAbout() {
               smallFontSize={mu(15.48)}
               paraSpacing={locale === "bg" ? mu(16) : undefined}
               className="font-bold"
-              // alignSelf: stretch — the parent's items-center otherwise lets this
-              // block size to its own (unwrapped) content width instead of the
-              // available column width, since it has no explicit width of its
-              // own; that only reliably shows up as a single overflowing line on
-              // some engines (reported on iPhone 16 Pro Safari), not others.
               style={{ fontFamily: "var(--font-display)", color: "var(--terracotta)", letterSpacing: mu(locale === "bg" ? -0.48 : -0.96), fontSize: mu(24), lineHeight: 1.15, alignSelf: "stretch" }}
             />
-            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/s5-mandala.svg" alt="" style={{ width: mu(140.075), height: mu(146.594) }} />
           </div>
         </div>

@@ -1,20 +1,4 @@
-/**
- * Serves the site's service worker from /sw.js with the current deployment's
- * build id baked in. The worker runtime-caches every static asset (images,
- * GLB, video, fonts, /_next/image responses) for 24h — see SW_SOURCE.
- *
- * Deploy-wide invalidation works through the version stamp: a new deployment
- * changes BUILD_ID, which makes this file byte-different; the browser's
- * update check (every navigation, HTTP cache bypassed via max-age=0 here and
- * updateViaCache:"none" at registration) installs the new worker, which
- * deletes the previous versioned cache on activate. So every user drops the
- * old cache on their first visit after a deploy — the earliest moment a
- * browser cache can physically be invalidated.
- */
 
-// force-static: prerendered once per build, so BUILD_ID is a per-deployment
-// constant. VERCEL_GIT_COMMIT_SHA exists on Vercel builds; the Date.now()
-// fallback still yields a fresh id per local/other build.
 export const dynamic = "force-static";
 
 const BUILD_ID =
@@ -22,17 +6,14 @@ const BUILD_ID =
   process.env.VERCEL_DEPLOYMENT_ID ??
   String(Date.now());
 
-const SW_SOURCE = /* js */ `
+const SW_SOURCE =  `
 "use strict";
 
 var VERSION = "__BUILD_ID__";
 var CACHE = "ananda-static-" + VERSION;
-var TTL_MS = 24 * 60 * 60 * 1000; // 24h per entry
+var TTL_MS = 24 * 60 * 60 * 1000;
 var STAMP = "sw-cached-at";
 
-// What we runtime-cache: optimizer output plus raw static assets by extension.
-// /_next/static is excluded — Next serves it content-hashed + immutable, the
-// HTTP cache already keeps it forever.
 function isCacheable(url) {
   if (url.origin !== self.location.origin) return false;
   if (url.pathname.indexOf("/_next/static/") === 0) return false;
@@ -45,8 +26,6 @@ function isFresh(res) {
   return at > 0 && Date.now() - at < TTL_MS;
 }
 
-// Store a timestamped copy so isFresh() can apply the 24h TTL (the Cache API
-// keeps no metadata of its own). Only complete 200s — never partials.
 function putStamped(cache, request, res) {
   if (!res || res.status !== 200 || res.type === "opaque") return Promise.resolve();
   return res
@@ -60,9 +39,6 @@ function putStamped(cache, request, res) {
     .catch(function () {});
 }
 
-// Serve a Range request as a 206 sliced from the cached full body — video
-// elements (iOS Safari always) fetch media this way and a full-body 200 reply
-// would be ignored.
 function sliceResponse(fullRes, rangeHeader) {
   return fullRes.arrayBuffer().then(function (buf) {
     var size = buf.byteLength;
@@ -119,17 +95,12 @@ self.addEventListener("fetch", function (event) {
   var rangeHeader = request.headers.get("range");
   event.respondWith(
     caches.open(CACHE).then(function (cache) {
-      // Cache key ignores the Range header so slices and full fetches share
-      // one entry (the full body).
       var key = request.url;
       return cache.match(key).then(function (cached) {
         if (cached && isFresh(cached)) {
           return rangeHeader ? sliceResponse(cached, rangeHeader) : cached;
         }
         if (rangeHeader) {
-          // Miss/stale on a media Range request: stream this one from the
-          // network untouched, and cache the FULL file in the background so
-          // later requests (and the next 24h of visits) slice from cache.
           event.waitUntil(
             fetch(key)
               .then(function (full) { return putStamped(cache, key, full); })
@@ -143,7 +114,6 @@ self.addEventListener("fetch", function (event) {
             return res;
           })
           .catch(function (err) {
-            // Network down: an expired copy beats a broken page.
             if (cached) return cached;
             throw err;
           });
@@ -157,8 +127,6 @@ export function GET() {
   return new Response(SW_SOURCE.replace("__BUILD_ID__", BUILD_ID), {
     headers: {
       "Content-Type": "application/javascript; charset=utf-8",
-      // The worker file itself must never be cached long — it's the update
-      // signal that busts everything else.
       "Cache-Control": "public, max-age=0, must-revalidate",
     },
   });

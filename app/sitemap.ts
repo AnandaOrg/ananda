@@ -1,7 +1,6 @@
 import type { MetadataRoute } from "next";
 import { SITE_URL } from "./configs";
 
-// Single-page site — one entry is the whole sitemap.
 export default function sitemap(): MetadataRoute.Sitemap {
   return [
     {

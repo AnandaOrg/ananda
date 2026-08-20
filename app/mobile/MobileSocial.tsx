@@ -11,7 +11,6 @@ const WILD = [
   { src: "/s5-wild5.png", w: 449.716, alt: "Sharing ANANDA cocktails" },
 ];
 
-/** Mobile section — "ANANDA in the Wild" + photo strip (Figma 184:3036). */
 export default function MobileSocial() {
   const t = useTranslations("wild");
   const bg = useLocale() === "bg";
@@ -20,7 +19,6 @@ export default function MobileSocial() {
   return (
     <section className="w-full overflow-hidden bg-[#fff0e5] md:hidden" style={{ containerType: "inline-size" }}>
       <div className="relative flex flex-col items-start" style={{ ...MU_VAR, width: mu(390) }}>
-        {/* Heading + tags — 60px gap below, before the carousel */}
         <div className="flex flex-col items-start" style={{ marginLeft: mu(24), marginTop: mu(60), marginBottom: mu(60), width: mu(316), gap: mu(40) }}>
           <div className="flex flex-col items-start uppercase text-[#eb4638]" style={{ gap: mu(16) }}>
             <p className="whitespace-nowrap" style={{ fontFamily: "var(--font-mono-label)", fontSize: mu(12), lineHeight: 0.87, letterSpacing: mu(0.84) }}>
@@ -31,8 +29,6 @@ export default function MobileSocial() {
               <p className="whitespace-nowrap">{t("title2")}</p>
             </div>
           </div>
-          {/* BG's second tag is longer than the screen, so BG pills wrap
-              (with a readable line-height); EN keeps the one-line design. */}
           <div className="flex flex-col items-start" style={{ gap: mu(14) }}>
             {tags.map((tag) => (
               <span
@@ -55,8 +51,6 @@ export default function MobileSocial() {
           </div>
         </div>
 
-        {/* Photo carousel — centred slide with a sliver of the neighbours peeking,
-            free-scrolling, edge-to-edge, flush with the section below. */}
         <div style={{ width: mu(390) }}>
           <WildCarousel items={WILD} slideW={mu(300)} slideH={mu(503.5)} gap="0px" pad="0px" snapType="none" startIndex={1} autoplay={CAROUSEL_AUTOPLAY_SPEED} />
         </div>

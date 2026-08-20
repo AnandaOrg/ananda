@@ -5,12 +5,6 @@ import { useLocale, useTranslations } from "next-intl";
 import { AnimatePresence, motion } from "framer-motion";
 import { mu, MU_VAR } from "./mobile/scale";
 
-/**
- * Section 6 — "Join the drop list" email capture.
- * Mobile (<768): stacked (Figma 184:3088). Tablet/desktop (768–1440+): two columns,
- * heading left / form right (Figma 100:9), scaled from the 1440 frame via `--ud`.
- */
-
 const ud = (n: number) => `calc(var(--ud) * ${n})`;
 const UD_VAR = { ["--ud" as string]: "calc(100cqw / 1440)" } as const;
 
@@ -19,7 +13,6 @@ const ENTER = { opacity: 0, scale: 0.96 };
 const SHOWN = { opacity: 1, scale: 1 };
 
 type FormScale = {
-  /** Design-unit scaler for this breakpoint (mu or ud). */
   s: (n: number) => string;
   height: number;
   fontSize: number;
@@ -28,21 +21,15 @@ type FormScale = {
   radius: number;
   btnRight: number;
   btnSize: number;
-  /** "Get on the list" heading (swaps to "Amazing!" / "Oops…" with the state). */
   headingSize: number;
   headingLs: number;
-  /** Success / error message font size (22 on the 1440 design frame). */
   msgSize: number;
 };
 
 type Status = "idle" | "loading" | "success" | "error";
 
-const REVERT_MS = 3000; // how long success / error states stay before the input returns
+const REVERT_MS = 3000;
 
-/** Heading + email field. On submit, POSTs to /api/subscribe (MailerLite). Success
- *  swaps the heading to "Amazing!" and the field to a plain confirmation message;
- *  failure swaps the heading to "Oops…" and the field to a warning pill. Either
- *  state holds for 3s, then the heading and empty input return. */
 function DropForm({ s, height, fontSize, padL, padR, radius, btnRight, btnSize, headingSize, headingLs, msgSize }: FormScale) {
   const formBg = useLocale() === "bg";
   const t = useTranslations("dropList");
@@ -81,7 +68,6 @@ function DropForm({ s, height, fontSize, padL, padR, radius, btnRight, btnSize, 
 
   return (
     <>
-      {/* Heading — crossfades between "Get on the list" / "Amazing!" / "Oops…" */}
       <div className="relative w-full" style={{ height: s(headingSize * 0.8) }}>
         <AnimatePresence initial={false}>
           <motion.p
@@ -125,7 +111,6 @@ function DropForm({ s, height, fontSize, padL, padR, radius, btnRight, btnSize, 
               exit={ENTER}
               transition={FADE}
             >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src="/m-warning.svg" alt="" style={{ width: s(msgSize * 1.4), height: s(msgSize * 1.4) }} />
               <p style={{ fontFamily: "var(--font-body)", fontSize: s(msgSize) }}>{t("errorMsg")}</p>
             </motion.div>
@@ -154,7 +139,6 @@ function DropForm({ s, height, fontSize, padL, padR, radius, btnRight, btnSize, 
                 className="absolute -translate-y-1/2 disabled:opacity-50"
                 style={{ right: s(btnRight), top: "50%", width: s(btnSize), height: s(btnSize) }}
               >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src="/m-send.svg" alt="" className="size-full" />
               </button>
             </motion.form>
@@ -168,13 +152,10 @@ function DropForm({ s, height, fontSize, padL, padR, radius, btnRight, btnSize, 
 export default function DropList() {
   const t = useTranslations("dropList");
   const locale = useLocale();
-  // BG "Присъедини се към drop list-а" runs long — step the display size down
-  // and widen the box so the longest word still fits.
   const bg = locale === "bg";
 
   return (
     <section className="w-full bg-[#eb4638]" style={{ containerType: "inline-size" }}>
-      {/* Mobile */}
       <div className="flex justify-center md:hidden">
         <div className="w-full" style={{ containerType: "inline-size" }}>
           <div className="flex flex-col items-start" style={{ ...MU_VAR, padding: `${mu(60)} ${mu(24)} ${mu(4)} ${mu(24)}`, gap: mu(40) }}>
@@ -191,7 +172,6 @@ export default function DropList() {
         </div>
       </div>
 
-      {/* Tablet / desktop */}
       <div className="hidden md:block" style={UD_VAR}>
         <div className="flex w-full items-end justify-between" style={{ padding: `${ud(160)} ${ud(80)}` }}>
           <div className="flex flex-col items-start uppercase text-[#fff0e5]" style={{ gap: ud(48) }}>

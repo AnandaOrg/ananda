@@ -10,9 +10,7 @@ type Props = {
   frameBase: string;
   frameCount: number;
   alt: string;
-  /** When true, plays frames in a continuous loop instead of scrubbing on scroll. */
   autoLoop?: boolean;
-  /** Playback speed for autoLoop in frames-per-second. Default 24. */
   fps?: number;
   className?: string;
   style?: CSSProperties;
@@ -38,9 +36,6 @@ export default function ScrollVideoCanvas({
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    // Cap at 2×: the source frames are video stills that never carry 3×-phone
-    // detail, and every drawImage fills the whole backing store — at 3× that's
-    // 2.25× the pixels of 2× for no visible gain.
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     const frames: (HTMLImageElement | undefined)[] = new Array(frameCount);
     let loaded = false;
@@ -48,8 +43,6 @@ export default function ScrollVideoCanvas({
 
     function sizeCanvas() {
       if (!canvas || !wrap) return;
-      // Use offsetWidth/offsetHeight (layout dims, pre-transform) not getBoundingClientRect,
-      // which would return transposed dimensions when a parent has a 90° rotation.
       const width = wrap.offsetWidth;
       const height = wrap.offsetHeight;
       canvas.width = Math.round(width * dpr);
@@ -72,8 +65,6 @@ export default function ScrollVideoCanvas({
     });
     ro.observe(wrap);
 
-    // Decode every frame into an HTMLImageElement. Held only while the section is
-    // near the viewport (see the observer below).
     function loadFrames() {
       if (loaded) return;
       loaded = true;
@@ -81,8 +72,6 @@ export default function ScrollVideoCanvas({
         const n = String(i + 1).padStart(3, "0");
         const img = new Image();
         img.src = `${frameBase}${n}.jpg`;
-        // Redraw only the frame we're currently parked on as it arrives, so a
-        // reload after an unload doesn't snap the canvas back to frame 0.
         img.onload = () => {
           if (Math.round(obj.frame) === i) drawFrame(i);
         };
@@ -90,10 +79,6 @@ export default function ScrollVideoCanvas({
       }
     }
 
-    // Free the decoded bitmaps. iOS Safari counts these against the tab's memory
-    // budget; two frame sequences (240 bitmaps) held at once is enough to crash
-    // it. The last-drawn frame stays painted on the canvas, so unloading is
-    // invisible until re-entry reloads.
     function unloadFrames() {
       if (!loaded) return;
       loaded = false;
@@ -107,8 +92,6 @@ export default function ScrollVideoCanvas({
       }
     }
 
-    // Load when near the viewport, release when it leaves — keeps at most the
-    // active section's frames resident.
     const io = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting) loadFrames();
@@ -135,7 +118,6 @@ export default function ScrollVideoCanvas({
       };
       rafId = requestAnimationFrame(loop);
     } else {
-      // GSAP ScrollTrigger with scrub: 1 (1-second smoothing)
       tween = gsap.to(obj, {
         frame: frameCount - 1,
         ease: "none",

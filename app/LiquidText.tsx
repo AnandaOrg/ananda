@@ -6,22 +6,12 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 
 gsap.registerPlugin(ScrollTrigger);
 
-/**
- * A headline that splashes into place like liquid — the reveal the c-wave
- * pour leads into. Each word rises out of the flood with an elastic, wobbly
- * settle. One-shot when it scrolls in; fully static (no motion) under
- * `prefers-reduced-motion`.
- *
- * Positioning + typography are passed through verbatim to the wrapping <p>,
- * so callers style it exactly like the plain paragraph it replaces.
- */
 export default function LiquidText({
   text,
   className,
   style,
 }: {
   text: string;
-  /** Classes for the wrapping <p>. */
   className?: string;
   style?: React.CSSProperties;
 }) {

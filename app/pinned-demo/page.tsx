@@ -6,38 +6,19 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 
 gsap.registerPlugin(ScrollTrigger);
 
-/**
- * Pinned-can scroll demo (MAMA-style flavour switching).
- *
- * One can stays pinned dead-centre for the whole scroll; each 100vh section is
- * a flavour. Scrolling between sections scrubs (scrub: 1, snap to sections):
- *   - a full 360° can rotation (procedural canvas placeholder — see drawCan for
- *     where a real 120-frame webp sequence plugs in),
- *   - a background colour crossfade,
- *   - the CTA pill's accent colour + label swap at the midpoint,
- *   - outgoing illustrations flying away from centre / incoming flying in with
- *     stagger and back.out overshoot — fully scrub-reversible.
- * Idle motion (can bob, illustration float, mouse parallax) is time-based and
- * independent of scroll. prefers-reduced-motion: spin → plain crossfade,
- * transitions → opacity-only, no parallax/idle; pin + snap stay.
- */
-
 type Illo = {
   shape: "circle" | "ring" | "triangle" | "star" | "cross" | "squiggle";
-  x: number; // % of stage width
-  y: number; // % of stage height
-  size: number; // px
-  depth: number; // mouse-parallax depth, 0.2–0.8
-  rotate?: number; // deg
+  x: number;
+  y: number;
+  size: number;
+  depth: number;
+  rotate?: number;
 };
 
 type Flavor = {
   name: string;
   bg: string;
   accent: string;
-  /** REAL ASSETS: folder of this flavour's 120-frame rotation sequence, e.g.
-   *  "/frames/flavor-0/" holding frame-0000.webp … frame-0119.webp. Preload it
-   *  when the flavour is one section away (see preloadSequence below). */
   frames: string;
   illos: Illo[];
 };
@@ -102,8 +83,8 @@ const FLAVORS: Flavor[] = [
 ];
 
 const N = FLAVORS.length;
-const FRAMES = 4000; // frames per full 360° rotation
-const CAN_W = 300; // canvas CSS px
+const FRAMES = 4000;
+const CAN_W = 300;
 const CAN_H = 460;
 
 const clamp01 = (v: number) => Math.max(0, Math.min(1, v));
@@ -122,22 +103,6 @@ const mixHex = (a: string, b: string, t: number) => {
   return `rgb(${m[0]}, ${m[1]}, ${m[2]})`;
 };
 
-/* REAL ASSETS: warm a flavour's frame sequence when it is one section away.
-   Store the resolved images per flavour and drawImage(frames[i], …) in drawCan
-   instead of the procedural placeholder.
-
-async function preloadSequence(fl: Flavor): Promise<HTMLImageElement[]> {
-  return Promise.all(
-    Array.from({ length: FRAMES }, (_, k) => new Promise<HTMLImageElement>((resolve) => {
-      const img = new Image();
-      img.src = `${fl.frames}frame-${String(k).padStart(4, "0")}.webp`;
-      img.onload = () => resolve(img);
-    }))
-  );
-}
-*/
-
-/** Placeholder geometric illustration. Swap for real SVG/PNG art per flavour. */
 function Shape({ illo, color }: { illo: Illo; color: string }) {
   const s = illo.size;
   const common = { width: s, height: s, viewBox: "0 0 100 100", "aria-hidden": true as const };
@@ -177,9 +142,7 @@ export default function PinnedCanDemo() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const ctaRef = useRef<HTMLButtonElement>(null);
   const labelRefs = useRef<(HTMLSpanElement | null)[]>([]);
-  // fly layer per illustration, grouped by flavour — the scrubbed fly-in/out target
   const flyRefs = useRef<(HTMLDivElement | null)[][]>(FLAVORS.map(() => []));
-  // idle float layer per illustration (time-based, nested inside the fly layer)
   const idleRefs = useRef<(HTMLDivElement | null)[]>([]);
 
   useEffect(() => {
@@ -198,27 +161,21 @@ export default function PinnedCanDemo() {
     const build = () => {
       const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-      // ── Canvas: DPR-aware sizing ──────────────────────────────────────────
       const dpr = window.devicePixelRatio || 1;
       canvas.width = Math.round(CAN_W * dpr);
       canvas.height = Math.round(CAN_H * dpr);
       c2d.setTransform(dpr, 0, 0, dpr, 0, 0);
 
       let lastKey = "";
-      /** Procedural placeholder can. REAL ASSETS: replace the drawing below
-       *  with c2d.drawImage(sequences[pair][frame], 0, 0, CAN_W, CAN_H) once
-       *  the webp sequences exist (see preloadSequence above). */
       const drawCan = (pair: number, local: number) => {
         const frame = Math.round(local * (FRAMES - 1));
         const key = reduce ? `${pair}:${Math.round(local * 200)}` : `${pair}:${frame}`;
-        if (key === lastKey) return; // draw only when the frame actually changes
+        if (key === lastKey) return;
         lastKey = key;
 
         const fA = FLAVORS[pair];
         const fB = FLAVORS[Math.min(pair + 1, N - 1)];
         const theta = reduce ? 0 : (frame / FRAMES) * Math.PI * 2;
-        // texture crossfade midway through the spin (frames 40–80), or a plain
-        // full-transition crossfade under reduced motion
         const blend = reduce ? local : smooth(clamp01((frame - 40) / 40));
         const label = mixHex(fA.accent, fB.accent, blend);
         const name = blend < 0.5 ? fA.name : fB.name;
@@ -231,7 +188,6 @@ export default function PinnedCanDemo() {
 
         c2d.clearRect(0, 0, CAN_W, CAN_H);
 
-        // body — brushed metal
         const metal = c2d.createLinearGradient(cx - r, 0, cx + r, 0);
         metal.addColorStop(0, "#c7c7cf");
         metal.addColorStop(0.28, "#f2f2f5");
@@ -242,24 +198,21 @@ export default function PinnedCanDemo() {
         c2d.fillStyle = metal;
         c2d.fill();
 
-        // label band (clipped to the body)
         c2d.save();
         c2d.clip();
         c2d.fillStyle = label;
         c2d.fillRect(cx - r, top + 76, bodyW, 268);
 
-        // rotating dot motifs — sell the spin by orbiting the band
         for (let k = 0; k < 6; k++) {
           const ang = theta + (k * Math.PI * 2) / 6;
           const cos = Math.cos(ang);
-          if (cos <= 0.08) continue; // behind the can
+          if (cos <= 0.08) continue;
           c2d.beginPath();
           c2d.ellipse(cx + Math.sin(ang) * r * 0.78, top + 108, 7 * cos, 7, 0, 0, Math.PI * 2);
           c2d.fillStyle = "rgba(255, 255, 255, 0.55)";
           c2d.fill();
         }
 
-        // name — horizontal sine-shift + width squash fakes the rotation
         const cosT = reduce ? 1 : Math.cos(theta);
         if (cosT > 0.06) {
           c2d.save();
@@ -276,7 +229,6 @@ export default function PinnedCanDemo() {
         }
         c2d.restore();
 
-        // lid
         c2d.beginPath();
         c2d.ellipse(cx, top + 14, r - 6, 13, 0, 0, Math.PI * 2);
         c2d.fillStyle = "#aeaeb8";
@@ -286,7 +238,6 @@ export default function PinnedCanDemo() {
         c2d.fillStyle = "#d4d4db";
         c2d.fill();
 
-        // standing highlight
         const shine = c2d.createLinearGradient(cx - r * 0.55, 0, cx - r * 0.25, 0);
         shine.addColorStop(0, "rgba(255, 255, 255, 0)");
         shine.addColorStop(0.5, "rgba(255, 255, 255, 0.35)");
@@ -295,8 +246,6 @@ export default function PinnedCanDemo() {
         c2d.fillRect(cx - r * 0.55, top + 20, r * 0.3, bodyH - 20);
       };
 
-      // fly-out/in vector: straight away from the stage centre, far enough to
-      // clear the viewport
       const dist = Math.max(window.innerWidth, window.innerHeight) * 0.75;
       const flyVec = (il: Illo) => {
         const dx = il.x - 50;
@@ -309,7 +258,6 @@ export default function PinnedCanDemo() {
         const flat = (s: number) =>
           flyRefs.current[s].filter((el): el is HTMLDivElement => el !== null);
 
-        // ── Initial states ──────────────────────────────────────────────────
         FLAVORS.forEach((fl, s) => {
           const lab = labelRefs.current[s];
           if (lab) gsap.set(lab, { opacity: s === 0 ? 1 : 0, y: s === 0 ? 0 : 10 });
@@ -322,7 +270,6 @@ export default function PinnedCanDemo() {
         });
         drawCan(0, 0);
 
-        // ── Master scrubbed timeline: one pin, one trigger ─────────────────
         const proxy = { t: 0 };
         const tl = gsap.timeline({
           defaults: { ease: "none" },
@@ -338,8 +285,6 @@ export default function PinnedCanDemo() {
           },
         });
 
-        // can rotation driver — one tween over the whole scroll; the canvas
-        // redraws only when the rounded frame index changes
         tl.to(
           proxy,
           {
@@ -353,15 +298,12 @@ export default function PinnedCanDemo() {
           0
         );
 
-        // per-section-pair choreography, ranges computed from the pair index
         for (let i = 0; i < N - 1; i++) {
           const next = FLAVORS[i + 1];
 
-          // background + CTA colour crossfade across the whole pair range
           tl.to(bg, { backgroundColor: next.bg, duration: 1 }, i);
           tl.to(cta, { backgroundColor: next.accent, duration: 1 }, i);
 
-          // CTA label swap at the 50% point
           const labOut = labelRefs.current[i];
           const labIn = labelRefs.current[i + 1];
           if (labOut) tl.to(labOut, { opacity: 0, y: -10, duration: 0.35, ease: "power1.in" }, i + 0.1);
@@ -374,11 +316,9 @@ export default function PinnedCanDemo() {
             );
           }
 
-          // illustrations: out during the first half, in during the second —
-          // scrubbed, so scrolling back reverses them perfectly
           const out = flat(i);
           const inn = flat(i + 1);
-          const step = 0.22 / Math.max(out.length, 1); // ≈0.037 for 6 items
+          const step = 0.22 / Math.max(out.length, 1);
           out.forEach((el, j) => {
             const v = flyVec(FLAVORS[i].illos[j]);
             if (reduce) tl.to(el, { opacity: 0, duration: 0.4 }, i + j * 0.01);
@@ -399,7 +339,6 @@ export default function PinnedCanDemo() {
           });
         }
 
-        // ── Idle motion — time-based, independent of scroll ─────────────────
         if (!reduce) {
           if (bobRef.current) {
             gsap.fromTo(bobRef.current, { y: -8 }, { y: 8, duration: 2.6, ease: "sine.inOut", yoyo: true, repeat: -1 });
@@ -416,7 +355,6 @@ export default function PinnedCanDemo() {
             });
           });
 
-          // mouse parallax on the [data-depth] layers, ±15px at depth 1
           const layers = Array.from(stage.querySelectorAll<HTMLElement>("[data-depth]"));
           const setters = layers.map((el) => ({
             x: gsap.quickTo(el, "x", { duration: 0.6, ease: "power3.out" }),
@@ -446,7 +384,6 @@ export default function PinnedCanDemo() {
 
     build();
 
-    // rebuild on resize: fly vectors and the DPR canvas are pixel-based
     let resizeId: ReturnType<typeof setTimeout> | undefined;
     const onResize = () => {
       clearTimeout(resizeId);
@@ -466,12 +403,9 @@ export default function PinnedCanDemo() {
 
   return (
     <main ref={mainRef} className="relative" style={{ fontFamily: "var(--font-body)" }}>
-      {/* Pinned stage — everything visible lives here; the sections below only
-          provide scroll length */}
       <div ref={stageRef} className="absolute inset-x-0 top-0 z-10 h-screen w-full overflow-hidden">
         <div ref={bgRef} className="absolute inset-0" style={{ backgroundColor: FLAVORS[0].bg }} />
 
-        {/* Illustrations — one group per flavour; position → parallax → fly → idle */}
         {FLAVORS.map((fl, s) => (
           <div key={fl.name} className="pointer-events-none absolute inset-0">
             {fl.illos.map((il, j) => (
@@ -488,7 +422,6 @@ export default function PinnedCanDemo() {
           </div>
         ))}
 
-        {/* The can — a single persistent element, never duplicated per section */}
         <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
           <div ref={bobRef}>
             <canvas
@@ -500,7 +433,6 @@ export default function PinnedCanDemo() {
           </div>
         </div>
 
-        {/* CTA pill — accent colour tweens, label swaps at the midpoint */}
         <button
           ref={ctaRef}
           type="button"
@@ -517,7 +449,6 @@ export default function PinnedCanDemo() {
         </button>
       </div>
 
-      {/* Scroll track: one 100vh section per flavour */}
       {FLAVORS.map((fl) => (
         <section key={fl.name} aria-hidden className="h-screen" />
       ))}

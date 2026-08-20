@@ -18,15 +18,8 @@ const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 
 const VIDEO_SRC = "/videos/woman-drinking.mp4";
 
-// Where the gallery-stepping phase begins (the pour hand-off is fully
-// resolved by here — `handoff` above reaches 1 at prog 0.32 + 0.06).
-// A fast scroll/fling is capped to one gallery slide at a time past this
-// point — see lockedGalleryStepper.ts.
 const GALLERY_STEP_START = 0.38;
 
-// Photo #0 is the pour image — the diamond grows and lands as this exact slide,
-// so the hand-off from the traveling image into the gallery is invisible. Then
-// continued scrolling steps through the remaining hero_3 photos.
 const PHOTOS = [
   { src: "/hero_3/2.png", alt: "ANANDA moment" },
   { src: "/hero_3/3.png", alt: "ANANDA moment" },
@@ -43,26 +36,12 @@ const lerpBox = (a: Box, b: Box, t: number): Box => ({
 });
 const vToPx = (v: string, w: number, h: number) =>
   v.endsWith("vw") ? (parseFloat(v) / 100) * w : (parseFloat(v) / 100) * h;
-// Minimum scale for counter-rotated content to fully COVER its w×h frame at
-// `rotDeg`: cosθ + (long/short ratio)·sinθ, padded a hair so antialiasing never
-// shows a hairline at the corners. The aesthetic 1.5→1 zoom dips below this
-// mid-transition (≈1.25 at 22.5° where ≥1.31 is required), which exposed the
-// video's flat edges inside the rotated frame as "cut corners".
 const coverScale = (w: number, h: number, rotDeg: number) => {
   const rad = (rotDeg * Math.PI) / 180;
   const ratio = w > 0 && h > 0 ? Math.max(w / h, h / w) : 1;
   return Math.cos(rad) + (ratio + 0.02) * Math.sin(rad);
 };
 
-/**
- * Sections 2 + 3 as ONE pinned stage (desktop). The pour image holds inline as a
- * diamond in the heading, grows upright and centred, then travels to the gallery
- * card slot — while the "What we're about" copy fades in on the right. It lands
- * and cross-fades into the gallery's first photo (the same pour image, so the
- * hand-off is invisible); continued scrolling steps the gallery through the
- * remaining photos, THEN the pin releases into Pathways. One pin = nothing ever
- * "scrolls in". Desktop only. (Mobile uses MobileIntro / MobileCollage.)
- */
 export default function DitchTheGlass() {
   const t = useTranslations("hero");
   const locale = useLocale();
@@ -88,9 +67,9 @@ export default function DitchTheGlass() {
     const video = inner.querySelector<HTMLVideoElement>("video");
     const words = Array.from(section.querySelectorAll<HTMLElement>(".dtg-word"));
 
-    let K0: Box = { left: 0, top: 0, w: 0, h: 0 }; // diamond, inline in the heading
-    let K1: Box = { left: 0, top: 0, w: 0, h: 0 }; // grown upright square, centred
-    let K2: Box = { left: 0, top: 0, w: 0, h: 0 }; // gallery card slot
+    let K0: Box = { left: 0, top: 0, w: 0, h: 0 };
+    let K1: Box = { left: 0, top: 0, w: 0, h: 0 };
+    let K2: Box = { left: 0, top: 0, w: 0, h: 0 };
 
     const measure = () => {
       const s = section.getBoundingClientRect();
@@ -107,8 +86,7 @@ export default function DitchTheGlass() {
     };
 
     const render = (prog: number) => {
-      // grow, rotate, and travel all run together over one continuous window
-      const gtP = smooth(clamp((prog - 0.03) / 0.29, 0, 1)); // 0.03 → 0.32
+      const gtP = smooth(clamp((prog - 0.03) / 0.29, 0, 1));
       const gP = gtP;
       const tP = gtP;
 
@@ -118,54 +96,33 @@ export default function DitchTheGlass() {
       travel.style.width = `${box.w}px`;
       travel.style.height = `${box.h}px`;
 
-      // hand-off conveyor: the pour video and the gallery's first photo run the
-      // SAME move as every later gallery step — no cross-dissolve. The video
-      // wipes downward out of the (fixed, masked) card window while photo #0
-      // descends into it from above, both eased together. direction="down" ⇒
-      // incoming enters from the top, outgoing exits the bottom.
       const handoff = smooth(clamp((prog - 0.32) / 0.06, 0, 1));
 
       const rot = 45 * (1 - gP);
       travel.style.transform = `rotate(${rot}deg)`;
       const fill = Math.max(lerp(1.5, 1, gP), coverScale(box.w, box.h, rot));
       inner.style.transform = `rotate(${-rot}deg) scale(${fill.toFixed(4)})`;
-      // adopt the curved photo-card frame as it heads for the slot
       travel.style.maskImage = tP > 0 ? "url(/m-photo-card.svg)" : "none";
       travel.style.setProperty("-webkit-mask-image", tP > 0 ? "url(/m-photo-card.svg)" : "none");
-      // The video sits STILL beneath the incoming photo — it never slides. It
-      // freezes the instant the reveal starts (so it isn't playing behind the
-      // wipe) and is dropped once the photo has fully covered it.
       if (video) {
         if (handoff > 0) { if (!video.paused) video.pause(); }
         else if (video.paused) { void video.play().catch(() => {}); }
       }
       travel.style.opacity = handoff >= 1 ? "0" : "1";
 
-      // heading fades out as the image grows
       const textFade = 1 - clamp((prog - 0.08) / 0.12, 0, 1);
       words.forEach((w) => { w.style.opacity = String(textFade); });
 
-      // the copy fades + slides in on the right WHILE the image travels left
       const cP = smooth(clamp((prog - 0.20) / 0.14, 0, 1));
       copy.style.opacity = String(cP);
       copy.style.transform = `translateX(${lerp(-80, 0, cP)}px)`;
 
-      // hand-off: the first photo is revealed IN PLACE over the frozen video,
-      // wiping top→bottom (the bottom inset shrinks to 0), so nothing floats
-      // above the slot and the video never moves — it is simply covered.
       gallery.style.opacity = handoff > 0 ? "1" : "0";
       gallery.style.clipPath = `inset(0 0 ${(1 - handoff) * 100}% 0)`;
-      // Which photo is showing past this point is owned by
-      // attachLockedGalleryStepper below (one photo per scroll gesture), not
-      // derived from `prog` — see indexRef/setIndex in its onStep callback.
     };
 
     const mm = gsap.matchMedia();
     mm.add("(min-width: 768px) and (prefers-reduced-motion: no-preference)", () => {
-      // Only the desktop, motion-enabled variant ever plays this scene, so
-      // only it should ever fetch the clip — attaching `src` here (instead of
-      // as a static JSX attribute) means the mobile twin's `hidden md:block`
-      // wrapper actually stops the download, not just the paint.
       if (video && !video.src) {
         video.src = VIDEO_SRC;
         video.load();
@@ -191,8 +148,6 @@ export default function DitchTheGlass() {
       return () => { detachStepper(); st.kill(); };
     });
 
-    // Reduced motion: no pin/scroll-hijack — show the landed "about" layout
-    // statically (gallery first photo + copy), with the heading/diamond hidden.
     mm.add("(min-width: 768px) and (prefers-reduced-motion: reduce)", () => {
       words.forEach((w) => { w.style.opacity = "0"; });
       travel.style.opacity = "0";
@@ -220,10 +175,6 @@ export default function DitchTheGlass() {
           {t("eyebrow")}
         </p>
 
-        {/* Per-locale sizing: the BG line is wider than EN's "Mixed to ◆ Move."
-            — the clamp shrinks for BG so the diamond line always fits the
-            viewport. BG also relaxes the -0.08em Anek tracking: Golos glyphs
-            fill their advance widths, so the design tracking crushes them. */}
         <h2
           className="font-bold uppercase leading-[0.8]"
           style={{
@@ -235,18 +186,12 @@ export default function DitchTheGlass() {
           <span className="dtg-word block" style={{ willChange: "opacity" }}>{t("line1")}</span>
           <span className="flex items-center justify-center gap-[0.2em]">
             <span className="dtg-word" style={{ willChange: "opacity" }}>{t("line2a")}</span>
-            {/* Reserves the inline gap; the traveling image overlays it at rest. */}
             <span ref={placeholderRef} className="inline-block size-[1.2em] shrink-0" aria-hidden />
             <span className="dtg-word" style={{ willChange: "opacity" }}>{t("line2b")}</span>
           </span>
         </h2>
       </div>
 
-      {/* Gallery — pinned at the card slot. The pour video is revealed over by
-          the first photo (top→bottom, see render), and every following photo
-          steps with the SAME top→bottom reveal (`reveal` mode): each new photo
-          is painted over the current one from the top edge down, current held
-          still beneath. duration={0.7} matches the hand-off feel. */}
       <div
         ref={galleryRef}
         data-dtg="gallery"
@@ -262,7 +207,6 @@ export default function DitchTheGlass() {
         <VerticalSlider images={PHOTOS} index={index} frame reveal duration={2} style={{ width: "100%", height: "100%" }} />
       </div>
 
-      {/* Copy — upper right; fades + slides in as the image travels to the slot. */}
       <div
         ref={copyRef}
         style={{
@@ -279,7 +223,6 @@ export default function DitchTheGlass() {
         <AboutCopyBlock revealed />
       </div>
 
-      {/* Traveling pour image — diamond → grown → gallery card slot, then fades. */}
       <div
         ref={travelRef}
         data-dtg="travel"

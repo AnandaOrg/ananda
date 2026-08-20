@@ -3,7 +3,6 @@
   overflow: hidden;
 }
 
-/* Structural only — animation classes live in globals.css (vmg-animate-up / vmg-animate-down) */
 .track {
   will-change: transform;
 }

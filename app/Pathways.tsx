@@ -11,13 +11,6 @@ import LiquidText from "./LiquidText";
 
 gsap.registerPlugin(ScrollTrigger);
 
-/**
- * Section 4 — "The Pathways to Bliss" flavor poster (Figma node 76:9304, a
- * 1440×2000 frame on a red field). Same width-scaling approach as the collage:
- * one design unit `--u = 100cqw / 1440`, every length `calc(var(--u) * figma-px)`,
- * rotations/percentage crops carried over verbatim.
- */
-
 const u = (n: number) => `calc(var(--u) * ${n})`;
 
 const prefersReducedMotion = () =>
@@ -40,7 +33,6 @@ type FloatingProps = {
   sizes?: string;
 };
 
-/** A rotated, optionally cropped image placed by box or by centre offset. */
 function Floating({ src, alt, rotate, inner, box, center, crop, shadow, sizes }: FloatingProps) {
   const place: React.CSSProperties = center
     ? {
@@ -69,7 +61,6 @@ function Floating({ src, alt, rotate, inner, box, center, crop, shadow, sizes }:
           }}
         >
           {crop ? (
-            // eslint-disable-next-line @next/next/no-img-element
             <img
               src={src}
               alt={alt}
@@ -87,7 +78,6 @@ function Floating({ src, alt, rotate, inner, box, center, crop, shadow, sizes }:
   );
 }
 
-// Stable reference — must live outside the component to avoid useEffect re-runs
 const GLB_MODELS = [
   { src: "/glb/santorini.glb" },
   { src: "/glb/aloha.glb",    transitionAt: 0.247 },
@@ -95,8 +85,6 @@ const GLB_MODELS = [
   { src: "/glb/kyoto.glb",    transitionAt: 0.762 },
 ];
 
-// Scroll-fraction width of a model cross-fade. A model's transitionAt marks where
-// its fade-in STARTS; it's only fully on screen transitionAt + this later.
 const GLB_TRANSITION_DURATION = 0.04;
 
 const BANDS = [
@@ -118,53 +106,26 @@ export default function Pathways() {
   const bg = useLocale() === "bg";
   const { open } = useFlavor();
   const glbRef = useRef<GlbViewerHandle>(null);
-  // Fixed band-region reference — drives cross-fade/turntable progress and stays
-  // put while the GLB canvas itself translates to ride the bands.
   const scrollRef = useRef<HTMLDivElement>(null);
-  // Auto-open Kyoto once, the first time scroll carries the GLB to it — the
-  // page is fixed/overflow-hidden the moment the modal mounts (FlavorModal's
-  // own effect), so scroll is left sitting exactly where it crossed in.
   const kyotoAutoOpenedRef = useRef(false);
-  // Set the first time ANY flavour modal is opened (manual click or auto). Once a
-  // modal has been opened, scrolling into Kyoto must NOT auto-open it again.
   const modalOpenedRef = useRef(false);
-  // Entrance targets: the poster content (fades + drops down) and the GLB
-  // overlay (fades in with it, opacity-only so its handoff getRect is untouched).
   const sectionRef = useRef<HTMLElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const glbWrapRef = useRef<HTMLDivElement>(null);
 
-  // Optional extra onClose hook (used by the Kyoto auto-open below to lift its
-  // scroll block) merged into the modal's own close callback.
   const openWithSpin = useCallback((i: number, onClosed?: () => void) => {
-    // Mark that a modal has now been opened, so the Kyoto scroll auto-open below
-    // never fires once the user has already engaged with the flavour overlay.
     modalOpenedRef.current = true;
-    // Lock scroll for the whole spin-up → modal-open handoff: the GLB centre
-    // captured below is a viewport-relative snapshot, so scrolling mid-spin
-    // would hand the modal a stale `origin` and it'd scale out of the wrong
-    // spot. Locks <html>, not <body> — FlavorModal owns body's own overflow
-    // lock/restore; pre-touching body here would make it capture "hidden" as
-    // the "original" value and restore to that forever.
     const html = document.documentElement;
     const prevHtmlOverflow = html.style.overflow;
     html.style.overflow = "hidden";
-    // Beat 1: tilt to 90° AND start spinning at the same time.
     glbRef.current?.spin();
     glbRef.current?.spin360();
-    // Capture GLB centre now (before any scroll shift during the delay)
     const rect = glbRef.current?.getRect() ?? new DOMRect();
     const origin = {
       x: (rect.left + rect.width / 2) / window.innerWidth,
       y: (rect.top + rect.height / 2) / window.innerHeight,
     };
-    // Keep it spinning through the tilt so it's still spinning when it hits 90°.
-    // 1650 = spin360's 1.7s duration minus a 50ms lead, same as before scaling.
     setTimeout(() => glbRef.current?.spin360(), 1650);
-    // Beat 2: at ~90° (tilt ~2.4s, see GlbViewer's spin()), the still-spinning
-    // bottle becomes the modal — the modal scales out of the bottle's captured
-    // position and its own bottle keeps spinning, so the spinning element hands
-    // off into the modal.
     setTimeout(() => open(i, origin,
       () => {
         html.style.overflow = prevHtmlOverflow;
@@ -179,26 +140,13 @@ export default function Pathways() {
   const kyotoTransitionAt = GLB_MODELS[KYOTO_INDEX].transitionAt;
   const handleGlbProgress = useCallback(() => {
     if (kyotoAutoOpenedRef.current || modalOpenedRef.current || kyotoTransitionAt === undefined) return;
-    // Gate on the GLB actually RENDERING Kyoto as its dominant (most-opaque)
-    // model, not on the scroll fraction alone. A frac threshold is fragile — a
-    // devtools-induced ScrollTrigger.refresh() (viewport shrinks) can spike frac
-    // past the crossing while the green Gaia pouch is still centred, opening the
-    // Kyoto modal over the wrong bottle. The live cross-fade never lies.
     if (glbRef.current?.getDominantIndex() !== KYOTO_INDEX) return;
     kyotoAutoOpenedRef.current = true;
 
-    // Fast/momentum scrolling can carry the page well past Kyoto before this
-    // ever fires (ScrollTrigger's update is rAF-throttled, and inertial
-    // scrolling coasts without further wheel/touch events to intercept) — snap
-    // back to exactly the Kyoto position first, while the page is still
-    // scrollable — openWithSpin below locks it immediately after.
     const el = scrollRef.current;
     if (el) {
       const rect = el.getBoundingClientRect();
       const absTop = rect.top + window.scrollY;
-      // Snap to where Kyoto is FULLY faded in (end of the cross-fade), not its
-      // start — landing at kyotoTransitionAt would put the green Gaia pouch back
-      // on screen underneath the Kyoto modal.
       const kyotoFrac = kyotoTransitionAt + GLB_TRANSITION_DURATION;
       const targetY = kyotoFrac * rect.height + absTop - window.innerHeight * 0.5;
       window.scrollTo({ top: targetY, behavior: "auto" });
@@ -207,18 +155,10 @@ export default function Pathways() {
     openWithSpin(KYOTO_INDEX);
   }, [kyotoTransitionAt, openWithSpin]);
 
-  // A reload resets the in-memory one-shot refs — if the previous page
-  // instance died WITH a modal open (iOS Safari memory kill mid-modal; its
-  // auto-reload restores scroll right back onto Kyoto), suppress the auto-open
-  // for this recovery load. FlavorProvider consumes the flag right after, so a
-  // later clean load auto-opens normally (see MODAL_OPENED_KEY).
   useEffect(() => {
     if (wasFlavorModalOpenAtDeath()) modalOpenedRef.current = true;
   }, []);
 
-  // Entrance — once the pour above reveals this section, the poster fades and
-  // drops DOWN into place, and the GLB overlay fades in with it. One-shot when
-  // the section scrolls in; skipped under prefers-reduced-motion.
   useEffect(() => {
     const section = sectionRef.current;
     const content = contentRef.current;
@@ -239,13 +179,11 @@ export default function Pathways() {
       className="relative w-full bg-[#eb4638]"
       style={{ containerType: "inline-size", ["--u" as string]: "calc(100cqw / 1440)" }}
     >
-      {/* Content layer — clipped to the section box (bands/text/fruit) */}
       <div
         ref={contentRef}
         className="relative mx-auto overflow-hidden"
         style={{ width: u(1440), height: u(2000) }}
       >
-        {/* Eyebrow label */}
         <div className="absolute" style={{ left: u(81.75), top: u(212.79), padding: `${u(10)} ${u(14)}` }}>
           <p
             className="whitespace-nowrap uppercase text-[#fff0e5]"
@@ -255,8 +193,6 @@ export default function Pathways() {
           </p>
         </div>
 
-        {/* Headline — splashes into place like liquid once the pour above
-            reveals the section (LiquidText: elastic word rise) */}
         <LiquidText
           text={t("title")}
           className="absolute font-bold uppercase text-[#fff0e5]"
@@ -267,12 +203,10 @@ export default function Pathways() {
             fontFamily: "var(--font-display)",
             fontSize: u(bg ? 180 : 170),
             lineHeight: 0.8,
-            // BG (Golos) relaxes the -0.08em Anek tracking to -0.03em.
             letterSpacing: u(bg ? -5.4 : -14.4),
           }}
         />
 
-        {/* Colour bands (click to open flavour) */}
         {BANDS.map((b, i) => (
           <button
             key={b.color + b.top}
@@ -284,7 +218,6 @@ export default function Pathways() {
           />
         ))}
 
-        {/* Giant flavour names (over the bands) */}
         {FLAVORS.map((f, i) => (
           <button
             key={f.label}
@@ -306,7 +239,6 @@ export default function Pathways() {
           </button>
         ))}
 
-        {/* Lemon — top right */}
         <Floating
           src="/s4-lemon.png"
           alt="Fresh lemon with leaves"
@@ -316,7 +248,6 @@ export default function Pathways() {
           crop={{ width: "134.65%", height: "166.26%", left: "-22.14%", top: "-38.75%" }}
         />
 
-        {/* Mango — left, over Aloha */}
         <Floating
           src="/s4-mango.png"
           alt="Ripe mango"
@@ -326,9 +257,6 @@ export default function Pathways() {
           crop={{ width: "143.08%", height: "181.55%", left: "-22.78%", top: "-36.97%" }}
         />
 
-        {/* Santorini GLB — replaced by 3-D viewer */}
-
-        {/* Elderflower — right, over Gaia */}
         <Floating
           src="/s4-flowers.png"
           alt="White elderflower blossom"
@@ -337,7 +265,6 @@ export default function Pathways() {
           inner={{ width: 313.253, height: 356.907 }}
         />
 
-        {/* Raspberry — lower left, over Kyoto */}
         <Floating
           src="/s4-raspberry.png"
           alt="Fresh raspberry"
@@ -346,15 +273,8 @@ export default function Pathways() {
           inner={{ width: 202.429, height: 209.017 }}
         />
 
-        {/* Kyoto GLB — replaced by 3-D viewer */}
-
-        {/* Fixed band-region reference for the scroll progress (invisible). */}
         <div ref={scrollRef} aria-hidden className="pointer-events-none absolute" style={{ left: 0, top: u(720), width: u(1), height: u(1250), visibility: "hidden" }} />
 
-        {/* SEE FLAVORS pill. BG's "виж вкусовете" is wider than the ~315u
-            between the Figma left offset and the canvas edge, so BG anchors
-            the pill by its RIGHT edge (≈ EN's design right margin) and lets
-            it grow leftward into open canvas — never wrapped, never clipped. */}
         <button
           type="button"
           onClick={() => openWithSpin(0)}
@@ -368,16 +288,11 @@ export default function Pathways() {
             >
               {t("cta")}
             </span>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/s4-arrow.svg" alt="" style={{ width: u(15.644), height: u(30.807) }} />
           </div>
         </button>
       </div>
 
-      {/* GLB overlay — NOT clipped by the content box, so it renders fully in
-          front in any rotation. The model stays centred in a square canvas (never
-          reaches the framebuffer edge); the canvas itself CSS-translates down to
-          ride the bands (Santorini → Kyoto). */}
       <div
         ref={glbWrapRef}
         className="pointer-events-none absolute left-1/2 top-0 -translate-x-1/2"

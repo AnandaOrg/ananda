@@ -3,13 +3,7 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
-  /* Used by the body-copy blocks ("What we're about", the ANANDA statement) —
-     matches the brand red #eb4638. */
   --terracotta: #eb4638;
-  /* Composite font stacks. AnekKannada (display) and Barlow (body) ship
-     Latin-only glyphs, so the BG locale's Cyrillic falls through per-glyph to
-     Golos Text — two size-adjusted faces (layout.tsx) so Cyrillic renders at
-     the same optical size as each Latin primary. Latin is unaffected. */
   --font-display: var(--font-display-latin), var(--font-cyrillic-display), sans-serif;
   --font-body: var(--font-body-latin), var(--font-cyrillic-body), sans-serif;
 }
@@ -40,7 +34,6 @@ body {
   font-family: var(--font-display), sans-serif;
 }
 
-/* ── Vertical marquee gallery ── */
 @keyframes vmg-up {
   from { transform: translateY(0); }
   to   { transform: translateY(-50%); }
@@ -63,10 +56,6 @@ body {
   animation-iteration-count: infinite;
 }
 
-/* ── Floating fruit (flavour modal) ──
-   Organic drift: a lazy figure-eight of a few px plus a slight sway. Each fruit
-   sets its own --float-* vars (amplitude, spin, duration, phase) so nothing
-   moves in lockstep. */
 @keyframes fl-float {
   0%   { transform: translate3d(0, 0, 0) rotate(0deg); }
   16%  { transform: translate3d(calc(var(--float-x) * 0.4), calc(var(--float-y) * 0.55), 0) rotate(calc(var(--float-r) * 0.4)); }
@@ -82,9 +71,6 @@ body {
   will-change: transform;
 }
 
-/* ── Floating GLB (flavour modal) ──
-   A slow, gentle bob + sway so the bottle reads as hovering rather than
-   pinned in place, even at rest between navs. */
 @keyframes glb-float {
   0%   { transform: translate3d(0, 0, 0) rotate(0deg); }
   50%  { transform: translate3d(0, -16px, 0) rotate(0.8deg); }
@@ -96,9 +82,6 @@ body {
   will-change: transform;
 }
 
-/* ── Drop-list error shake ──
-   A quick horizontal wobble that decays, played once when the subscribe
-   request fails. */
 @keyframes dl-shake {
   0%, 100% { transform: translateX(0); }
   15% { transform: translateX(-8px); }
@@ -112,21 +95,10 @@ body {
   animation: dl-shake 0.5s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
 }
 
-/* Age gate: when this tab's session already accepted, AgeGate's inline script
-   tags <html> with .age-ok during parse — hiding the server-rendered gate
-   before first paint (React unmounts it right after hydration). */
 .age-ok .age-gate-root {
   display: none;
 }
 
-/* ── Hero scroll cue ──
-   1:1 port of hexagoncircle's "CSS Site Scroll Micro Animation"
-   (https://codepen.io/hexagoncircle/pen/aZWOdE): a two-half SVG outline
-   that erases and redraws, a trackball dot that slides/shrinks/fades, and
-   a nudging label — three cycles per 5.5s loop. Keyframe timing and path
-   geometry are the pen's own values; only the color is ported (white →
-   this site's cream, #fff0e5). stroke-dasharray is pulled out of the
-   keyframes into a static rule below since the pen never animates it. */
 @keyframes scroll-cue-nudge-mouse {
   0% { transform: translateY(0); }
   22% { transform: translateY(0); }
