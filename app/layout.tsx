@@ -175,6 +175,9 @@ export default async function RootLayout({
       suppressHydrationWarning
     >
       <head>
+        <Script id="disable-scroll-restoration" strategy="beforeInteractive">
+          {`if ("scrollRestoration" in history) { history.scrollRestoration = "manual"; }`}
+        </Script>
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}

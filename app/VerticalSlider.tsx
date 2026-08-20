@@ -27,6 +27,7 @@ interface Props {
   index?: number;
   conveyor?: boolean;
   reveal?: boolean;
+  loop?: boolean;
   eagerCount?: number;
   className?: string;
   style?: React.CSSProperties;
@@ -41,6 +42,7 @@ export default function VerticalSlider({
   index,
   conveyor = false,
   reveal = false,
+  loop = false,
   eagerCount = 1,
   className,
   style,
@@ -53,11 +55,13 @@ export default function VerticalSlider({
   const directionRef = useRef(direction);
   const conveyorRef = useRef(conveyor);
   const revealRef = useRef(reveal);
+  const loopRef = useRef(loop);
   useEffect(() => { intervalRef.current = interval; }, [interval]);
   useEffect(() => { durationRef.current = duration; }, [duration]);
   useEffect(() => { directionRef.current = direction; }, [direction]);
   useEffect(() => { conveyorRef.current = conveyor; }, [conveyor]);
   useEffect(() => { revealRef.current = reveal; }, [reveal]);
+  useEffect(() => { loopRef.current = loop; }, [loop]);
 
   const off = () => (directionRef.current === "down" ? "-100%" : "100%");
   const oppositeOff = () => (directionRef.current === "down" ? "100%" : "-100%");
@@ -133,7 +137,7 @@ export default function VerticalSlider({
       animatingRef.current = true;
       const curEl = els[cur];
       const nxtEl = els[next];
-      const forward = next > cur;
+      const forward = loopRef.current || next > cur;
 
       const finish = () => {
         curRef.current = next;

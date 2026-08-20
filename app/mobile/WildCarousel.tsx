@@ -6,6 +6,7 @@ import { useEffect, useRef } from "react";
 type Item = { src: string; alt: string };
 
 const COPIES = 3;
+const SCROLL_SETTLE_MS = 150;
 
 export default function WildCarousel({
   items,
@@ -37,6 +38,8 @@ export default function WildCarousel({
   const autoRaf = useRef(0);
   const autoTime = useRef(0);
   const scrollPos = useRef(0);
+  const lastUserScroll = useRef(0);
+  const programmatic = useRef(false);
 
   const n = items.length;
   const looped = Array.from({ length: COPIES }, () => items).flat();
@@ -62,16 +65,20 @@ export default function WildCarousel({
       if (!oc) return;
       const x = c.scrollLeft;
       if (x < oc * 0.5) {
+        programmatic.current = true;
         c.scrollLeft = x + oc;
         scrollPos.current += oc;
         if (drag.current.active) drag.current.startScroll += oc;
       } else if (x > oc * 1.5) {
+        programmatic.current = true;
         c.scrollLeft = x - oc;
         scrollPos.current -= oc;
         if (drag.current.active) drag.current.startScroll -= oc;
       }
     };
     const onScroll = () => {
+      if (programmatic.current) programmatic.current = false;
+      else lastUserScroll.current = performance.now();
       if (raf.current) return;
       raf.current = requestAnimationFrame(() => {
         raf.current = 0;
@@ -90,11 +97,13 @@ export default function WildCarousel({
     if (autoplay) {
       autoTime.current = 0;
       const loop = (t: number) => {
-        if (!interacting.current) {
+        const settled = !interacting.current && t - lastUserScroll.current > SCROLL_SETTLE_MS;
+        if (settled) {
           if (ref.current) {
             if (autoTime.current > 0) {
               const dt = Math.min(t - autoTime.current, 50);
               scrollPos.current += autoplay * Math.sqrt(dt / 1000);
+              programmatic.current = true;
               ref.current.scrollLeft = Math.round(scrollPos.current);
             } else {
               scrollPos.current = ref.current.scrollLeft;

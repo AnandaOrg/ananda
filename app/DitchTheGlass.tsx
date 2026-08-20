@@ -7,7 +7,6 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 import AboutCopyBlock from "./AboutCopyBlock";
 import VerticalSlider from "./VerticalSlider";
 import { ABOUT_CARD } from "./configs";
-import { attachLockedGalleryStepper } from "./lockedGalleryStepper";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -18,7 +17,7 @@ const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 
 const VIDEO_SRC = "/videos/woman-drinking.mp4";
 
-const GALLERY_STEP_START = 0.38;
+const GALLERY_CYCLE_S = 1.5;
 
 const PHOTOS = [
   { src: "/hero_3/2.png", alt: "ANANDA moment" },
@@ -53,7 +52,6 @@ export default function DitchTheGlass() {
   const copyRef = useRef<HTMLDivElement>(null);
 
   const [index, setIndex] = useState(0);
-  const indexRef = useRef(0);
 
   useEffect(() => {
     const section = sectionRef.current;
@@ -138,14 +136,19 @@ export default function DitchTheGlass() {
       });
       measure();
       render(st.progress);
-      const detachStepper = attachLockedGalleryStepper({
-        trigger: st,
-        boundary: GALLERY_STEP_START,
-        count: PHOTOS.length,
-        getIndex: () => indexRef.current,
-        onStep: (i) => { indexRef.current = i; setIndex(i); },
+
+      let dc: gsap.core.Tween | null = null;
+      const cycle = () => {
+        setIndex((i) => (i + 1) % PHOTOS.length);
+        dc = gsap.delayedCall(GALLERY_CYCLE_S, cycle);
+      };
+      const io = new IntersectionObserver(([entry]) => {
+        dc?.kill();
+        dc = entry.isIntersecting ? gsap.delayedCall(GALLERY_CYCLE_S, cycle) : null;
       });
-      return () => { detachStepper(); st.kill(); };
+      io.observe(section);
+
+      return () => { io.disconnect(); dc?.kill(); st.kill(); };
     });
 
     mm.add("(min-width: 768px) and (prefers-reduced-motion: reduce)", () => {
@@ -204,7 +207,7 @@ export default function DitchTheGlass() {
           willChange: "clip-path, opacity",
         }}
       >
-        <VerticalSlider images={PHOTOS} index={index} frame reveal duration={2} style={{ width: "100%", height: "100%" }} />
+        <VerticalSlider images={PHOTOS} index={index} frame reveal loop duration={1.6} style={{ width: "100%", height: "100%" }} />
       </div>
 
       <div
