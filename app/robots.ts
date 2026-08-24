@@ -12,7 +12,7 @@ export default function robots(): MetadataRoute.Robots {
     rules: {
       userAgent: "*",
       allow: "/",
-      disallow: ["/no-entry", "/pinned-demo", "/api/"],
+      disallow: ["/no-entry", "/pinned-demo", "/api/", "/gh-zoom"],
     },
     sitemap: `${SITE_URL}/sitemap.xml`,
   };

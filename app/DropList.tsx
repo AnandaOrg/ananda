@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { AnimatePresence, motion } from "framer-motion";
 import { mu, MU_VAR } from "./mobile/scale";
+import { useMediaAsset } from "./MediaProvider";
 
 const ud = (n: number) => `calc(var(--ud) * ${n})`;
 const UD_VAR = { ["--ud" as string]: "calc(100cqw / 1440)" } as const;
@@ -34,6 +35,8 @@ function DropForm({ s, height, fontSize, padL, padR, radius, btnRight, btnSize, 
   const formBg = useLocale() === "bg";
   const t = useTranslations("dropList");
   const [status, setStatus] = useState<Status>("idle");
+  const warningIcon = useMediaAsset("/m-warning.svg");
+  const sendIcon = useMediaAsset("/m-send.svg");
 
   const heading =
     status === "success" ? t("headingSuccess") : status === "error" ? t("headingError") : t("headingIdle");
@@ -44,7 +47,7 @@ function DropForm({ s, height, fontSize, padL, padR, radius, btnRight, btnSize, 
     return () => clearTimeout(id);
   }, [status]);
 
-  const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  const onSubmit = async (e: React.SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (status === "loading") return;
 
@@ -111,7 +114,9 @@ function DropForm({ s, height, fontSize, padL, padR, radius, btnRight, btnSize, 
               exit={ENTER}
               transition={FADE}
             >
-              <img src="/m-warning.svg" alt="" style={{ width: s(msgSize * 1.4), height: s(msgSize * 1.4) }} />
+              {warningIcon.active && (
+                <img src={warningIcon.url} alt="" style={{ width: s(msgSize * 1.4), height: s(msgSize * 1.4) }} />
+              )}
               <p style={{ fontFamily: "var(--font-body)", fontSize: s(msgSize) }}>{t("errorMsg")}</p>
             </motion.div>
           ) : (
@@ -139,7 +144,7 @@ function DropForm({ s, height, fontSize, padL, padR, radius, btnRight, btnSize, 
                 className="absolute -translate-y-1/2 disabled:opacity-50"
                 style={{ right: s(btnRight), top: "50%", width: s(btnSize), height: s(btnSize) }}
               >
-                <img src="/m-send.svg" alt="" className="size-full" />
+                {sendIcon.active && <img src={sendIcon.url} alt="" className="size-full" />}
               </button>
             </motion.form>
           )}

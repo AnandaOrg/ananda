@@ -3,7 +3,8 @@ export const mu = (n: number) => `calc(var(--mu) * ${n})`;
 
 export const MU_VAR = { ["--mu" as string]: "calc(100cqw / 390)" } as const;
 
-export function maskStyle(src: string, mw: number, mh: number, mx: number, my: number) {
+export function maskStyle(src: string | null, mw: number, mh: number, mx: number, my: number) {
+  if (!src) return {} as const;
   const image = `url(${src})`;
   const size = `${mu(mw)} ${mu(mh)}`;
   const position = `${mu(mx)} ${mu(my)}`;

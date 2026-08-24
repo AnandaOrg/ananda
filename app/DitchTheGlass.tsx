@@ -7,6 +7,8 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 import AboutCopyBlock from "./AboutCopyBlock";
 import VerticalSlider from "./VerticalSlider";
 import { ABOUT_CARD } from "./configs";
+import { useExtraMedia, useManagedMaskUrl, useMediaAsset } from "./MediaProvider";
+import { HERO_KNOWN_PATHS } from "./hero-media";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -63,6 +65,21 @@ export default function DitchTheGlass() {
 
   const [index, setIndex] = useState(0);
 
+  const frameMaskUrl = useManagedMaskUrl("/m-photo-card.svg");
+  const frameMaskUrlRef = useRef(frameMaskUrl);
+  useEffect(() => { frameMaskUrlRef.current = frameMaskUrl; }, [frameMaskUrl]);
+
+  // PHOTOS is a fixed-length (4) module-level array — calling the hook unrolled
+  // per index keeps this within the rules of hooks.
+  const photoAssets = [useMediaAsset(PHOTOS[0].src), useMediaAsset(PHOTOS[1].src), useMediaAsset(PHOTOS[2].src), useMediaAsset(PHOTOS[3].src)];
+  const knownPhotos = PHOTOS.map((p, i) => ({ ...p, src: photoAssets[i].url, link: photoAssets[i].link, active: photoAssets[i].active })).filter(
+    (p) => p.active
+  );
+  const extraPhotos = useExtraMedia("hero", HERO_KNOWN_PATHS);
+  const photos = [...knownPhotos, ...extraPhotos];
+  const photosLengthRef = useRef(photos.length);
+  useEffect(() => { photosLengthRef.current = photos.length; }, [photos.length]);
+
   useEffect(() => {
     const section = sectionRef.current;
     const placeholder = placeholderRef.current;
@@ -110,8 +127,10 @@ export default function DitchTheGlass() {
       travel.style.transform = `rotate(${rot}deg)`;
       const fill = Math.max(lerp(1.5, 1, gP), coverScale(box.w, box.h, rot));
       inner.style.transform = `rotate(${-rot}deg) scale(${fill.toFixed(4)})`;
-      travel.style.maskImage = tP > 0 ? "url(/m-photo-card.svg)" : "none";
-      travel.style.setProperty("-webkit-mask-image", tP > 0 ? "url(/m-photo-card.svg)" : "none");
+      const maskUrl = frameMaskUrlRef.current;
+      const maskValue = tP > 0 && maskUrl ? `url(${maskUrl})` : "none";
+      travel.style.maskImage = maskValue;
+      travel.style.setProperty("-webkit-mask-image", maskValue);
       if (video) {
         if (handoff > 0) { if (!video.paused) video.pause(); }
         else if (video.paused) { void video.play().catch(() => {}); }
@@ -150,7 +169,7 @@ export default function DitchTheGlass() {
 
       let dc: gsap.core.Tween | null = null;
       const cycle = () => {
-        setIndex((i) => (i + 1) % PHOTOS.length);
+        setIndex((i) => (i + 1) % photosLengthRef.current);
         dc = gsap.delayedCall(GALLERY_CYCLE_S, cycle);
       };
       const io = new IntersectionObserver(([entry]) => {
@@ -224,7 +243,7 @@ export default function DitchTheGlass() {
           willChange: "clip-path, opacity",
         }}
       >
-        <VerticalSlider images={PHOTOS} index={index} frame reveal loop duration={1.6} style={{ width: "100%", height: "100%" }} />
+        <VerticalSlider images={photos} index={index} frame reveal loop duration={1.6} style={{ width: "100%", height: "100%" }} />
       </div>
 
       <div

@@ -1,10 +1,12 @@
 import AmbientVideo from "./AmbientVideo";
 import ScrollVideoCanvas from "./ScrollVideoCanvas";
 import KyotoLiftoff from "./KyotoLiftoff";
+import { getMediaAssets, resolveMediaAsset } from "@/lib/media/get-media-assets";
 
 const u = (n: number) => `calc(var(--u) * ${n})`;
 
-function maskStyle(src: string, [mw, mh]: [number, number], [mx, my]: [number, number]) {
+function maskStyle(src: string | null, [mw, mh]: [number, number], [mx, my]: [number, number]) {
+  if (!src) return {} as const;
   const image = `url(${src})`;
   const size = `${u(mw)} ${u(mh)}`;
   const position = `${u(mx)} ${u(my)}`;
@@ -24,7 +26,11 @@ const SHIFT = 900;
 const EXTRA_H = 170;
 const SPILL_OVERLAP_H = 80;
 
-export default function AboutCollage() {
+export default async function AboutCollage() {
+  const assets = await getMediaAssets();
+  const pineappleMask = resolveMediaAsset(assets, "/m-pineapple.svg");
+  const collageMask = resolveMediaAsset(assets, "/m-14.svg");
+
   return (
     <section
       className="relative w-full overflow-hidden bg-[#fff0e5] text-[#eb4638]"
@@ -44,7 +50,7 @@ export default function AboutCollage() {
             top: u(1008.67 - SHIFT),
             width: u(396.208),
             height: u(792.416),
-            ...maskStyle("/m-pineapple.svg", [379.875, 759.75], [5.779, 14.263]),
+            ...maskStyle(pineappleMask.active ? pineappleMask.url : null, [379.875, 759.75], [5.779, 14.263]),
           }}
         />
 
@@ -57,7 +63,7 @@ export default function AboutCollage() {
               style={{
                 width: u(604.722),
                 height: u(750.69),
-                ...maskStyle("/m-14.svg", [746.535, 592.314], [0.979, 5.315]),
+                ...maskStyle(collageMask.active ? collageMask.url : null, [746.535, 592.314], [0.979, 5.315]),
               }}
             >
               <AmbientVideo

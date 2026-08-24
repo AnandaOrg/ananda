@@ -1,24 +1,34 @@
 import Image from "next/image";
 import { getTranslations } from "next-intl/server";
+import { getMediaAssets, resolveMediaAsset } from "@/lib/media/get-media-assets";
+import { LinkWrap } from "../MediaProvider";
 
 const gu = (n: number) => `calc(var(--agu) * ${n})`;
 
 export default async function NoEntryPage() {
   const t = await getTranslations("noEntry");
+  const assets = await getMediaAssets();
+  const logo = resolveMediaAsset(assets, "/ananda-logo.svg");
+  const bgShape = resolveMediaAsset(assets, "/organic-bg-shape.svg");
+
   return (
     <main
       className="flex min-h-svh w-full flex-col items-center justify-center bg-[#eb4638]"
       style={{ gap: "clamp(28px, 5vh, 56px)", padding: "24px 0" }}
     >
-      <Image
-        src="/ananda-logo.svg"
-        alt="ANANDA Cocktails"
-        width={114}
-        height={92}
-        priority
-        className="w-[24vw] max-w-[132px]"
-        style={{ height: "auto" }}
-      />
+      {logo.active && (
+        <LinkWrap href={logo.link}>
+          <Image
+            src={logo.url}
+            alt="ANANDA Cocktails"
+            width={114}
+            height={92}
+            priority
+            className="w-[24vw] max-w-[132px]"
+            style={{ height: "auto" }}
+          />
+        </LinkWrap>
+      )}
       <div
         className="relative"
         style={{
@@ -26,7 +36,7 @@ export default async function NoEntryPage() {
           width: "min(92vw, max(340px, 31.5vw))",
           aspectRatio: "625 / 391",
           ["--agu" as string]: "calc(100cqw / 625)",
-          backgroundImage: "url(/organic-bg-shape.svg)",
+          backgroundImage: bgShape.active ? `url(${bgShape.url})` : "none",
           backgroundSize: "100% 100%",
         }}
       >

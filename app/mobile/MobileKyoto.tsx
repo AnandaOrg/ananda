@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import gsap from "gsap";
 import SpillWave from "../SpillWave";
 import { mu, MU_VAR } from "./scale";
+import { LinkWrap, useMediaAsset } from "../MediaProvider";
 
 const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
 const smoothstep = (t: number) => t * t * (3 - 2 * t);
@@ -59,6 +60,8 @@ export default function MobileKyoto() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const bgRef = useRef<HTMLImageElement>(null);
   const engagedRef = useRef(false);
+  const background = useMediaAsset("/kyoto/kyoto-background.png");
+  const pouchImage = useMediaAsset("/kyoto/kyoto-image.png");
   const spillAliveRef = useRef(false);
   const spillIdleRef = useRef<gsap.core.Tween | null>(null);
 
@@ -231,14 +234,16 @@ export default function MobileKyoto() {
         style={{ width: mu(SCENE_W), height: mu(SCENE_H) }}
       >
         <div className="absolute inset-0 overflow-hidden" style={{ zIndex: 2 }}>
-        <img
-          ref={bgRef}
-          src="/kyoto/kyoto-background.png"
-          alt=""
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-0 size-full object-cover"
-          style={{ opacity: 0 }}
-        />
+        {background.active && (
+          <img
+            ref={bgRef}
+            src={background.url}
+            alt=""
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0 size-full object-cover"
+            style={{ opacity: 0 }}
+          />
+        )}
 
         <video
           ref={videoRef}
@@ -297,12 +302,16 @@ export default function MobileKyoto() {
               willChange: "transform, opacity",
             }}
           >
-            <img
-              src="/kyoto/kyoto-image.png"
-              alt="ANANDA KYOTO cocktail pouch — Strawberry / Lychee · Yuzu"
-              decoding="async"
-              className="block size-full select-none"
-            />
+            {pouchImage.active && (
+              <LinkWrap href={pouchImage.link} fill>
+                <img
+                  src={pouchImage.url}
+                  alt="ANANDA KYOTO cocktail pouch — Strawberry / Lychee · Yuzu"
+                  decoding="async"
+                  className="block size-full select-none"
+                />
+              </LinkWrap>
+            )}
           </div>
         </div>
       </div>

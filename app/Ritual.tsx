@@ -1,7 +1,8 @@
-import { useLocale, useTranslations } from "next-intl";
+import { getLocale, getTranslations } from "next-intl/server";
 import RitualCards from "./RitualCards";
 import WildCarousel from "./mobile/WildCarousel";
 import { CAROUSEL_AUTOPLAY_SPEED } from "./configs";
+import { getMediaAssets, getMediaAssetsByCategory, resolveMediaAsset, extraMediaFor } from "@/lib/media/get-media-assets";
 
 const u = (n: number) => `calc(var(--u) * ${n})`;
 const RED = "#eb4638";
@@ -14,11 +15,19 @@ const WILD = [
   { src: "/s5-wild5.png", w: 582.282, h: 652.058, alt: "Sharing ANANDA cocktails" },
 ];
 
-export default function Ritual() {
-  const tRitual = useTranslations("ritual");
-  const tWild = useTranslations("wild");
-  const bg = useLocale() === "bg";
+export default async function Ritual() {
+  const tRitual = await getTranslations("ritual");
+  const tWild = await getTranslations("wild");
+  const bg = (await getLocale()) === "bg";
   const tags = [tWild("tag1"), tWild("tag2")];
+
+  const mediaAssets = await getMediaAssets();
+  const wild = WILD.map((w) => {
+    const resolved = resolveMediaAsset(mediaAssets, w.src);
+    return { ...w, src: resolved.url, link: resolved.link, active: resolved.active };
+  }).filter((w) => w.active);
+  const extraWild = extraMediaFor(await getMediaAssetsByCategory(), "social", WILD.map((w) => w.src));
+  const allWild = [...wild, ...extraWild];
 
   return (
     <section className="relative w-full overflow-hidden" style={{ containerType: "inline-size", backgroundColor: "#fff0e5" }}>
@@ -103,7 +112,7 @@ export default function Ritual() {
 
         <div className="absolute" style={{ left: 0, top: u(2300.63), width: u(1440) }}>
           <WildCarousel
-            items={WILD}
+            items={allWild}
             slideW={u(525.269)}
             slideH={u(652.058)}
             gap="0px"

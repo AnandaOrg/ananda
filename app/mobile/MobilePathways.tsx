@@ -9,6 +9,7 @@ import { mu, MU_VAR } from "./scale";
 import { useFlavor, wasFlavorModalOpenAtDeath } from "../FlavorProvider";
 import GlbViewer, { type GlbViewerHandle } from "../GlbViewer";
 import LiquidText from "../LiquidText";
+import { LinkWrap, useMediaAsset } from "../MediaProvider";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -29,18 +30,24 @@ type FloatingProps = {
 };
 
 function Floating({ src, alt, rotate, inner, box, center, crop, shadow }: FloatingProps) {
+  const asset = useMediaAsset(src);
   const place: React.CSSProperties = center
     ? { left: `calc(50% + ${mu(center.x)})`, top: `calc(50% + ${mu(center.y)})`, width: mu(center.width), height: mu(center.height), transform: "translate(-50%, -50%)" }
     : { left: mu(box!.left), top: mu(box!.top), width: mu(box!.width), height: mu(box!.height) };
+
+  if (!asset.active) return null;
+
   return (
     <div className="pointer-events-none absolute flex items-center justify-center" style={place}>
       <div style={{ transform: `rotate(${rotate}deg)` }}>
         <div className="relative overflow-hidden" style={{ width: mu(inner.width), height: mu(inner.height), boxShadow: shadow ? `${mu(4.911)} ${mu(3.571)} ${mu(12.812)} 0 rgba(0,0,0,0.25)` : undefined }}>
-          {crop ? (
-            <img src={src} alt={alt} loading="lazy" decoding="async" className="absolute max-w-none" style={{ width: crop.width, height: crop.height, left: crop.left, top: crop.top }} />
-          ) : (
-            <Image src={src} alt={alt} fill sizes="50vw" className="object-cover" />
-          )}
+          <LinkWrap href={asset.link} fill>
+            {crop ? (
+              <img src={asset.url} alt={alt} loading="lazy" decoding="async" className="absolute max-w-none" style={{ width: crop.width, height: crop.height, left: crop.left, top: crop.top }} />
+            ) : (
+              <Image src={asset.url} alt={alt} fill sizes="50vw" className="object-cover" />
+            )}
+          </LinkWrap>
         </div>
       </div>
     </div>
@@ -82,6 +89,7 @@ export default function MobilePathways() {
   const contentRef = useRef<HTMLDivElement>(null);
   const glbWrapRef = useRef<HTMLDivElement>(null);
   const [glbReady, setGlbReady] = useState(false);
+  const arrowIcon = useMediaAsset("/s4-arrow.svg");
 
   const openWithSpin = useCallback((i: number, onClosed?: () => void) => {
     modalOpenedRef.current = true;
@@ -196,7 +204,7 @@ export default function MobilePathways() {
               <span className="whitespace-nowrap font-semibold uppercase text-[#eb4638]" style={{ fontFamily: "var(--font-display)", fontSize: mu(20), lineHeight: 0.8, letterSpacing: mu(-1.4), textBoxTrim: "trim-both", textBoxEdge: "cap alphabetic" } as React.CSSProperties}>
                 {t("cta")}
               </span>
-              <img src="/s4-arrow.svg" alt="" style={{ width: mu(7.822), height: mu(15.404) }} />
+              {arrowIcon.active && <img src={arrowIcon.url} alt="" style={{ width: mu(7.822), height: mu(15.404) }} />}
             </div>
           </button>
         </div>

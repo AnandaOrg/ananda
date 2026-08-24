@@ -5,8 +5,10 @@ import { useEffect, useRef } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
-import VerticalSlider from "../VerticalSlider";
+import VerticalSlider, { frameMaskStyle } from "../VerticalSlider";
 import { mu, MU_VAR } from "./scale";
+import { useExtraMedia, useManagedMaskUrl, useMediaAsset } from "../MediaProvider";
+import { HERO_KNOWN_PATHS } from "../hero-media";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -27,15 +29,6 @@ const GALLERY = [
   { src: "/hero_3/4.png", alt: "ANANDA moment" },
   { src: "/hero_3/5.png", alt: "ANANDA moment" },
 ];
-
-const FRAME_MASK: React.CSSProperties = {
-  maskImage: "url(/m-photo-card.svg)",
-  WebkitMaskImage: "url(/m-photo-card.svg)",
-  maskSize: "100% 100%",
-  WebkitMaskSize: "100% 100%",
-  maskRepeat: "no-repeat",
-  WebkitMaskRepeat: "no-repeat",
-};
 
 const DIAMOND_BOX = { left: 102.79, top: 268.78, w: 152, h: 145.51693725585938 };
 const DIAMOND_SIDE = DIAMOND_BOX.w / Math.SQRT2;
@@ -72,6 +65,23 @@ export default function MobileIntro() {
   const innerRef = useRef<HTMLDivElement>(null);
   const galleryRef = useRef<HTMLDivElement>(null);
   const copyRef = useRef<HTMLDivElement>(null);
+
+  const frameMaskUrl = useManagedMaskUrl("/m-photo-card.svg");
+  // GALLERY is a fixed-length (5) module-level array — calling the hook unrolled
+  // per index keeps this within the rules of hooks.
+  const galleryAssets = [
+    useMediaAsset(GALLERY[0].src),
+    useMediaAsset(GALLERY[1].src),
+    useMediaAsset(GALLERY[2].src),
+    useMediaAsset(GALLERY[3].src),
+    useMediaAsset(GALLERY[4].src),
+  ];
+  const knownGallery = GALLERY.map((g, i) => ({ ...g, src: galleryAssets[i].url, link: galleryAssets[i].link, active: galleryAssets[i].active })).filter(
+    (g) => g.active
+  );
+  const extraGallery = useExtraMedia("hero", HERO_KNOWN_PATHS);
+  const gallery = [...knownGallery, ...extraGallery];
+  const diamondPhoto = knownGallery[0] ?? GALLERY[0];
 
   useEffect(() => {
     const section = sectionRef.current;
@@ -193,7 +203,7 @@ export default function MobileIntro() {
           willChange: "opacity",
         }}
       >
-        <VerticalSlider images={GALLERY} interval={GALLERY_AUTOPLAY_MS} frame eagerCount={2} style={{ width: "100%", height: "100%" }} />
+        <VerticalSlider images={gallery} interval={GALLERY_AUTOPLAY_MS} frame eagerCount={2} style={{ width: "100%", height: "100%" }} />
       </div>
 
       <div
@@ -206,14 +216,14 @@ export default function MobileIntro() {
           height: mu(DIAMOND_SIDE),
           transform: "rotate(45deg)",
           zIndex: 5,
-          ...FRAME_MASK,
+          ...frameMaskStyle(frameMaskUrl),
           willChange: "transform, width, height, left, top, opacity",
         }}
       >
         <div ref={innerRef} className="absolute inset-0" style={{ transform: "rotate(-45deg) scale(1.5)", willChange: "transform" }}>
           <Image
-            src={GALLERY[0].src}
-            alt={GALLERY[0].alt}
+            src={diamondPhoto.src}
+            alt={diamondPhoto.alt}
             fill
             sizes="75vw"
             style={{ objectFit: "cover" }}

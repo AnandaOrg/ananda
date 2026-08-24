@@ -3,20 +3,25 @@
 import Image from "next/image";
 import { useEffect, useRef } from "react";
 import gsap from "gsap";
+import { LinkWrap, useManagedMaskUrl } from "./MediaProvider";
 
 export interface SliderImage {
   src: string;
   alt: string;
+  link?: string | null;
 }
 
-const FRAME_MASK: React.CSSProperties = {
-  maskImage: "url(/m-photo-card.svg)",
-  WebkitMaskImage: "url(/m-photo-card.svg)",
-  maskSize: "100% 100%",
-  WebkitMaskSize: "100% 100%",
-  maskRepeat: "no-repeat",
-  WebkitMaskRepeat: "no-repeat",
-};
+export function frameMaskStyle(maskUrl: string | null): React.CSSProperties {
+  if (!maskUrl) return {};
+  return {
+    maskImage: `url(${maskUrl})`,
+    WebkitMaskImage: `url(${maskUrl})`,
+    maskSize: "100% 100%",
+    WebkitMaskSize: "100% 100%",
+    maskRepeat: "no-repeat",
+    WebkitMaskRepeat: "no-repeat",
+  };
+}
 
 interface Props {
   images: SliderImage[];
@@ -49,6 +54,7 @@ export default function VerticalSlider({
 }: Props) {
   const slideRefs = useRef<(HTMLDivElement | null)[]>([]);
   const controlled = index !== undefined;
+  const frameMaskUrl = useManagedMaskUrl("/m-photo-card.svg");
 
   const intervalRef = useRef(interval);
   const durationRef = useRef(duration);
@@ -218,22 +224,24 @@ export default function VerticalSlider({
   if (images.length === 0) return null;
 
   return (
-    <div className={className} style={{ position: "relative", overflow: "hidden", ...(frame ? FRAME_MASK : {}), ...style }}>
+    <div className={className} style={{ position: "relative", overflow: "hidden", ...(frame ? frameMaskStyle(frameMaskUrl) : {}), ...style }}>
       {images.map((img, i) => (
         <div
           key={img.src}
           ref={el => { slideRefs.current[i] = el; }}
           style={{ position: "absolute", inset: 0 }}
         >
-          <Image
-            src={img.src}
-            alt={img.alt}
-            fill
-            sizes="75vw"
-            style={{ objectFit: "cover" }}
-            priority={i === 0}
-            loading={i > 0 && i < eagerCount ? "eager" : undefined}
-          />
+          <LinkWrap href={img.link ?? null} fill>
+            <Image
+              src={img.src}
+              alt={img.alt}
+              fill
+              sizes="75vw"
+              style={{ objectFit: "cover" }}
+              priority={i === 0}
+              loading={i > 0 && i < eagerCount ? "eager" : undefined}
+            />
+          </LinkWrap>
         </div>
       ))}
     </div>

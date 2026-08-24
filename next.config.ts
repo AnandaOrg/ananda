@@ -4,6 +4,15 @@ import createNextIntlPlugin from "next-intl/plugin";
 const nextConfig: NextConfig = {
   allowedDevOrigins: ["http://localhost:3000", '192.168.1.16'],
 
+  images: {
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "**.public.blob.vercel-storage.com",
+      },
+    ],
+  },
+
   async headers() {
     return [
       {

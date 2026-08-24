@@ -1,7 +1,8 @@
-import { useLocale, useTranslations } from "next-intl";
+import { getLocale, getTranslations } from "next-intl/server";
 import { CAROUSEL_AUTOPLAY_SPEED } from "../configs";
 import { mu, MU_VAR } from "./scale";
 import WildCarousel from "./WildCarousel";
+import { getMediaAssets, getMediaAssetsByCategory, resolveMediaAsset, extraMediaFor } from "@/lib/media/get-media-assets";
 
 const WILD = [
   { src: "/s5-wild1.png", w: 405.682, alt: "Friends enjoying ANANDA outdoors" },
@@ -11,10 +12,18 @@ const WILD = [
   { src: "/s5-wild5.png", w: 449.716, alt: "Sharing ANANDA cocktails" },
 ];
 
-export default function MobileSocial() {
-  const t = useTranslations("wild");
-  const bg = useLocale() === "bg";
+export default async function MobileSocial() {
+  const t = await getTranslations("wild");
+  const bg = (await getLocale()) === "bg";
   const tags = [t("tag1"), t("tag2")];
+
+  const mediaAssets = await getMediaAssets();
+  const wild = WILD.map((w) => {
+    const resolved = resolveMediaAsset(mediaAssets, w.src);
+    return { ...w, src: resolved.url, link: resolved.link, active: resolved.active };
+  }).filter((w) => w.active);
+  const extraWild = extraMediaFor(await getMediaAssetsByCategory(), "social", WILD.map((w) => w.src));
+  const allWild = [...wild, ...extraWild];
 
   return (
     <section className="w-full overflow-hidden bg-[#fff0e5] md:hidden" style={{ containerType: "inline-size" }}>
@@ -52,7 +61,7 @@ export default function MobileSocial() {
         </div>
 
         <div style={{ width: mu(390) }}>
-          <WildCarousel items={WILD} slideW={mu(300)} slideH={mu(503.5)} gap="0px" pad="0px" snapType="none" startIndex={1} autoplay={CAROUSEL_AUTOPLAY_SPEED} />
+          <WildCarousel items={allWild} slideW={mu(300)} slideH={mu(503.5)} gap="0px" pad="0px" snapType="none" startIndex={1} autoplay={CAROUSEL_AUTOPLAY_SPEED} />
         </div>
       </div>
     </section>

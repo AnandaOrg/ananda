@@ -8,6 +8,8 @@ import Script from "next/script";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale } from "next-intl/server";
 import SwRegister from "./SwRegister";
+import { MediaProvider } from "./MediaProvider";
+import { getMediaAssets, getMediaAssetsByCategory } from "@/lib/media/get-media-assets";
 import { SITE_URL } from "./configs";
 import "./globals.css";
 
@@ -167,6 +169,8 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   const locale = await getLocale();
+  const mediaAssets = await getMediaAssets();
+  const mediaByCategory = await getMediaAssetsByCategory();
 
   return (
     <html
@@ -196,7 +200,11 @@ export default async function RootLayout({
         </Script>
       </head>
       <body className="min-h-full flex flex-col">
-        <NextIntlClientProvider>{children}</NextIntlClientProvider>
+        <NextIntlClientProvider>
+          <MediaProvider assets={mediaAssets} byCategory={mediaByCategory}>
+            {children}
+          </MediaProvider>
+        </NextIntlClientProvider>
         <SwRegister />
         <Analytics />
         <SpeedInsights />

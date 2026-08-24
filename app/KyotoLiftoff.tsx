@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import gsap from "gsap";
 import SpillWave from "./SpillWave";
+import { LinkWrap, useMediaAsset } from "./MediaProvider";
 
 const u = (n: number) => `calc(var(--u) * ${n})`;
 const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
@@ -67,6 +68,8 @@ export default function KyotoLiftoff({
   const engagedRef = useRef(false);
   const spillAliveRef = useRef(false);
   const spillIdleRef = useRef<gsap.core.Tween | null>(null);
+  const background = useMediaAsset("/kyoto/kyoto-background.png");
+  const pouchImage = useMediaAsset("/kyoto/kyoto-image.png");
 
   useEffect(() => {
     const wrap = wrapRef.current;
@@ -216,14 +219,16 @@ export default function KyotoLiftoff({
       style={{ left: u(posLeft), top: u(posTop), width: u(PANEL_W), height: u(SCENE_H) }}
     >
       <div className="absolute inset-0 overflow-hidden" style={{ zIndex: 2 }}>
-        <img
-          ref={bgRef}
-          src="/kyoto/kyoto-background.png"
-          alt=""
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-0 size-full object-cover"
-          style={{ opacity: 0 }}
-        />
+        {background.active && (
+          <img
+            ref={bgRef}
+            src={background.url}
+            alt=""
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0 size-full object-cover"
+            style={{ opacity: 0 }}
+          />
+        )}
 
         <video
           ref={videoRef}
@@ -282,11 +287,15 @@ export default function KyotoLiftoff({
             willChange: "transform, opacity",
           }}
         >
-          <img
-            src="/kyoto/kyoto-image.png"
-            alt="ANANDA KYOTO cocktail pouch — Strawberry / Lychee · Yuzu"
-            className="block size-full select-none"
-          />
+          {pouchImage.active && (
+            <LinkWrap href={pouchImage.link} fill>
+              <img
+                src={pouchImage.url}
+                alt="ANANDA KYOTO cocktail pouch — Strawberry / Lychee · Yuzu"
+                className="block size-full select-none"
+              />
+            </LinkWrap>
+          )}
         </div>
       </div>
     </div>

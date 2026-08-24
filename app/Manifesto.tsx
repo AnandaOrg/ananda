@@ -1,12 +1,15 @@
-import { useLocale } from "next-intl";
+import { getLocale } from "next-intl/server";
 import RevealStatement from "./RevealStatement";
-import { MANIFESTO } from "./manifesto-copy";
+import { getManifesto } from "@/lib/content/get-manifesto";
+import { getMediaAssets, resolveMediaAsset } from "@/lib/media/get-media-assets";
 import type { AppLocale } from "@/i18n/config";
 
 const u = (n: number) => `calc(var(--u) * ${n})`;
 
-export default function Manifesto() {
-  const locale = useLocale() as AppLocale;
+export default async function Manifesto() {
+  const locale = (await getLocale()) as AppLocale;
+  const paras = await getManifesto(locale);
+  const mandala = resolveMediaAsset(await getMediaAssets(), "/s5-mandala.svg");
 
   return (
     <section className="relative w-full overflow-hidden" style={{ containerType: "inline-size", backgroundColor: "#fff0e5" }}>
@@ -15,7 +18,7 @@ export default function Manifesto() {
         style={{ ["--u" as string]: "calc(100cqw / 1440)", width: u(1440), paddingTop: u(220), paddingBottom: 0 }}
       >
         <RevealStatement
-          paras={MANIFESTO[locale]}
+          paras={paras}
           smallFontSize={u(27.296)}
           paraSpacing={locale === "bg" ? u(28) : undefined}
           className="font-bold"
@@ -29,7 +32,9 @@ export default function Manifesto() {
           }}
         />
 
-        <img src="/s5-mandala.svg" alt="" style={{ marginTop: u(60), width: u(209.93), height: u(219.7) }} />
+        {mandala.active && (
+          <img src={mandala.url} alt="" style={{ marginTop: u(60), width: u(209.93), height: u(219.7) }} />
+        )}
       </div>
     </section>
   );

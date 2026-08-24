@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { AnimatePresence, motion, useMotionValue, useReducedMotion, useSpring, type Transition, type Variants } from "framer-motion";
 import GlbViewer, { type GlbViewerHandle, type ModelEntry } from "./GlbViewer";
+import { LinkWrap, useMediaAsset } from "./MediaProvider";
 
 const u = (n: number) => `calc(var(--u) * ${n})`;
 const uCap = (n: number) => `calc(min(var(--u), 100svh / 1080) * ${n})`;
@@ -227,6 +228,7 @@ export const FLAVORS: Flavor[] = [
 ];
 
 function FruitImg({ f, i, unit = u }: { f: Fruit; i: number; unit?: (n: number) => string }) {
+  const asset = useMediaAsset(f.src);
   const filter = f.blur ? { filter: `blur(${unit(f.blur)})` } : undefined;
   const inner = f.inner ?? (f.box ? { w: f.box.w, h: f.box.h } : null);
 
@@ -238,10 +240,16 @@ function FruitImg({ f, i, unit = u }: { f: Fruit; i: number; unit?: (n: number) 
     ["--float-delay" as string]: `${-i * 1.3}s`,
   };
 
-  const media = f.crop ? (
-    <img src={f.src} alt="" className="absolute max-w-none" style={{ width: f.crop.w, height: f.crop.h, left: f.crop.left, top: f.crop.top }} />
-  ) : (
-    <img src={f.src} alt="" className="absolute inset-0 size-full max-w-none object-cover" />
+  if (!asset.active) return null;
+
+  const media = (
+    <LinkWrap href={asset.link} fill>
+      {f.crop ? (
+        <img src={asset.url} alt="" className="absolute max-w-none" style={{ width: f.crop.w, height: f.crop.h, left: f.crop.left, top: f.crop.top }} />
+      ) : (
+        <img src={asset.url} alt="" className="absolute inset-0 size-full max-w-none object-cover" />
+      )}
+    </LinkWrap>
   );
 
   if (f.inset) {
@@ -291,9 +299,12 @@ function CloseIcon({ color }: { color: string }) {
 }
 
 function Scene({ f }: { f: Flavor }) {
+  const pattern = useMediaAsset(f.pattern);
   return (
     <>
-      <img src={f.pattern} alt="" className="pointer-events-none absolute -translate-x-1/2" style={{ left: "50%", top: u(-1165.4), width: u(1920), height: u(1920) }} />
+      {pattern.active && (
+        <img src={pattern.url} alt="" className="pointer-events-none absolute -translate-x-1/2" style={{ left: "50%", top: u(-1165.4), width: u(1920), height: u(1920) }} />
+      )}
       {f.fruits.map((fr, i) => (
         <FruitImg key={i} f={fr} i={i} />
       ))}
@@ -302,14 +313,17 @@ function Scene({ f }: { f: Flavor }) {
 }
 
 function MobileScene({ f }: { f: Flavor }) {
+  const pattern = useMediaAsset(f.pattern);
   return (
     <>
-      <img
-        src={f.pattern}
-        alt=""
-        className="pointer-events-none absolute left-1/2 -translate-x-1/2 -translate-y-1/4"
-        style={{ top: mu(-107), width: mu(440), height: mu(440) }}
-      />
+      {pattern.active && (
+        <img
+          src={pattern.url}
+          alt=""
+          className="pointer-events-none absolute left-1/2 -translate-x-1/2 -translate-y-1/4"
+          style={{ top: mu(-107), width: mu(440), height: mu(440) }}
+        />
+      )}
       <div className="absolute left-0 top-0 w-full" style={{ height: mu(680) }}>
         {(f.mobileFruits ?? []).map((fr, i) =>
           fr.anchor === "top" ? <FruitImg key={i} f={fr} i={i} unit={mu} /> : null

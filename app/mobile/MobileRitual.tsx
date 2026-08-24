@@ -6,6 +6,7 @@ import { useLocale, useTranslations } from "next-intl";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { mu, MU_VAR } from "./scale";
+import { LinkWrap, useMediaAsset } from "../MediaProvider";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -29,8 +30,15 @@ const CLIP_SHOWN = "inset(-50% 0% -50% 0%)";
 export default function MobileRitual() {
   const t = useTranslations("ritual");
   const bg = useLocale() === "bg";
+  const cardMask = useMediaAsset("/s5-card2.svg");
+  // STEP_MEDIA is a fixed-length (3) module-level array — calling the hook
+  // unrolled per index keeps this within the rules of hooks.
+  const stepMedia = [useMediaAsset(STEP_MEDIA[0].src), useMediaAsset(STEP_MEDIA[1].src), useMediaAsset(STEP_MEDIA[2].src)];
   const steps = STEP_MEDIA.map((m, i) => ({
     ...m,
+    url: stepMedia[i].url,
+    active: stepMedia[i].active,
+    link: stepMedia[i].link,
     step: t(`step${i + 1}.label`),
     title: t(`step${i + 1}.title`),
     body: t(`step${i + 1}.body`),
@@ -125,9 +133,11 @@ export default function MobileRitual() {
           </div>
 
           <div ref={cardRef} className="relative" style={{ width: mu(CARD.w), height: mu(CARD.h), opacity: 0 }}>
-            <div className="absolute inset-0" style={{ transform: "rotate(180deg)" }}>
-              <img src="/s5-card2.svg" alt="" className="block size-full" />
-            </div>
+            {cardMask.active && (
+              <div className="absolute inset-0" style={{ transform: "rotate(180deg)" }}>
+                <img src={cardMask.url} alt="" className="block size-full" />
+              </div>
+            )}
 
             <div
               className="absolute flex flex-col items-start"
@@ -163,7 +173,13 @@ export default function MobileRitual() {
               <div className="relative overflow-hidden" style={{ width: mu(260), height: mu(322.759) }}>
                 {steps.map((s) => (
                   <div key={s.src} data-photo className="absolute inset-0">
-                    <Image src={s.src} alt={s.alt} fill sizes="60vw" className="object-cover" />
+                    {s.active ? (
+                      <LinkWrap href={s.link} fill>
+                        <Image src={s.url} alt={s.alt} fill sizes="60vw" className="object-cover" />
+                      </LinkWrap>
+                    ) : (
+                      <div className="absolute inset-0" style={{ backgroundColor: "#fff0e5" }} />
+                    )}
                   </div>
                 ))}
               </div>

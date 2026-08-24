@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { AnimatePresence, motion } from "framer-motion";
+import { useManagedMaskUrl } from "./MediaProvider";
 
 const gu = (n: number) => `calc(var(--agu) * ${n})`;
 
@@ -54,6 +55,7 @@ const BUTTON_BASE: React.CSSProperties = {
 
 export default function AgeGate() {
   const t = useTranslations("ageGate");
+  const bgShapeUrl = useManagedMaskUrl("/organic-bg-shape.svg");
   const router = useRouter();
   const open = !useSyncExternalStore(subscribeAccepted, readAccepted, readAcceptedOnServer);
   const dialogRef = useRef<HTMLDivElement>(null);
@@ -111,7 +113,7 @@ export default function AgeGate() {
               width: "min(92vw, max(340px, 31.5vw))",
               aspectRatio: "625 / 391",
               ["--agu" as string]: "calc(100cqw / 625)",
-              backgroundImage: "url(/organic-bg-shape.svg)",
+              backgroundImage: bgShapeUrl ? `url(${bgShapeUrl})` : "none",
               backgroundSize: "100% 100%",
             }}
           >

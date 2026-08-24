@@ -3,10 +3,11 @@
 import Image from "next/image";
 import { useEffect, useRef } from "react";
 
-type Item = { src: string; alt: string };
+type Item = { src: string; alt: string; link?: string | null };
 
 const COPIES = 3;
 const SCROLL_SETTLE_MS = 150;
+const CLICK_DRAG_THRESHOLD = 6;
 
 export default function WildCarousel({
   items,
@@ -31,6 +32,7 @@ export default function WildCarousel({
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const drag = useRef({ active: false, startX: 0, startScroll: 0, lastX: 0, lastT: 0, v: 0 });
+  const didDrag = useRef(false);
   const oneCopy = useRef(0);
   const raf = useRef(0);
   const momentum = useRef(0);
@@ -146,6 +148,7 @@ export default function WildCarousel({
 
   const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     interacting.current = true;
+    didDrag.current = false;
     if (e.pointerType !== "mouse") return;
     const c = ref.current;
     if (!c) return;
@@ -156,12 +159,22 @@ export default function WildCarousel({
   const onPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
     const c = ref.current;
     if (!c || !drag.current.active) return;
+    if (Math.abs(e.clientX - drag.current.startX) > CLICK_DRAG_THRESHOLD) didDrag.current = true;
     const now = performance.now();
     const dt = Math.max(1, now - drag.current.lastT);
     drag.current.v = (e.clientX - drag.current.lastX) / dt;
     drag.current.lastX = e.clientX;
     drag.current.lastT = now;
     c.scrollLeft = drag.current.startScroll - (e.clientX - drag.current.startX);
+  };
+  /** Suppresses the click that would otherwise fire on whatever slide ends up under
+   *  the cursor after a mouse-drag scroll — without this, dragging past a linked
+   *  slide would spuriously "click" it and open its link. */
+  const onSlideClick = (e: React.MouseEvent) => {
+    if (didDrag.current) {
+      e.preventDefault();
+      didDrag.current = false;
+    }
   };
   const endDrag = (e: React.PointerEvent<HTMLDivElement>) => {
     interacting.current = false;
@@ -207,6 +220,17 @@ export default function WildCarousel({
             className="pointer-events-none object-cover"
             loading={i === n + Math.min(startIndex, n - 1) ? "eager" : "lazy"}
           />
+          {p.link && (
+            <a
+              href={p.link}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={onSlideClick}
+              className="absolute inset-0 z-10"
+              style={{ pointerEvents: "auto" }}
+              aria-label={p.alt}
+            />
+          )}
         </div>
       ))}
     </div>
