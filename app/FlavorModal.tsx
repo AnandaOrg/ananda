@@ -338,6 +338,7 @@ export default function FlavorModal({
   onNav: (dir: number) => void;
 }) {
   const t = useTranslations("modal");
+  const tFlavors = useTranslations("flavorItems");
   const reduceMotion = useReducedMotion();
   const swing = useSwingPlane();
 
@@ -419,12 +420,17 @@ export default function FlavorModal({
   };
 
   const f = FLAVORS[index];
+  const flavorName = tFlavors.has(`${f.key}.name`) ? tFlavors(`${f.key}.name`) : f.name;
+  const flavorIngredients: [string, string] = [
+    tFlavors.has(`${f.key}.ingredients.0`) ? tFlavors(`${f.key}.ingredients.0`) : f.ingredients[0],
+    tFlavors.has(`${f.key}.ingredients.1`) ? tFlavors(`${f.key}.ingredients.1`) : f.ingredients[1],
+  ];
 
   return (
     <motion.div
       role="dialog"
       aria-modal="true"
-      aria-label={`${f.name} cocktail`}
+      aria-label={`${flavorName} cocktail`}
       className="fixed inset-0 z-50 overflow-hidden"
       style={{ originX: origin.x, originY: origin.y }}
       initial={{ scale: 0, opacity: 0 }}
@@ -494,11 +500,11 @@ export default function FlavorModal({
                     {t("ingredients")}
                   </p>
                   <div className="text-center" style={{ fontFamily: "var(--font-body)", fontSize: u(24), lineHeight: 1.6, letterSpacing: u(0.24), width: u(465.222) }}>
-                    <p className="mb-0" aria-label={f.ingredients[0]}>
-                      {f.ingredients[0]}
+                    <p className="mb-0" aria-label={flavorIngredients[0]}>
+                      {flavorIngredients[0]}
                     </p>
-                    <p aria-label={f.ingredients[1]}>
-                      {f.ingredients[1]}
+                    <p aria-label={flavorIngredients[1]}>
+                      {flavorIngredients[1]}
                     </p>
                   </div>
                 </div>
@@ -507,7 +513,7 @@ export default function FlavorModal({
                   className="absolute inset-x-0 text-center font-bold uppercase"
                   style={{ bottom: u(40), fontFamily: "var(--font-display)", fontSize: u(160), lineHeight: 0.8, letterSpacing: u(-12.8), color: f.nameColor, transform: `translateY(${u(22.4)})` }}
                 >
-                  {f.name}
+                  {flavorName}
                 </p>
               </div>
             </motion.div>
@@ -585,14 +591,14 @@ export default function FlavorModal({
                     {t("ingredients")}
                   </p>
                   <div style={{ fontFamily: "var(--font-body)", fontSize: mu(16), lineHeight: 1.2, letterSpacing: mu(0.16), width: mu(214.182) }}>
-                    <p className="mb-0" aria-label={f.ingredients[0]}>{f.ingredients[0]}</p>
-                    <p aria-label={f.ingredients[1]}>{f.ingredients[1]}</p>
+                    <p className="mb-0" aria-label={flavorIngredients[0]}>{flavorIngredients[0]}</p>
+                    <p aria-label={flavorIngredients[1]}>{flavorIngredients[1]}</p>
                   </div>
                 </div>
 
                 <div className="absolute flex items-center justify-center" style={{ left: mu(21.67), top: mu(594.83), width: mu(346.667), height: mu(38) }}>
                   <p className="text-center font-bold uppercase" style={{ fontFamily: "var(--font-display)", fontSize: mu(60), lineHeight: 0.8, letterSpacing: mu(-4.8), color: f.nameColor, transform: `translateY(${mu(8.4)})` }}>
-                    {f.name}
+                    {flavorName}
                   </p>
                 </div>
               </div>

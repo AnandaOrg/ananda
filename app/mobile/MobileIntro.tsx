@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
@@ -48,10 +48,19 @@ const GALLERY_W_MU = 390 - 2 * 20;
 const GALLERY_H_SVH = 0.56;
 const muPx = (n: number, vw: number) => (n / 390) * vw;
 
-const GROW_END = 0.0421;
-const HANDOFF = 0.0321;
+// Entrance choreography: a ONE-SHOT timeline (not scroll-scrubbed, no pin —
+// see the ScrollTrigger below) that plays once as the section scrolls into
+// view. `prog` here is driven by a plain tween from 0→1 over ENTRANCE_S
+// seconds of wall-clock time, not by how far the user has scrolled — the
+// page never stops moving under it. GROW_END/HANDOFF are fractions of that
+// timeline, not of a scroll distance.
+const ENTRANCE_S = 1;
+const GROW_END = 0.55; // diamond finishes rotating + growing here
+const HANDOFF = 0.45; // gallery becomes visible just before the diamond hides
+// Gallery photos change on their own clock — see VerticalSlider's `interval`
+// prop below — completely decoupled from scroll and from the entrance timeline.
+const GALLERY_AUTOPLAY_MS = 1600;
 
-const GALLERY_STEP_START = 0.15;
 export default function MobileIntro() {
   const t = useTranslations("hero");
   const tAbout = useTranslations("about");
@@ -63,9 +72,6 @@ export default function MobileIntro() {
   const innerRef = useRef<HTMLDivElement>(null);
   const galleryRef = useRef<HTMLDivElement>(null);
   const copyRef = useRef<HTMLDivElement>(null);
-
-  const [index, setIndex] = useState(0);
-  const indexRef = useRef(0);
 
   useEffect(() => {
     const section = sectionRef.current;
@@ -96,35 +102,31 @@ export default function MobileIntro() {
       const fill = Math.max(lerp(1.5, 1, pg), coverScale(w, h, rot));
       inner.style.transform = `rotate(${-rot}deg) scale(${fill.toFixed(3)})`;
 
-      const fade = 1 - clamp(prog / 0.2, 0, 1);
+      const fade = 1 - clamp(prog / 0.35, 0, 1);
       words.forEach((el) => { el.style.opacity = String(fade); });
 
       gallery.style.opacity = prog >= HANDOFF ? "1" : "0";
       frame.style.opacity = prog >= GROW_END ? "0" : "1";
-      copy.style.opacity = String(clamp((prog - GROW_END) / 0.1, 0, 1));
-
-      const zoneProg = clamp((prog - GALLERY_STEP_START) / (1 - GALLERY_STEP_START), 0, 1);
-      const galleryIndex = Math.min(GALLERY.length - 1, Math.floor(zoneProg * GALLERY.length));
-      if (galleryIndex !== indexRef.current) {
-        indexRef.current = galleryIndex;
-        setIndex(galleryIndex);
-      }
+      copy.style.opacity = String(clamp((prog - GROW_END) / 0.25, 0, 1));
     };
 
     const mm = gsap.matchMedia();
     mm.add("(max-width: 767px) and (prefers-reduced-motion: no-preference)", () => {
-      const st = ScrollTrigger.create({
-        trigger: section,
-        start: "top top",
-        end: "+=60%",
-        pin: true,
-        scrub: true,
-        anticipatePin: 1,
-        onUpdate: (self) => render(self.progress),
-        onRefresh: (self) => render(self.progress),
+      // No pin, no scroll-scrub: the whole diamond-grow → gallery hand-off
+      // plays ONCE, over ENTRANCE_S seconds of wall-clock time, the instant
+      // the section scrolls into view — the page keeps scrolling normally
+      // the whole time (zero stickiness). Gallery photos change on their own
+      // clock (VerticalSlider's `interval` below), independent of this.
+      const obj = { prog: 0 };
+      render(0);
+      const tween = gsap.to(obj, {
+        prog: 1,
+        duration: ENTRANCE_S,
+        ease: "power2.inOut",
+        onUpdate: () => render(obj.prog),
+        scrollTrigger: { trigger: section, start: "top 75%", once: true },
       });
-      render(st.progress);
-      return () => st.kill();
+      return () => tween.kill();
     });
 
     mm.add("(max-width: 767px) and (prefers-reduced-motion: reduce)", () => {
@@ -191,7 +193,7 @@ export default function MobileIntro() {
           willChange: "opacity",
         }}
       >
-        <VerticalSlider images={GALLERY} index={index} frame reveal duration={2} eagerCount={2} style={{ width: "100%", height: "100%" }} />
+        <VerticalSlider images={GALLERY} interval={GALLERY_AUTOPLAY_MS} frame eagerCount={2} style={{ width: "100%", height: "100%" }} />
       </div>
 
       <div

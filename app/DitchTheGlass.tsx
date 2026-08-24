@@ -19,6 +19,16 @@ const VIDEO_SRC = "/videos/woman-drinking.mp4";
 
 const GALLERY_CYCLE_S = 1.5;
 
+// One-shot entrance (no pin, no scrub — the page never stops under this
+// section): the heading → diamond-travel → gallery/copy choreography plays
+// once, over ENTRANCE_S seconds of wall-clock time, when the section scrolls
+// into view. render()'s sub-phases are written against the old scrubbed
+// 0→1 progress where everything completed by 0.38 (the end of the gallery
+// handoff) — tweening prog to PROG_DONE instead of 1 keeps those phase
+// proportions spread across the whole entrance.
+const ENTRANCE_S = 1.4;
+const PROG_DONE = 0.38;
+
 const PHOTOS = [
   { src: "/hero_3/2.png", alt: "ANANDA moment" },
   { src: "/hero_3/3.png", alt: "ANANDA moment" },
@@ -125,17 +135,18 @@ export default function DitchTheGlass() {
         video.src = VIDEO_SRC;
         video.load();
       }
-      const st = ScrollTrigger.create({
-        trigger: section,
-        start: "top top",
-        end: "+=400%",
-        pin: true,
-        scrub: true,
-        onUpdate: (self) => render(self.progress),
-        onRefresh: (self) => { measure(); render(self.progress); },
-      });
+      const state = { prog: 0 };
       measure();
-      render(st.progress);
+      render(0);
+      const tween = gsap.to(state, {
+        prog: PROG_DONE,
+        duration: ENTRANCE_S,
+        ease: "power2.inOut",
+        onUpdate: () => render(state.prog),
+        scrollTrigger: { trigger: section, start: "top 60%", once: true },
+      });
+      const onResize = () => { measure(); render(state.prog); };
+      window.addEventListener("resize", onResize);
 
       let dc: gsap.core.Tween | null = null;
       const cycle = () => {
@@ -148,7 +159,13 @@ export default function DitchTheGlass() {
       });
       io.observe(section);
 
-      return () => { io.disconnect(); dc?.kill(); st.kill(); };
+      return () => {
+        window.removeEventListener("resize", onResize);
+        io.disconnect();
+        dc?.kill();
+        tween.scrollTrigger?.kill();
+        tween.kill();
+      };
     });
 
     mm.add("(min-width: 768px) and (prefers-reduced-motion: reduce)", () => {
