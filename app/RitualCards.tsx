@@ -33,7 +33,7 @@ const SLOTS = [
 ];
 
 const N = STEP_MEDIA.length;
-const HOLD = 1.6;
+const HOLD = 1;
 const PHOTO_DUR = 0.6;
 const TEXT_DUR = 0.5;
 const TEXT_DELAY = 0.15;

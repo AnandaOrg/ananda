@@ -19,7 +19,7 @@ const STEP_MEDIA = [
 const CARD = { w: 342.303, h: 491.887 };
 
 const N = STEP_MEDIA.length;
-const HOLD = 1.3;
+const HOLD = 1.1;
 const PHOTO_DUR = 0.5;
 const TEXT_DUR = 0.4;
 const TEXT_DELAY = 0.14;

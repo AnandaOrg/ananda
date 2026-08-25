@@ -47,7 +47,7 @@ const muPx = (n: number, vw: number) => (n / 390) * vw;
 // seconds of wall-clock time, not by how far the user has scrolled — the
 // page never stops moving under it. GROW_END/HANDOFF are fractions of that
 // timeline, not of a scroll distance.
-const ENTRANCE_S = 1;
+const ENTRANCE_S = 1.4;
 const GROW_END = 0.55; // diamond finishes rotating + growing here
 const HANDOFF = 0.45; // gallery becomes visible just before the diamond hides
 // Gallery photos change on their own clock — see VerticalSlider's `interval`
