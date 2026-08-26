@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
-import { AnimatePresence, motion, useMotionValue, useReducedMotion, useSpring, type Transition, type Variants } from "framer-motion";
+import { AnimatePresence, animate, motion, useMotionValue, useReducedMotion, useSpring, type Transition, type Variants } from "framer-motion";
 import GlbViewer, { type GlbViewerHandle, type ModelEntry } from "./GlbViewer";
 import { LinkWrap, useMediaAsset } from "./MediaProvider";
 
@@ -365,6 +365,10 @@ export default function FlavorModal({
   const tiltRawY = useMotionValue(0);
   const tiltX = useSpring(tiltRawX, GLB_TILT_SPRING);
   const tiltY = useSpring(tiltRawY, GLB_TILT_SPRING);
+  // Separate from the mouse-tilt above on purpose: this rocks around a pivot near
+  // the pouch's cap (like it's hanging and swaying), not the center — it needs its
+  // own transform-origin, which the ambient tilt above must not inherit.
+  const hintSwing = useMotionValue(0);
 
   useEffect(() => {
     if (reduceMotion) return;
@@ -393,15 +397,30 @@ export default function FlavorModal({
   }, [closing, index, onClose]);
 
   const lastNavRef = useRef(0);
+  const hasNavigatedRef = useRef(false);
   const guardedNav = useCallback(
     (dir: number) => {
       const now = Date.now();
       if (now - lastNavRef.current < NAV_LOCK_MS) return;
       lastNavRef.current = now;
+      hasNavigatedRef.current = true;
       onNav(dir);
     },
     [onNav]
   );
+
+  // The pouch tilts left-right once, 3s after the modal opens, as a hint that
+  // swiping (mobile) / the arrow buttons move between flavors. Skipped once the
+  // visitor has actually navigated, so it never nags someone who already knows.
+  useEffect(() => {
+    if (reduceMotion) return;
+    const timer = setTimeout(() => {
+      if (hasNavigatedRef.current) return;
+      animate(hintSwing, [0, -25, 25, 0], { duration: 1.4, ease: "easeInOut" });
+    }, 3000);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -479,16 +498,18 @@ export default function FlavorModal({
             >
               <div className="glb-float size-full" style={{ perspective: 900 }}>
                 <motion.div className="size-full" style={{ rotateX: tiltX, rotateY: tiltY }}>
-                  <GlbViewer
-                    ref={desktopGlbRef}
-                    models={MODAL_GLB_MODELS}
-                    activeIndex={index}
-                    navDuration={NAV_DURATION}
-                    spinDuration={SWING_IMPACT_DURATION}
-                    initialTilt={0}
-                    noScroll
-                    style={{ width: "100%", height: "100%", pointerEvents: "none" }}
-                  />
+                  <motion.div className="size-full" style={{ rotateZ: hintSwing, transformOrigin: "50% 15%" }}>
+                    <GlbViewer
+                      ref={desktopGlbRef}
+                      models={MODAL_GLB_MODELS}
+                      activeIndex={index}
+                      navDuration={NAV_DURATION}
+                      spinDuration={SWING_IMPACT_DURATION}
+                      initialTilt={0}
+                      noScroll
+                      style={{ width: "100%", height: "100%", pointerEvents: "none" }}
+                    />
+                  </motion.div>
                 </motion.div>
               </div>
             </div>
@@ -566,17 +587,19 @@ export default function FlavorModal({
           >
             <div className="glb-float size-full" style={{ perspective: 900 }}>
               <motion.div className="size-full" style={{ rotateX: tiltX, rotateY: tiltY }}>
-                <GlbViewer
-                  ref={mobileGlbRef}
-                  models={MODAL_GLB_MODELS}
-                  activeIndex={index}
-                  navDuration={NAV_DURATION}
-                  spinDuration={SWING_IMPACT_DURATION}
-                  initialTilt={0}
-                  noScroll
-                  dropCacheAfterParse
-                  style={{ width: "100%", height: "100%", pointerEvents: "none" }}
-                />
+                <motion.div className="size-full" style={{ rotateZ: hintSwing, transformOrigin: "50% 15%" }}>
+                  <GlbViewer
+                    ref={mobileGlbRef}
+                    models={MODAL_GLB_MODELS}
+                    activeIndex={index}
+                    navDuration={NAV_DURATION}
+                    spinDuration={SWING_IMPACT_DURATION}
+                    initialTilt={0}
+                    noScroll
+                    dropCacheAfterParse
+                    style={{ width: "100%", height: "100%", pointerEvents: "none" }}
+                  />
+                </motion.div>
               </motion.div>
             </div>
           </div>
