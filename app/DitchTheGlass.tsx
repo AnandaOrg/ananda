@@ -28,7 +28,7 @@ const GALLERY_CYCLE_S = 1.5;
 // 0→1 progress where everything completed by 0.38 (the end of the gallery
 // handoff) — tweening prog to PROG_DONE instead of 1 keeps those phase
 // proportions spread across the whole entrance.
-const ENTRANCE_S = 2;
+const ENTRANCE_S = 1.6
 const PROG_DONE = 0.38;
 
 const PHOTOS = [
