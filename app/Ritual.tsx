@@ -19,7 +19,7 @@ export default async function Ritual() {
   const tRitual = await getTranslations("ritual");
   const tWild = await getTranslations("wild");
   const bg = (await getLocale()) === "bg";
-  const tags = [tWild("tag1"), tWild("tag2")];
+  const tags = [tWild.raw("tag1"), tWild.raw("tag2")];
 
   const mediaAssets = await getMediaAssets();
   const wild = WILD.map((w) => {
@@ -39,9 +39,8 @@ export default async function Ritual() {
           <p
             className="whitespace-nowrap uppercase"
             style={{ fontFamily: "var(--font-mono-label)", fontSize: u(14), lineHeight: 0.87, letterSpacing: u(0.98), color: RED }}
-          >
-            {tRitual("eyebrow")}
-          </p>
+            dangerouslySetInnerHTML={{ __html: tRitual.raw("eyebrow") }}
+          />
         </div>
 
         <p
@@ -56,9 +55,8 @@ export default async function Ritual() {
             letterSpacing: u(bg ? -5.4 : -14.4),
             color: RED,
           }}
-        >
-          {tRitual("title")}
-        </p>
+          dangerouslySetInnerHTML={{ __html: tRitual.raw("title") }}
+        />
 
         <RitualCards />
 
@@ -66,9 +64,8 @@ export default async function Ritual() {
           <p
             className="whitespace-nowrap uppercase"
             style={{ fontFamily: "var(--font-mono-label)", fontSize: u(14), lineHeight: 0.87, letterSpacing: u(0.98), color: RED }}
-          >
-            {tWild("eyebrow")}
-          </p>
+            dangerouslySetInnerHTML={{ __html: tWild.raw("eyebrow") }}
+          />
         </div>
 
         <div
@@ -84,14 +81,14 @@ export default async function Ritual() {
             color: RED,
           }}
         >
-          <p className="mb-0 whitespace-nowrap">{tWild("title1")}</p>
-          <p className="whitespace-nowrap">{tWild("title2")}</p>
+          <p className="mb-0 whitespace-nowrap" dangerouslySetInnerHTML={{ __html: tWild.raw("title1") }} />
+          <p className="whitespace-nowrap" dangerouslySetInnerHTML={{ __html: tWild.raw("title2") }} />
         </div>
 
         <div className="absolute flex items-center" style={{ left: u(81), top: u(2167.8), gap: u(14) }}>
-          {tags.map((t) => (
+          {tags.map((tag, i) => (
             <span
-              key={t}
+              key={i}
               className="whitespace-nowrap"
               style={{
                 border: `${u(0.75)} solid ${RED}`,
@@ -104,9 +101,8 @@ export default async function Ritual() {
                 letterSpacing: u(1.4),
                 color: RED,
               }}
-            >
-              {t}
-            </span>
+              dangerouslySetInnerHTML={{ __html: tag }}
+            />
           ))}
         </div>
 

@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { AnimatePresence, animate, motion, useMotionValue, useReducedMotion, useSpring, type Transition, type Variants } from "framer-motion";
 import GlbViewer, { type GlbViewerHandle, type ModelEntry } from "./GlbViewer";
 import { LinkWrap, useMediaAsset } from "./MediaProvider";
+import { stripHtml } from "@/lib/content/strip-html";
 
 const u = (n: number) => `calc(var(--u) * ${n})`;
 const uCap = (n: number) => `calc(min(var(--u), 100svh / 1080) * ${n})`;
@@ -453,17 +454,18 @@ export default function FlavorModal({
   };
 
   const f = FLAVORS[index];
-  const flavorName = tFlavors.has(`${f.key}.name`) ? tFlavors(`${f.key}.name`) : f.name;
+  const flavorName = tFlavors.has(`${f.key}.name`) ? tFlavors.raw(`${f.key}.name`) : f.name;
+  const flavorNamePlain = stripHtml(flavorName);
   const flavorIngredients: [string, string] = [
-    tFlavors.has(`${f.key}.ingredients.0`) ? tFlavors(`${f.key}.ingredients.0`) : f.ingredients[0],
-    tFlavors.has(`${f.key}.ingredients.1`) ? tFlavors(`${f.key}.ingredients.1`) : f.ingredients[1],
+    tFlavors.has(`${f.key}.ingredients.0`) ? tFlavors.raw(`${f.key}.ingredients.0`) : f.ingredients[0],
+    tFlavors.has(`${f.key}.ingredients.1`) ? tFlavors.raw(`${f.key}.ingredients.1`) : f.ingredients[1],
   ];
 
   return (
     <motion.div
       role="dialog"
       aria-modal="true"
-      aria-label={`${flavorName} cocktail`}
+      aria-label={`${flavorNamePlain} cocktail`}
       className="fixed inset-0 z-50 overflow-hidden"
       style={{ originX: origin.x, originY: origin.y }}
       initial={{ scale: 0, opacity: 0 }}
@@ -531,25 +533,23 @@ export default function FlavorModal({
                   <Scene f={f} />
                 </div>
                 <div className="absolute inset-x-0 flex flex-col items-center" style={{ bottom: u(210), gap: u(14), color: f.textColor }}>
-                  <p aria-label={t("ingredients")} className="whitespace-nowrap uppercase" style={{ fontFamily: "var(--font-mono-label)", fontSize: u(16), lineHeight: 0.87, letterSpacing: u(1.12) }}>
-                    {t("ingredients")}
-                  </p>
+                  <p
+                    aria-label={stripHtml(t.raw("ingredients"))}
+                    className="whitespace-nowrap uppercase"
+                    style={{ fontFamily: "var(--font-mono-label)", fontSize: u(16), lineHeight: 0.87, letterSpacing: u(1.12) }}
+                    dangerouslySetInnerHTML={{ __html: t.raw("ingredients") }}
+                  />
                   <div className="text-center" style={{ fontFamily: "var(--font-body)", fontSize: u(24), lineHeight: 1.6, letterSpacing: u(0.24), width: u(465.222) }}>
-                    <p className="mb-0" aria-label={flavorIngredients[0]}>
-                      {flavorIngredients[0]}
-                    </p>
-                    <p aria-label={flavorIngredients[1]}>
-                      {flavorIngredients[1]}
-                    </p>
+                    <p className="mb-0" aria-label={stripHtml(flavorIngredients[0])} dangerouslySetInnerHTML={{ __html: flavorIngredients[0] }} />
+                    <p aria-label={stripHtml(flavorIngredients[1])} dangerouslySetInnerHTML={{ __html: flavorIngredients[1] }} />
                   </div>
                 </div>
 
                 <p
                   className="absolute inset-x-0 text-center font-bold uppercase"
                   style={{ bottom: u(40), fontFamily: "var(--font-display)", fontSize: u(160), lineHeight: 0.8, letterSpacing: u(-12.8), color: f.nameColor, transform: `translateY(${u(22.4)})` }}
-                >
-                  {flavorName}
-                </p>
+                  dangerouslySetInnerHTML={{ __html: flavorName }}
+                />
               </div>
             </motion.div>
           </AnimatePresence>
@@ -624,19 +624,24 @@ export default function FlavorModal({
                   className="absolute left-1/2 flex -translate-x-1/2 flex-col items-center text-center"
                   style={{ top: mu(480), width: mu(221.76), gap: mu(8), color: f.textColor }}
                 >
-                  <p aria-label={t("ingredients")} className="whitespace-nowrap uppercase" style={{ fontFamily: "var(--font-mono-label)", fontSize: mu(12), lineHeight: 0.87, letterSpacing: mu(0.84) }}>
-                    {t("ingredients")}
-                  </p>
+                  <p
+                    aria-label={stripHtml(t.raw("ingredients"))}
+                    className="whitespace-nowrap uppercase"
+                    style={{ fontFamily: "var(--font-mono-label)", fontSize: mu(12), lineHeight: 0.87, letterSpacing: mu(0.84) }}
+                    dangerouslySetInnerHTML={{ __html: t.raw("ingredients") }}
+                  />
                   <div style={{ fontFamily: "var(--font-body)", fontSize: mu(16), lineHeight: 1.2, letterSpacing: mu(0.16), width: mu(214.182) }}>
-                    <p className="mb-0" aria-label={flavorIngredients[0]}>{flavorIngredients[0]}</p>
-                    <p aria-label={flavorIngredients[1]}>{flavorIngredients[1]}</p>
+                    <p className="mb-0" aria-label={stripHtml(flavorIngredients[0])} dangerouslySetInnerHTML={{ __html: flavorIngredients[0] }} />
+                    <p aria-label={stripHtml(flavorIngredients[1])} dangerouslySetInnerHTML={{ __html: flavorIngredients[1] }} />
                   </div>
                 </div>
 
                 <div className="absolute flex items-center justify-center" style={{ left: mu(21.67), top: mu(594.83), width: mu(346.667), height: mu(38) }}>
-                  <p className="text-center font-bold uppercase" style={{ fontFamily: "var(--font-display)", fontSize: mu(60), lineHeight: 0.8, letterSpacing: mu(-4.8), color: f.nameColor, transform: `translateY(${mu(8.4)})` }}>
-                    {flavorName}
-                  </p>
+                  <p
+                    className="text-center font-bold uppercase"
+                    style={{ fontFamily: "var(--font-display)", fontSize: mu(60), lineHeight: 0.8, letterSpacing: mu(-4.8), color: f.nameColor, transform: `translateY(${mu(8.4)})` }}
+                    dangerouslySetInnerHTML={{ __html: flavorName }}
+                  />
                 </div>
               </div>
             </div>

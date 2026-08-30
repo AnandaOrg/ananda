@@ -2,8 +2,9 @@
 
 import { useState } from "react";
 import ManifestoEditor from "./ManifestoEditor";
+import RichTextEditor from "./RichTextEditor";
 
-type Item = { id: number; key: string; format: "plain" | "rich"; en: string; bg: string };
+type Item = { id: number; key: string; format: "plain" | "rich" | "emphasis"; en: string; bg: string };
 
 function Row({ item }: { item: Item }) {
   const [en, setEn] = useState(item.en);
@@ -46,10 +47,15 @@ function Row({ item }: { item: Item }) {
         </div>
       </div>
 
-      {item.format === "rich" ? (
+      {item.format === "emphasis" ? (
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
           <ManifestoEditor label="English" value={en} onChange={setEn} />
           <ManifestoEditor label="Bulgarian" value={bg} onChange={setBg} />
+        </div>
+      ) : item.format === "rich" ? (
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+          <RichTextEditor label="English" value={en} onChange={setEn} />
+          <RichTextEditor label="Bulgarian" value={bg} onChange={setBg} />
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">

@@ -39,7 +39,7 @@ function DropForm({ s, height, fontSize, padL, padR, radius, btnRight, btnSize, 
   const sendIcon = useMediaAsset("/m-send.svg");
 
   const heading =
-    status === "success" ? t("headingSuccess") : status === "error" ? t("headingError") : t("headingIdle");
+    status === "success" ? t.raw("headingSuccess") : status === "error" ? t.raw("headingError") : t.raw("headingIdle");
 
   useEffect(() => {
     if (status !== "success" && status !== "error") return;
@@ -74,16 +74,15 @@ function DropForm({ s, height, fontSize, padL, padR, radius, btnRight, btnSize, 
       <div className="relative w-full" style={{ height: s(headingSize * 0.8) }}>
         <AnimatePresence initial={false}>
           <motion.p
-            key={heading}
+            key={status}
             className="absolute left-0 top-0 whitespace-nowrap font-semibold uppercase text-[#fff0e5]"
             style={{ fontFamily: "var(--font-display)", fontSize: s(headingSize), lineHeight: 0.8, letterSpacing: s(formBg ? headingSize * -0.03 : headingLs) }}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={FADE}
-          >
-            {heading}
-          </motion.p>
+            dangerouslySetInnerHTML={{ __html: heading }}
+          />
         </AnimatePresence>
       </div>
 
@@ -100,9 +99,8 @@ function DropForm({ s, height, fontSize, padL, padR, radius, btnRight, btnSize, 
               animate={SHOWN}
               exit={ENTER}
               transition={FADE}
-            >
-              {t("successMsg")}
-            </motion.div>
+              dangerouslySetInnerHTML={{ __html: t.raw("successMsg") }}
+            />
           ) : status === "error" ? (
             <motion.div
               key="error"
@@ -117,7 +115,7 @@ function DropForm({ s, height, fontSize, padL, padR, radius, btnRight, btnSize, 
               {warningIcon.active && (
                 <img src={warningIcon.url} alt="" style={{ width: s(msgSize * 1.4), height: s(msgSize * 1.4) }} />
               )}
-              <p style={{ fontFamily: "var(--font-body)", fontSize: s(msgSize) }}>{t("errorMsg")}</p>
+              <p style={{ fontFamily: "var(--font-body)", fontSize: s(msgSize) }} dangerouslySetInnerHTML={{ __html: t.raw("errorMsg") }} />
             </motion.div>
           ) : (
             <motion.form
@@ -165,10 +163,12 @@ export default function DropList() {
         <div className="w-full" style={{ containerType: "inline-size" }}>
           <div className="flex flex-col items-start" style={{ ...MU_VAR, padding: `${mu(60)} ${mu(24)} ${mu(4)} ${mu(24)}`, gap: mu(40) }}>
             <div className="flex flex-col items-start uppercase text-[#fff0e5]" style={{ gap: mu(16) }}>
-              <p style={{ fontFamily: "var(--font-mono-label)", fontSize: mu(12), lineHeight: 0.87, letterSpacing: mu(0.84) }}>{t("eyebrow")}</p>
-              <p className="font-bold" style={{ fontFamily: "var(--font-display)", fontSize: bg ? mu(52) : mu(64), lineHeight: 0.8, letterSpacing: bg ? mu(-1.56) : mu(-5.12), width: bg ? mu(342) : mu(276.93) }}>
-                {t("title")}
-              </p>
+              <p style={{ fontFamily: "var(--font-mono-label)", fontSize: mu(12), lineHeight: 0.87, letterSpacing: mu(0.84) }} dangerouslySetInnerHTML={{ __html: t.raw("eyebrow") }} />
+              <p
+                className="font-bold"
+                style={{ fontFamily: "var(--font-display)", fontSize: bg ? mu(52) : mu(64), lineHeight: 0.8, letterSpacing: bg ? mu(-1.56) : mu(-5.12), width: bg ? mu(342) : mu(276.93) }}
+                dangerouslySetInnerHTML={{ __html: t.raw("title") }}
+              />
             </div>
             <div className="flex flex-col items-start" style={{ gap: mu(19.87), width: '100%' }}>
               <DropForm s={mu} height={48.598} fontSize={14} padL={19.57} padR={56} radius={24.299} btnRight={8.1} btnSize={32.399} headingSize={24} headingLs={-1.68} msgSize={13} />
@@ -180,10 +180,12 @@ export default function DropList() {
       <div className="hidden md:block" style={UD_VAR}>
         <div className="flex w-full items-end justify-between" style={{ padding: `${ud(160)} ${ud(80)}` }}>
           <div className="flex flex-col items-start uppercase text-[#fff0e5]" style={{ gap: ud(48) }}>
-            <p style={{ fontFamily: "var(--font-mono-label)", fontSize: ud(14), lineHeight: 0.87, letterSpacing: ud(0.98) }}>{t("eyebrow")}</p>
-            <p className="font-bold" style={{ fontFamily: "var(--font-display)", fontSize: bg ? ud(110) : ud(160), lineHeight: 0.8, letterSpacing: bg ? ud(-3.3) : ud(-12.8), width: ud(626.379) }}>
-              {t("title")}
-            </p>
+            <p style={{ fontFamily: "var(--font-mono-label)", fontSize: ud(14), lineHeight: 0.87, letterSpacing: ud(0.98) }} dangerouslySetInnerHTML={{ __html: t.raw("eyebrow") }} />
+            <p
+              className="font-bold"
+              style={{ fontFamily: "var(--font-display)", fontSize: bg ? ud(110) : ud(160), lineHeight: 0.8, letterSpacing: bg ? ud(-3.3) : ud(-12.8), width: ud(626.379) }}
+              dangerouslySetInnerHTML={{ __html: t.raw("title") }}
+            />
           </div>
           <div className="flex flex-col items-start justify-center" style={{ gap: ud(38.105), width: ud(492.185), marginBottom: ud(26) }}>
             <DropForm s={ud} height={93.197} fontSize={24} padL={37.54} padR={100} radius={46.599} btnRight={15.53} btnSize={62.132} headingSize={48} headingLs={-3.36} msgSize={22} />

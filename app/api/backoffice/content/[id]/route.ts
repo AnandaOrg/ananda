@@ -6,9 +6,40 @@ import { contentEntries, contentValues } from "@/db/schema";
 import { getSession } from "@/lib/auth/session";
 
 const PLAIN_OPTIONS = { allowedTags: [], allowedAttributes: {} };
+
+/** Server-side mirror of what the RichTextEditor toolbar offers — enforced here
+ *  too, since the toolbar UI alone isn't a security/consistency boundary against
+ *  a direct API call. Colors: any hex/rgb(a) value (open picker, per product
+ *  choice). Font size: `em` only, so it stays relative to the field's own
+ *  responsive computed size instead of freezing to a fixed px. Font family:
+ *  restricted to the site's own loaded font tokens — nothing else is loaded, so
+ *  any other value would silently fall back anyway, and this keeps arbitrary
+ *  fonts from drifting the site off its type system. */
+const HEX_OR_RGB = /^(#[0-9a-fA-F]{3,8}|rgba?\(\s*[\d.]+%?\s*,\s*[\d.]+%?\s*,\s*[\d.]+%?\s*(,\s*[\d.]+\s*)?\))$/;
+const FONT_SIZE_EM = /^\d+(\.\d+)?em$/;
+const FONT_FAMILY_TOKEN = /^var\(--font-(display|body|mono-label|geist-sans|geist-mono)\)$/;
+
+/** Bold/italic/underline/strikethrough/link/font family/font size/color/highlight
+ *  body copy, rendered via dangerouslySetInnerHTML on the site (already
+ *  sanitized here, so that's safe). */
+const RICH_OPTIONS = {
+  allowedTags: ["strong", "em", "u", "s", "a", "span", "mark"],
+  allowedAttributes: { a: ["href", "target", "rel"], span: ["style"], mark: ["style"] },
+  allowedStyles: {
+    span: {
+      color: [HEX_OR_RGB],
+      "font-size": [FONT_SIZE_EM],
+      "font-family": [FONT_FAMILY_TOKEN],
+    },
+    mark: {
+      "background-color": [HEX_OR_RGB],
+    },
+  },
+  transformTags: { a: sanitizeHtml.simpleTransform("a", { target: "_blank", rel: "noopener noreferrer" }, true) },
+};
 /** Only `<p>`/`<u>` are allowed — the manifesto field's only consumer,
  *  RevealStatement, understands paragraphs and an "emphasis" run, nothing else. */
-const RICH_OPTIONS = { allowedTags: ["p", "u"], allowedAttributes: {} };
+const EMPHASIS_OPTIONS = { allowedTags: ["p", "u"], allowedAttributes: {} };
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await getSession();
@@ -29,7 +60,8 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   const [entry] = await db.select().from(contentEntries).where(eq(contentEntries.id, entryId)).limit(1);
   if (!entry) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  const clean = (value: string) => sanitizeHtml(value, entry.format === "rich" ? RICH_OPTIONS : PLAIN_OPTIONS);
+  const options = entry.format === "rich" ? RICH_OPTIONS : entry.format === "emphasis" ? EMPHASIS_OPTIONS : PLAIN_OPTIONS;
+  const clean = (value: string) => sanitizeHtml(value, options);
 
   for (const [locale, value] of [["en", en] as const, ["bg", bg] as const]) {
     if (value === undefined) continue;

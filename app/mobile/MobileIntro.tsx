@@ -167,9 +167,8 @@ export default function MobileIntro() {
           letterSpacing: mu(0.84),
           willChange: "opacity",
         }}
-      >
-        {t("eyebrow")}
-      </p>
+        dangerouslySetInnerHTML={{ __html: t.raw("eyebrow") }}
+      />
 
       <h2
         className="absolute font-bold uppercase"
@@ -248,9 +247,8 @@ export default function MobileIntro() {
         <p
           className="uppercase"
           style={{ fontFamily: "var(--font-mono-label)", fontSize: mu(13), lineHeight: 0.87, letterSpacing: mu(1), color: "var(--terracotta)" }}
-        >
-          {tAbout("eyebrow")}
-        </p>
+          dangerouslySetInnerHTML={{ __html: tAbout.raw("eyebrow") }}
+        />
         <div
           style={{
             fontFamily: "var(--font-body)",
@@ -262,9 +260,9 @@ export default function MobileIntro() {
             maxWidth: locale === "bg" ? mu(280) : mu(250),
           }}
         >
-          <p className="mb-0">{tAbout("p1")}</p>
-          <p className={tAbout.has("p3") ? "mb-0" : undefined}>{tAbout("p2")}</p>
-          {tAbout.has("p3") && <p>{tAbout("p3")}</p>}
+          <p className="mb-0" dangerouslySetInnerHTML={{ __html: tAbout.raw("p1") }} />
+          <p className={tAbout.has("p3") ? "mb-0" : undefined} dangerouslySetInnerHTML={{ __html: tAbout.raw("p2") }} />
+          {tAbout.has("p3") && <p dangerouslySetInnerHTML={{ __html: tAbout.raw("p3") }} />}
         </div>
       </div>
     </section>

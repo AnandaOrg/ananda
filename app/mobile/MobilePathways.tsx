@@ -190,9 +190,11 @@ export default function MobilePathways() {
 
         <div className="absolute flex flex-col items-start" style={{ left: mu(locale === "bg" ? 14 : 24), top: mu(43), width: mu(276.93), gap: mu(24) }}>
           <div className="flex flex-col items-start uppercase text-[#fff0e5]" style={{ gap: mu(16) }}>
-            <p className="whitespace-nowrap" style={{ fontFamily: "var(--font-mono-label)", fontSize: mu(12), lineHeight: 0.87, letterSpacing: mu(0.84) }}>
-              {t("eyebrow")}
-            </p>
+            <p
+              className="whitespace-nowrap"
+              style={{ fontFamily: "var(--font-mono-label)", fontSize: mu(12), lineHeight: 0.87, letterSpacing: mu(0.84) }}
+              dangerouslySetInnerHTML={{ __html: t.raw("eyebrow") }}
+            />
             <LiquidText
               text={t("title")}
               className="relative font-bold"
@@ -201,9 +203,11 @@ export default function MobilePathways() {
           </div>
           <button type="button" onClick={() => openWithSpin(0)} className="flex cursor-pointer appearance-none items-center justify-center overflow-hidden border-0 bg-[#fff0e5]" style={{ padding: `${mu(8)} ${mu(12)}`, borderRadius: mu(25.016) }}>
             <div className="flex items-center" style={{ gap: mu(7.505) }}>
-              <span className="whitespace-nowrap font-semibold uppercase text-[#eb4638]" style={{ fontFamily: "var(--font-display)", fontSize: mu(20), lineHeight: 0.8, letterSpacing: mu(-1.4), textBoxTrim: "trim-both", textBoxEdge: "cap alphabetic" } as React.CSSProperties}>
-                {t("cta")}
-              </span>
+              <span
+                className="whitespace-nowrap font-semibold uppercase text-[#eb4638]"
+                style={{ fontFamily: "var(--font-display)", fontSize: mu(20), lineHeight: 0.8, letterSpacing: mu(-1.4), textBoxTrim: "trim-both", textBoxEdge: "cap alphabetic" } as React.CSSProperties}
+                dangerouslySetInnerHTML={{ __html: t.raw("cta") }}
+              />
               {arrowIcon.active && <img src={arrowIcon.url} alt="" style={{ width: mu(7.822), height: mu(15.404) }} />}
             </div>
           </button>

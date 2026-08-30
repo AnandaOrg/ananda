@@ -2,7 +2,7 @@ import { cache } from "react";
 import { getDb } from "@/db/client";
 import { mediaAssets } from "@/db/schema";
 
-export type MediaAsset = { url: string; active: boolean; link: string | null; kind: "image" | "mask" };
+export type MediaAsset = { url: string; active: boolean; link: string | null; kind: "image" | "mask" | "video" };
 
 /** All managed images, keyed by their stable `public/` path (e.g. "/fl-lemon.png").
  *  A path missing from the result (DB unreachable, unseeded, or genuinely not yet
@@ -18,7 +18,7 @@ export const getMediaAssets = cache(async (): Promise<Record<string, MediaAsset>
     const rows = await db.select().from(mediaAssets);
     const map: Record<string, MediaAsset> = {};
     for (const row of rows) {
-      map[row.path] = { url: row.blobUrl, active: row.active, link: row.link, kind: row.kind as "image" | "mask" };
+      map[row.path] = { url: row.blobUrl, active: row.active, link: row.link, kind: row.kind as "image" | "mask" | "video" };
     }
     return map;
   } catch {

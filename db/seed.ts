@@ -15,19 +15,70 @@ import { hashPassword } from "../lib/auth/password";
 const SEED_ADMIN_EMAIL = "martin.y.kiriloff@gmail.com";
 const SEED_ADMIN_PASSWORD = "Marto!2345";
 
-type SeedEntry = { namespace: string; key: string; format: "plain" | "rich"; en: string; bg: string };
+type SeedEntry = { namespace: string; key: string; format: "plain" | "rich" | "emphasis"; en: string; bg: string };
 
 function readMessages(locale: "en" | "bg"): Record<string, string> {
   const raw = fs.readFileSync(path.join(process.cwd(), "messages", `${locale}.json`), "utf8");
   return flattenMessages(JSON.parse(raw));
 }
 
+// Gets the bold/italic/underline/strike/link WYSIWYG. Everything else stays a plain
+// input — either because it's rendered inside an HTML attribute (aria-label,
+// placeholder) where markup can't be parsed, split into per-word spans for an
+// animation (markup would be torn apart or shown literally), duplicated into both
+// an attribute and visible children on the same element, or carries an ICU
+// interpolation placeholder (`{year}`) that `t.raw()` would skip entirely. See the
+// content-field usage audit for the full per-key reasoning.
+const RICH_MESSAGE_KEYS = new Set([
+  "about.p1",
+  "about.p2",
+  "about.p3",
+  "ritual.step1.body",
+  "ritual.step2.body",
+  "ritual.step3.body",
+  "hero.eyebrow",
+  "about.eyebrow",
+  "flavors.eyebrow",
+  "flavors.cta",
+  "ritual.eyebrow",
+  "ritual.title",
+  "ritual.step1.label",
+  "ritual.step2.label",
+  "ritual.step3.label",
+  "ritual.step1.title",
+  "ritual.step2.title",
+  "ritual.step3.title",
+  "wild.eyebrow",
+  "wild.title1",
+  "wild.title2",
+  "wild.tag1",
+  "wild.tag2",
+  "dropList.eyebrow",
+  "dropList.title",
+  "dropList.headingIdle",
+  "dropList.headingSuccess",
+  "dropList.headingError",
+  "dropList.successMsg",
+  "dropList.errorMsg",
+  "ageGate.title",
+  "ageGate.subtitle",
+  "ageGate.out",
+  "ageGate.in",
+  "ageGate.warning",
+  "noEntry.eyebrow",
+  "noEntry.title",
+  "noEntry.body",
+  "modal.ingredients",
+  "splash.scrollDown",
+]);
+
 function buildMessageEntries(): SeedEntry[] {
   const en = readMessages("en");
   const bg = readMessages("bg");
   return Object.entries(en).map(([path, value]) => {
     const [namespace, ...rest] = path.split(".");
-    return { namespace, key: rest.join("."), format: "plain" as const, en: value, bg: bg[path] ?? "" };
+    const format = RICH_MESSAGE_KEYS.has(path) ? "rich" : "plain";
+    return { namespace, key: rest.join("."), format, en: value, bg: bg[path] ?? "" };
   });
 }
 
@@ -41,9 +92,9 @@ const FLAVOR_TEXT: Record<string, { name: string; ingredients: [string, string] 
 function buildFlavorEntries(): SeedEntry[] {
   const entries: SeedEntry[] = [];
   for (const [key, { name, ingredients }] of Object.entries(FLAVOR_TEXT)) {
-    entries.push({ namespace: "flavorItems", key: `${key}.name`, format: "plain", en: name, bg: "" });
-    entries.push({ namespace: "flavorItems", key: `${key}.ingredients.0`, format: "plain", en: ingredients[0], bg: "" });
-    entries.push({ namespace: "flavorItems", key: `${key}.ingredients.1`, format: "plain", en: ingredients[1], bg: "" });
+    entries.push({ namespace: "flavorItems", key: `${key}.name`, format: "rich", en: name, bg: "" });
+    entries.push({ namespace: "flavorItems", key: `${key}.ingredients.0`, format: "rich", en: ingredients[0], bg: "" });
+    entries.push({ namespace: "flavorItems", key: `${key}.ingredients.1`, format: "rich", en: ingredients[1], bg: "" });
   }
   return entries;
 }
@@ -52,7 +103,7 @@ function buildManifestoEntry(): SeedEntry {
   return {
     namespace: "manifesto",
     key: "body",
-    format: "rich",
+    format: "emphasis",
     en: parasToHtml(MANIFESTO.en),
     bg: parasToHtml(MANIFESTO.bg),
   };

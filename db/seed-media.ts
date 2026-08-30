@@ -8,7 +8,7 @@ import { getDb } from "./client";
 import { mediaAssets } from "./schema";
 import { uploadAsset } from "../lib/media/blob";
 
-type Kind = "image" | "mask";
+type Kind = "image" | "mask" | "video";
 type Entry = { path: string; category: string; kind: Kind; link?: string; alt?: string };
 
 const ENTRIES: Entry[] = [
@@ -51,6 +51,8 @@ const ENTRIES: Entry[] = [
   { path: "/hero_3/4.png", category: "hero", kind: "image" },
   { path: "/hero_3/5.png", category: "hero", kind: "image" },
   { path: "/m-photo-card.svg", category: "hero", kind: "mask" },
+  { path: "/videos/hero.webm", category: "hero", kind: "video" },
+  { path: "/videos/hero-mobile.webm", category: "hero", kind: "video" },
 
   // about — Kyoto liftoff scene + collage frame masks
   { path: "/kyoto/kyoto-background.png", category: "about", kind: "image" },

@@ -69,9 +69,8 @@ export default function AboutCopyBlock({
             letterSpacing: u(0.7),
             color: "var(--terracotta)",
           }}
-        >
-          {t("eyebrow")}
-        </p>
+          dangerouslySetInnerHTML={{ __html: t.raw("eyebrow") }}
+        />
       </div>
 
       <div style={{ padding: `${u(10)} ${u(14)}` }}>
@@ -85,9 +84,9 @@ export default function AboutCopyBlock({
             color: "var(--terracotta)",
           }}
         >
-          <p className="mb-0">{t("p1")}</p>
-          <p className={t.has("p3") ? "mb-0" : undefined}>{t("p2")}</p>
-          {t.has("p3") && <p>{t("p3")}</p>}
+          <p className="mb-0" dangerouslySetInnerHTML={{ __html: t.raw("p1") }} />
+          <p className={t.has("p3") ? "mb-0" : undefined} dangerouslySetInnerHTML={{ __html: t.raw("p2") }} />
+          {t.has("p3") && <p dangerouslySetInnerHTML={{ __html: t.raw("p3") }} />}
         </div>
       </div>
     </div>

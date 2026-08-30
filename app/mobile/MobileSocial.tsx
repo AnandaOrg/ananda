@@ -15,7 +15,7 @@ const WILD = [
 export default async function MobileSocial() {
   const t = await getTranslations("wild");
   const bg = (await getLocale()) === "bg";
-  const tags = [t("tag1"), t("tag2")];
+  const tags = [t.raw("tag1"), t.raw("tag2")];
 
   const mediaAssets = await getMediaAssets();
   const wild = WILD.map((w) => {
@@ -30,18 +30,20 @@ export default async function MobileSocial() {
       <div className="relative flex flex-col items-start" style={{ ...MU_VAR, width: mu(390) }}>
         <div className="flex flex-col items-start" style={{ marginLeft: mu(24), marginTop: mu(60), marginBottom: mu(60), width: mu(316), gap: mu(40) }}>
           <div className="flex flex-col items-start uppercase text-[#eb4638]" style={{ gap: mu(16) }}>
-            <p className="whitespace-nowrap" style={{ fontFamily: "var(--font-mono-label)", fontSize: mu(12), lineHeight: 0.87, letterSpacing: mu(0.84) }}>
-              {t("eyebrow")}
-            </p>
+            <p
+              className="whitespace-nowrap"
+              style={{ fontFamily: "var(--font-mono-label)", fontSize: mu(12), lineHeight: 0.87, letterSpacing: mu(0.84) }}
+              dangerouslySetInnerHTML={{ __html: t.raw("eyebrow") }}
+            />
             <div className="font-bold" style={{ fontFamily: "var(--font-display)", fontSize: mu(64), lineHeight: 0.8, letterSpacing: mu(bg ? -1.92 : -5.12), width: mu(276.93) }}>
-              <p className="mb-0 whitespace-nowrap">{t("title1")}</p>
-              <p className="whitespace-nowrap">{t("title2")}</p>
+              <p className="mb-0 whitespace-nowrap" dangerouslySetInnerHTML={{ __html: t.raw("title1") }} />
+              <p className="whitespace-nowrap" dangerouslySetInnerHTML={{ __html: t.raw("title2") }} />
             </div>
           </div>
           <div className="flex flex-col items-start" style={{ gap: mu(14) }}>
-            {tags.map((tag) => (
+            {tags.map((tag, i) => (
               <span
-                key={tag}
+                key={i}
                 className={bg ? undefined : "whitespace-nowrap"}
                 style={{
                   border: `${mu(0.75)} solid #eb4638`,
@@ -53,9 +55,8 @@ export default async function MobileSocial() {
                   letterSpacing: mu(0.77),
                   color: "#eb4638",
                 }}
-              >
-                {tag}
-              </span>
+                dangerouslySetInnerHTML={{ __html: tag }}
+              />
             ))}
           </div>
         </div>

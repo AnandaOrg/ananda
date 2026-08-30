@@ -195,9 +195,8 @@ export default function Pathways() {
           <p
             className="whitespace-nowrap uppercase text-[#fff0e5]"
             style={{ fontFamily: "var(--font-mono-label)", fontSize: u(14), lineHeight: 0.87, letterSpacing: u(0.98) }}
-          >
-            {t("eyebrow")}
-          </p>
+            dangerouslySetInnerHTML={{ __html: t.raw("eyebrow") }}
+          />
         </div>
 
         <LiquidText
@@ -292,9 +291,8 @@ export default function Pathways() {
             <span
               className="whitespace-nowrap font-semibold uppercase text-[#eb4638]"
               style={{ fontFamily: "var(--font-display)", fontSize: u(40), lineHeight: 0.8, letterSpacing: u(-2.8), textBoxTrim: "trim-both", textBoxEdge: "cap alphabetic" } as React.CSSProperties}
-            >
-              {t("cta")}
-            </span>
+              dangerouslySetInnerHTML={{ __html: t.raw("cta") }}
+            />
             {arrowIcon.active && <img src={arrowIcon.url} alt="" style={{ width: u(15.644), height: u(30.807) }} />}
           </div>
         </button>

@@ -53,9 +53,8 @@ export default async function NoEntryPage() {
               letterSpacing: "0.08em",
               lineHeight: 1,
             }}
-          >
-            {t("eyebrow")}
-          </p>
+            dangerouslySetInnerHTML={{ __html: t.raw("eyebrow") }}
+          />
           <h1
             className="uppercase"
             style={{
@@ -65,9 +64,8 @@ export default async function NoEntryPage() {
               lineHeight: 1.1,
               marginTop: gu(14),
             }}
-          >
-            {t("title")}
-          </h1>
+            dangerouslySetInnerHTML={{ __html: t.raw("title") }}
+          />
           <p
             style={{
               fontFamily: "var(--font-body)",
@@ -76,9 +74,8 @@ export default async function NoEntryPage() {
               lineHeight: 1.4,
               marginTop: gu(12),
             }}
-          >
-            {t("body")}
-          </p>
+            dangerouslySetInnerHTML={{ __html: t.raw("body") }}
+          />
         </div>
       </div>
     </main>

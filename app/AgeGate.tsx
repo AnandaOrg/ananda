@@ -130,9 +130,8 @@ export default function AgeGate() {
                   fontSize: gu(56),
                   lineHeight: 1,
                 }}
-              >
-                {t("title")}
-              </h2>
+                dangerouslySetInnerHTML={{ __html: t.raw("title") }}
+              />
               <p
                 id="age-gate-subtitle"
                 className="uppercase"
@@ -143,9 +142,8 @@ export default function AgeGate() {
                   lineHeight: 1.1,
                   marginTop: gu(2),
                 }}
-              >
-                {t("subtitle")}
-              </p>
+                dangerouslySetInnerHTML={{ __html: t.raw("subtitle") }}
+              />
               <div
                 className="flex w-full items-center"
                 style={{ maxWidth: gu(532), gap: gu(16), marginTop: gu(34) }}
@@ -155,17 +153,15 @@ export default function AgeGate() {
                   onClick={() => router.push("/no-entry")}
                   className="cursor-pointer appearance-none uppercase"
                   style={{ ...BUTTON_BASE, color: RED, backgroundColor: "transparent" }}
-                >
-                  {t("out")}
-                </button>
+                  dangerouslySetInnerHTML={{ __html: t.raw("out") }}
+                />
                 <button
                   type="button"
                   onClick={accept}
                   className="cursor-pointer appearance-none uppercase"
                   style={{ ...BUTTON_BASE, color: CREAM, backgroundColor: RED }}
-                >
-                  {t("in")}
-                </button>
+                  dangerouslySetInnerHTML={{ __html: t.raw("in") }}
+                />
               </div>
               <p
                 className="uppercase"
@@ -177,9 +173,8 @@ export default function AgeGate() {
                   lineHeight: 1.3,
                   marginTop: gu(36),
                 }}
-              >
-                {t("warning")}
-              </p>
+                dangerouslySetInnerHTML={{ __html: t.raw("warning") }}
+              />
             </div>
           </div>
         </motion.div>

@@ -8,15 +8,21 @@ export const backofficeUsers = pgTable("backoffice_users", {
 });
 
 /** One row per translatable string, keyed by its next-intl `namespace` + dot-path `key`
- *  (e.g. namespace "ritual", key "step1.label"). `format` picks the editor: a plain
- *  input, or the restricted-toolbar WYSIWYG in the backoffice. */
+ *  (e.g. namespace "ritual", key "step1.label"). `format` picks the backoffice editor
+ *  and how the value is rendered on the site:
+ *  - "plain": a plain input, rendered via next-intl's `t()` (short strings).
+ *  - "rich": a bold/italic/link WYSIWYG; the sanitized HTML is rendered via
+ *    `dangerouslySetInnerHTML` (paragraph-style body copy).
+ *  - "emphasis": the manifesto's restricted paragraph+underline-only WYSIWYG; parsed
+ *    into `Run[][]` for RevealStatement's per-letter reveal (see manifesto-html.ts) —
+ *    not renderable via next-intl/dangerouslySetInnerHTML like the others. */
 export const contentEntries = pgTable(
   "content_entries",
   {
     id: serial("id").primaryKey(),
     namespace: text("namespace").notNull(),
     key: text("key").notNull(),
-    format: text("format", { enum: ["plain", "rich"] }).notNull().default("plain"),
+    format: text("format", { enum: ["plain", "rich", "emphasis"] }).notNull().default("plain"),
   },
   (t) => [unique("content_entries_namespace_key").on(t.namespace, t.key)]
 );
@@ -49,15 +55,16 @@ export const loginAttempts = pgTable("login_attempts", {
  *  a generated `/media/<category>/<uuid>` path for images added via the backoffice
  *  (in the categories that support adding new items — see lib/media/addable.ts).
  *  `kind: "mask"` rows are CSS mask-image sources, not clickable content — the
- *  backoffice UI skips the link field for those. `blobUrl` is swappable independently
- *  of `path` so replacing the file doesn't require touching any component. `alt` is
- *  only used for backoffice-added images — existing ones keep their curated alt text
- *  hardcoded at the call site. */
+ *  backoffice UI skips the link field for those. `kind: "video"` rows are background
+ *  videos (the hero .webm files) — replaceable the same way, no link field either.
+ *  `blobUrl` is swappable independently of `path` so replacing the file doesn't
+ *  require touching any component. `alt` is only used for backoffice-added images —
+ *  existing ones keep their curated alt text hardcoded at the call site. */
 export const mediaAssets = pgTable("media_assets", {
   id: serial("id").primaryKey(),
   path: text("path").notNull().unique(),
   category: text("category").notNull(),
-  kind: text("kind", { enum: ["image", "mask"] }).notNull().default("image"),
+  kind: text("kind", { enum: ["image", "mask", "video"] }).notNull().default("image"),
   blobUrl: text("blob_url").notNull(),
   active: boolean("active").notNull().default(true),
   link: text("link"),

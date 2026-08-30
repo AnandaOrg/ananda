@@ -41,7 +41,7 @@ export default function MobileRitual() {
     link: stepMedia[i].link,
     step: t(`step${i + 1}.label`),
     title: t(`step${i + 1}.title`),
-    body: t(`step${i + 1}.body`),
+    body: t.raw(`step${i + 1}.body`),
   }));
 
   const cardRef = useRef<HTMLDivElement | null>(null);
@@ -121,15 +121,13 @@ export default function MobileRitual() {
             <p
               className="whitespace-nowrap"
               style={{ fontFamily: "var(--font-mono-label)", fontSize: mu(12), lineHeight: 0.87, letterSpacing: mu(0.84) }}
-            >
-              {t("eyebrow")}
-            </p>
+              dangerouslySetInnerHTML={{ __html: t.raw("eyebrow") }}
+            />
             <p
               className="font-bold"
               style={{ fontFamily: "var(--font-display)", fontSize: mu(64), lineHeight: 0.8, letterSpacing: mu(bg ? -1.92 : -5.12), width: mu(276.93) }}
-            >
-              {t("title")}
-            </p>
+              dangerouslySetInnerHTML={{ __html: t.raw("title") }}
+            />
           </div>
 
           <div ref={cardRef} className="relative" style={{ width: mu(CARD.w), height: mu(CARD.h), opacity: 0 }}>
@@ -151,9 +149,8 @@ export default function MobileRitual() {
                       data-text-step={k}
                       className="font-bold"
                       style={{ gridArea: "1 / 1", fontFamily: "var(--font-display)", fontSize: mu(bg ? 32 : 39.949), lineHeight: 0.8, letterSpacing: mu(bg ? -0.96 : -3.196), clipPath: k === 0 ? CLIP_SHOWN : CLIP_HIDDEN }}
-                    >
-                      {s.title}
-                    </p>
+                      dangerouslySetInnerHTML={{ __html: s.title }}
+                    />
                   ))}
                 </div>
                 <div className="grid" style={{ justifyItems: "end" }}>
@@ -163,9 +160,8 @@ export default function MobileRitual() {
                       data-text-step={k}
                       className="whitespace-nowrap"
                       style={{ gridArea: "1 / 1", fontFamily: "var(--font-mono-label)", fontSize: mu(12.484), lineHeight: 0.87, letterSpacing: mu(0.8739), clipPath: k === 0 ? CLIP_SHOWN : CLIP_HIDDEN }}
-                    >
-                      {s.step}
-                    </p>
+                      dangerouslySetInnerHTML={{ __html: s.step }}
+                    />
                   ))}
                 </div>
               </div>
@@ -190,9 +186,8 @@ export default function MobileRitual() {
                     key={s.src}
                     data-text-step={k}
                     style={{ gridArea: "1 / 1", fontFamily: "var(--font-body)", fontSize: mu(12), lineHeight: 1.6, letterSpacing: mu(0.12), color: "#fff0e5", clipPath: k === 0 ? CLIP_SHOWN : CLIP_HIDDEN }}
-                  >
-                    {s.body}
-                  </p>
+                    dangerouslySetInnerHTML={{ __html: s.body }}
+                  />
                 ))}
               </div>
             </div>

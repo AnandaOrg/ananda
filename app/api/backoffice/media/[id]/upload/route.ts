@@ -5,7 +5,8 @@ import { mediaAssets } from "@/db/schema";
 import { getSession } from "@/lib/auth/session";
 import { deleteAsset, uploadAsset } from "@/lib/media/blob";
 
-const MAX_SIZE_BYTES = 10 * 1024 * 1024;
+const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
+const MAX_VIDEO_BYTES = 50 * 1024 * 1024;
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await getSession();
@@ -22,8 +23,14 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   const formData = await request.formData().catch(() => null);
   const file = formData?.get("file");
   if (!(file instanceof File)) return NextResponse.json({ error: "Missing file" }, { status: 400 });
-  if (file.size > MAX_SIZE_BYTES) return NextResponse.json({ error: "File is too large (max 10MB)" }, { status: 400 });
-  if (!file.type.startsWith("image/")) return NextResponse.json({ error: "File must be an image" }, { status: 400 });
+
+  if (asset.kind === "video") {
+    if (file.type !== "video/webm") return NextResponse.json({ error: "File must be a .webm video" }, { status: 400 });
+    if (file.size > MAX_VIDEO_BYTES) return NextResponse.json({ error: "File is too large (max 50MB)" }, { status: 400 });
+  } else {
+    if (!file.type.startsWith("image/")) return NextResponse.json({ error: "File must be an image" }, { status: 400 });
+    if (file.size > MAX_IMAGE_BYTES) return NextResponse.json({ error: "File is too large (max 10MB)" }, { status: 400 });
+  }
 
   const buffer = Buffer.from(await file.arrayBuffer());
   // A fresh, uniquely-suffixed URL avoids serving stale CDN-cached content at the

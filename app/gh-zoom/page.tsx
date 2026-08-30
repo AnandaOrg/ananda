@@ -22,6 +22,14 @@ export default async function BackofficeDashboard() {
           Manage images
         </Link>
 
+        <h2 className="mb-6 text-base font-semibold text-neutral-700">Users</h2>
+        <Link
+          href="/gh-zoom/users"
+          className="mb-10 block w-fit rounded-lg border border-neutral-200 bg-white px-4 py-3 text-sm font-medium hover:border-neutral-400"
+        >
+          Manage users
+        </Link>
+
         <h2 className="mb-6 text-base font-semibold text-neutral-700">Content sections</h2>
         {namespaces.length === 0 ? (
           <p className="text-sm text-neutral-500">

@@ -1,6 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
+import { stripHtml } from "@/lib/content/strip-html";
 
 const prefersReducedMotion = () =>
   typeof window !== "undefined" &&
@@ -20,7 +21,7 @@ export default function ScrollCue() {
     <button
       type="button"
       onClick={handleClick}
-      aria-label={t("scrollDown")}
+      aria-label={stripHtml(t.raw("scrollDown"))}
       className="absolute bottom-8 left-1/2 flex -translate-x-1/2 cursor-pointer flex-col items-center gap-2 md:bottom-10"
     >
       <div aria-hidden="true" className="scroll-cue-icon relative h-20 w-12">
@@ -62,9 +63,8 @@ export default function ScrollCue() {
       <span
         className="scroll-cue-label whitespace-nowrap uppercase text-[#fff0e5]"
         style={{ fontFamily: "var(--font-mono-label)", fontSize: 14, lineHeight: 0.87, letterSpacing: "0.98px" }}
-      >
-        {t("scrollDown")}
-      </span>
+        dangerouslySetInnerHTML={{ __html: t.raw("scrollDown") }}
+      />
     </button>
   );
 }

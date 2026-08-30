@@ -61,9 +61,9 @@ export default function RitualCards() {
     url: stepMedia[i].url,
     active: stepMedia[i].active,
     link: stepMedia[i].link,
-    step: t(`step${i + 1}.label`),
-    title: t(`step${i + 1}.title`),
-    body: t(`step${i + 1}.body`),
+    step: t.raw(`step${i + 1}.label`),
+    title: t.raw(`step${i + 1}.title`),
+    body: t.raw(`step${i + 1}.body`),
   }));
 
   const layerRef = useRef<HTMLDivElement | null>(null);
@@ -201,9 +201,8 @@ export default function RitualCards() {
                 data-text-step={k}
                 className="whitespace-nowrap uppercase"
                 style={{ gridArea: "1 / 1", fontFamily: "var(--font-mono-label)", fontSize: u(REL.label.font), lineHeight: 0.87, letterSpacing: u(REL.label.ls), color: CREAM, clipPath: k === f ? CLIP_SHOWN : CLIP_HIDDEN }}
-              >
-                {s.step}
-              </p>
+                dangerouslySetInnerHTML={{ __html: s.step }}
+              />
             ))}
           </div>
 
@@ -214,9 +213,8 @@ export default function RitualCards() {
                 data-text-step={k}
                 className="font-bold uppercase"
                 style={{ gridArea: "1 / 1", fontFamily: "var(--font-display)", fontSize: u(bg ? REL.title.fontBg : REL.title.font), lineHeight: 1, letterSpacing: u(bg ? REL.title.lsBg : REL.title.ls), color: CREAM, clipPath: k === f ? CLIP_SHOWN : CLIP_HIDDEN }}
-              >
-                {s.title}
-              </p>
+                dangerouslySetInnerHTML={{ __html: s.title }}
+              />
             ))}
           </div>
 
@@ -227,9 +225,8 @@ export default function RitualCards() {
                 data-text-step={k}
                 className="text-left"
                 style={{ gridArea: "1 / 1", padding: `${u(REL.body.pad[0])} ${u(REL.body.pad[1])}`, fontFamily: "var(--font-body)", fontSize: u(REL.body.font), lineHeight: 1.6, letterSpacing: u(REL.body.ls), color: CREAM, clipPath: k === f ? CLIP_SHOWN : CLIP_HIDDEN }}
-              >
-                {s.body}
-              </p>
+                dangerouslySetInnerHTML={{ __html: s.body }}
+              />
             ))}
           </div>
         </div>

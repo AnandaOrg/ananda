@@ -19,8 +19,13 @@ import MobileSocial from "./mobile/MobileSocial";
 import FlavorProvider from "./FlavorProvider";
 import AgeGate from "./AgeGate";
 import ScrollCue from "./ScrollCue";
+import { getMediaAssets, resolveMediaAsset } from "@/lib/media/get-media-assets";
 
-export default function Home() {
+export default async function Home() {
+  const mediaAssets = await getMediaAssets();
+  const heroVideo = resolveMediaAsset(mediaAssets, "/videos/hero.webm");
+  const heroVideoMobile = resolveMediaAsset(mediaAssets, "/videos/hero-mobile.webm");
+
   return (
     <FlavorProvider>
       <AutoplayRescue />
@@ -32,8 +37,8 @@ export default function Home() {
       <section className="relative flex h-screen items-center justify-center overflow-hidden">
         <h1 className="sr-only">ANANDA Cocktails — Premium Canned Cocktails</h1>
         <AmbientVideo className="absolute inset-0 h-full w-full object-cover">
-          <source src="/videos/hero-mobile.webm" media="(max-width: 767px)" />
-          <source src="/videos/hero.webm" />
+          {heroVideoMobile.active && <source src={heroVideoMobile.url} media="(max-width: 767px)" />}
+          {heroVideo.active && <source src={heroVideo.url} />}
         </AmbientVideo>
         <Image
           src="/ananda-logo.svg"

@@ -210,9 +210,8 @@ export default function DitchTheGlass() {
         <p
           className="dtg-word mb-[clamp(1.5rem,4vw,3.5rem)] text-[14px] uppercase leading-[0.87] tracking-[0.98px]"
           style={{ fontFamily: "var(--font-mono-label)", willChange: "opacity" }}
-        >
-          {t("eyebrow")}
-        </p>
+          dangerouslySetInnerHTML={{ __html: t.raw("eyebrow") }}
+        />
 
         <h2
           className="font-bold uppercase leading-[0.8]"

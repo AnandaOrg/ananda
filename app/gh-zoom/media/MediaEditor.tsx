@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 
-type Item = { id: number; path: string; category: string; kind: "image" | "mask"; blobUrl: string; active: boolean; link: string | null };
+type Item = { id: number; path: string; category: string; kind: "image" | "mask" | "video"; blobUrl: string; active: boolean; link: string | null };
 
 export default function MediaEditor({ item }: { item: Item }) {
   const [url, setUrl] = useState(item.blobUrl);
@@ -49,8 +49,12 @@ export default function MediaEditor({ item }: { item: Item }) {
   return (
     <div className="flex flex-col rounded-lg border border-neutral-200 bg-white p-3">
       <div className="mb-2 flex h-28 items-center justify-center overflow-hidden rounded-md bg-neutral-100">
-        {/* eslint-disable-next-line @next/next/no-img-element -- thumbnail for an arbitrary managed asset, not a page-content image */}
-        <img src={url} alt="" className="max-h-full max-w-full object-contain" />
+        {item.kind === "video" ? (
+          <video src={url} muted loop autoPlay playsInline className="max-h-full max-w-full object-contain" />
+        ) : (
+          // eslint-disable-next-line @next/next/no-img-element -- thumbnail for an arbitrary managed asset, not a page-content image
+          <img src={url} alt="" className="max-h-full max-w-full object-contain" />
+        )}
       </div>
 
       <div className="mb-2 flex items-center justify-between gap-2">
@@ -58,6 +62,7 @@ export default function MediaEditor({ item }: { item: Item }) {
           {item.path}
         </span>
         {item.kind === "mask" && <span className="shrink-0 rounded bg-neutral-100 px-1.5 py-0.5 text-[10px] text-neutral-500">mask</span>}
+        {item.kind === "video" && <span className="shrink-0 rounded bg-neutral-100 px-1.5 py-0.5 text-[10px] text-neutral-500">video</span>}
       </div>
 
       <label className="mb-2 flex items-center gap-2 text-xs text-neutral-700">
@@ -84,7 +89,7 @@ export default function MediaEditor({ item }: { item: Item }) {
         >
           {status === "uploading" ? "Uploading…" : "Replace"}
         </button>
-        <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={onFileChange} />
+        <input ref={fileRef} type="file" accept={item.kind === "video" ? "video/webm" : "image/*"} className="hidden" onChange={onFileChange} />
 
         <button
           type="button"
