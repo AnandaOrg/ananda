@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useImperativeHandle, forwardRef } from "react";
+import { useEffect, useRef, useState, useImperativeHandle, forwardRef } from "react";
+import MediaSkeleton from "./MediaSkeleton";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import type * as THREE_TYPES from "three";
@@ -88,6 +89,11 @@ function cloneMaterials(
   return Array.from(map.values());
 }
 
+/** Vertical field of view; shared by the camera and the pre-load pouch silhouette. */
+const FOV_DEG = 38;
+/** fitGroup() scales every model so its largest dimension spans this many world units. */
+const FIT_SIZE = 2.0;
+
 const SCROLL_TURNTABLE_TURNS_DESKTOP = 1;
 const SCROLL_TURNTABLE_TURNS_PHONE = 0.65;
 
@@ -117,6 +123,7 @@ const GlbViewer = forwardRef<GlbViewerHandle, Props>(function GlbViewer({
   const fracRef = useRef(0);
   const dominantIndexRef = useRef(activeIndex ?? 0);
   const onProgressRef = useRef(onProgress);
+  const [ready, setReady] = useState(false);
   useEffect(() => { onProgressRef.current = onProgress; }, [onProgress]);
   const activeRef = useRef(activeIndex ?? 0);
   const prevActiveRef = useRef(activeIndex ?? 0);
@@ -226,7 +233,7 @@ const GlbViewer = forwardRef<GlbViewerHandle, Props>(function GlbViewer({
       const scene = new THREE.Scene();
 
       const CAM_Z = camZ ?? 7;
-      const FOV = 38;
+      const FOV = FOV_DEG;
       const camera = new THREE.PerspectiveCamera(FOV, mount.clientWidth / mount.clientHeight, 0.01, 1000);
       camera.position.set(0, 0, CAM_Z);
 
@@ -246,7 +253,7 @@ const GlbViewer = forwardRef<GlbViewerHandle, Props>(function GlbViewer({
         const center = box.getCenter(new THREE.Vector3());
         const size = box.getSize(new THREE.Vector3());
         group.position.sub(center);
-        group.scale.setScalar(2.0 / Math.max(size.x, size.y, size.z));
+        group.scale.setScalar(FIT_SIZE / Math.max(size.x, size.y, size.z));
         group.rotation.order = "XZY";
         group.rotation.z = -Math.PI / 2;
       }
@@ -287,6 +294,7 @@ const GlbViewer = forwardRef<GlbViewerHandle, Props>(function GlbViewer({
         groups[i] = scn;
         flipGroups[i] = flipGroup;
         loadedCount++;
+        if (loadedCount === 1) setReady(true);
         forceRender = true;
       };
 
@@ -559,12 +567,28 @@ const GlbViewer = forwardRef<GlbViewerHandle, Props>(function GlbViewer({
     };
   }, [models, transitionDuration, initialTilt, noScroll, camZ, scrollRef, scrollTravel, dropCacheAfterParse, deferInactiveLoads]);
 
+  // Pouch-silhouette skeleton until the first model is installed. Its height is the
+  // fitted model's on-screen height (FIT_SIZE units out of the camera's visible
+  // height at z=0), and it is turned by the initial tilt so it lies the way the
+  // pouch will. The Three canvas is appended after it, so it paints on top.
+  const camDist = camZ ?? 7;
+  const pouchHeightPct = (FIT_SIZE / (2 * camDist * Math.tan((FOV_DEG / 2) * (Math.PI / 180)))) * 100;
+  const tilt = initialTilt ?? -Math.PI / 2;
+
   return (
     <div
       ref={mountRef}
       className={className}
-      style={{ overflow: "hidden", ...style }}
-    />
+      style={{ position: "relative", overflow: "hidden", ...style }}
+    >
+      <div
+        aria-hidden="true"
+        className="glb-skeleton"
+        style={{ height: `${pouchHeightPct.toFixed(2)}%`, transform: `translate(-50%, -50%) rotate(${-tilt}rad)` }}
+      >
+        <MediaSkeleton hidden={ready} />
+      </div>
+    </div>
   );
 });
 

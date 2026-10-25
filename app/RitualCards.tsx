@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import { SkeletonImage } from "./MediaSkeleton";
 import { useEffect, useRef } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import gsap from "gsap";
@@ -182,7 +182,7 @@ export default function RitualCards() {
               <div key={s.src} data-photo className="absolute inset-0">
                 {s.active ? (
                   <LinkWrap href={s.link} fill>
-                    <Image src={s.url} alt={s.alt} fill sizes="40vw" className="object-cover" />
+                    <SkeletonImage src={s.url} alt={s.alt} fill sizes="40vw" className="object-cover" />
                   </LinkWrap>
                 ) : (
                   <div className="absolute inset-0" style={{ backgroundColor: CREAM }} />

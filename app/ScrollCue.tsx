@@ -22,7 +22,7 @@ export default function ScrollCue() {
       type="button"
       onClick={handleClick}
       aria-label={stripHtml(t.raw("scrollDown"))}
-      className="absolute bottom-8 left-1/2 flex -translate-x-1/2 cursor-pointer flex-col items-center gap-2 md:bottom-10"
+      className="absolute bottom-8 left-1/2 z-10 flex -translate-x-1/2 cursor-pointer flex-col items-center gap-2 md:bottom-10"
     >
       <div aria-hidden="true" className="scroll-cue-icon relative h-20 w-12">
         <svg viewBox="0 0 54.9 91" fill="none" className="absolute inset-0 h-full w-full">

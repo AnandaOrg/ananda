@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import { SkeletonImage } from "./MediaSkeleton";
 import { useLayoutEffect, useRef } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
@@ -128,7 +128,7 @@ export default function CardPeel({ className, style }: Props) {
               ...maskCss,
             }}
           >
-            <Image
+            <SkeletonImage
               src={card.src}
               alt="ANANDA cocktail moment"
               fill

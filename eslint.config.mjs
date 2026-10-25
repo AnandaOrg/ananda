@@ -26,6 +26,7 @@ const eslintConfig = defineConfig([
       "app/mobile/MobileKyoto.tsx",
       "app/mobile/MobilePouchScroll.tsx",
       "app/mobile/MobileAbout.tsx",
+      "app/MediaSkeleton.tsx",
     ],
     rules: {
       "@next/next/no-img-element": "off",

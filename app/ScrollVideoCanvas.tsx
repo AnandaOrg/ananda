@@ -1,6 +1,7 @@
 "use client";
 
-import { CSSProperties, useEffect, useRef } from "react";
+import { CSSProperties, useEffect, useRef, useState } from "react";
+import MediaSkeleton from "./MediaSkeleton";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 
@@ -27,6 +28,7 @@ export default function ScrollVideoCanvas({
 }: Props) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -55,6 +57,7 @@ export default function ScrollVideoCanvas({
       const img = frames[Math.round(index)];
       if (!canvas || !ctx || !img?.complete || img.naturalWidth === 0) return;
       ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      setReady(true);
     }
 
     sizeCanvas();
@@ -142,6 +145,7 @@ export default function ScrollVideoCanvas({
 
   return (
     <div ref={wrapRef} className={className} style={style} aria-label={alt} role="img">
+      <MediaSkeleton hidden={ready} />
       <canvas ref={canvasRef} className="block h-full w-full" />
     </div>
   );

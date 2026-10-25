@@ -4,6 +4,9 @@
   --background: #ffffff;
   --foreground: #171717;
   --terracotta: #eb4638;
+  /* Skeleton wave (after aicssanimations "skeleton-product-grid"): one diagonal band,
+     3× wide, swept right→left by `media-skeleton-wave`. */
+  --skeleton-wave: linear-gradient(105deg, rgb(0 0 0 / 0.5) 38%, #000 50%, rgb(0 0 0 / 0.5) 62%) 100% 0 / 300% 100%;
   --font-display: var(--font-display-latin), var(--font-cyrillic-display), sans-serif;
   --font-body: var(--font-body-latin), var(--font-cyrillic-body), sans-serif;
 }
@@ -222,4 +225,54 @@ body {
     stroke-dashoffset: 0 !important;
     stroke-opacity: 1 !important;
   }
+}
+
+/* Media loading skeleton (MediaSkeleton.tsx). One diagonal wave sweeps the block —
+   a mask, not a per-box shimmer — after aicssanimations "skeleton-product-grid":
+   38% fill, 32% 1px edge, 1.8s. Lives inside the media's wrapper, so it takes the
+   wrapper's crop, radius and mask. */
+@keyframes media-skeleton-wave {
+  to {
+    -webkit-mask-position: 0% 0;
+    mask-position: 0% 0;
+  }
+}
+
+.media-skeleton {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: color-mix(in srgb, var(--terracotta) 38%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--terracotta) 32%, transparent);
+  -webkit-mask: var(--skeleton-wave);
+  mask: var(--skeleton-wave);
+  animation: media-skeleton-wave 1.8s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+  transition: opacity 0.4s ease-out;
+}
+
+.media-skeleton-out {
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .media-skeleton {
+    animation: none !important;
+    -webkit-mask: none;
+    mask: none;
+    transition: none;
+  }
+}
+
+/* GlbViewer pre-load skeleton: the pouch cutout's alpha gives the silhouette, the
+   MediaSkeleton inside supplies the fill + wave. Size/rotation are set inline by the
+   viewer from its camera and initial tilt. */
+.glb-skeleton {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  aspect-ratio: 309 / 718;
+  pointer-events: none;
+  -webkit-mask: url("/fl-pouch-red.png") center / contain no-repeat;
+  mask: url("/fl-pouch-red.png") center / contain no-repeat;
 }

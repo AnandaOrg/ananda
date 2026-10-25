@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import { SkeletonImage } from "../MediaSkeleton";
 import { useEffect, useRef } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import gsap from "gsap";
@@ -220,7 +220,7 @@ export default function MobileIntro() {
         }}
       >
         <div ref={innerRef} className="absolute inset-0" style={{ transform: "rotate(-45deg) scale(1.5)", willChange: "transform" }}>
-          <Image
+          <SkeletonImage
             src={diamondPhoto.src}
             alt={diamondPhoto.alt}
             fill

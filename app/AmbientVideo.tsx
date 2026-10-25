@@ -1,13 +1,18 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import MediaSkeleton, { useMediaLoaded } from "./MediaSkeleton";
 
+/** `skeleton` renders a MediaSkeleton sibling (absolute inset-0 in the parent) until
+ *  the first frame is available — the parent must be positioned. */
 export default function AmbientVideo({
   src,
   children,
+  skeleton,
   ...props
-}: React.VideoHTMLAttributes<HTMLVideoElement>) {
+}: React.VideoHTMLAttributes<HTMLVideoElement> & { skeleton?: boolean }) {
   const ref = useRef<HTMLVideoElement>(null);
+  const { loaded, mediaRef, onLoadedData, onError } = useMediaLoaded();
   const [shouldLoad, setShouldLoad] = useState(false);
 
   useEffect(() => {
@@ -47,9 +52,27 @@ export default function AmbientVideo({
     v.play().catch(() => {});
   }, [shouldLoad]);
 
-  return (
-    <video ref={ref} muted loop playsInline preload="none" {...props} src={shouldLoad ? src : undefined}>
+  const video = (
+    <video
+      ref={(el) => { ref.current = el; mediaRef(el); }}
+      muted
+      loop
+      playsInline
+      preload="none"
+      {...props}
+      onLoadedData={(e) => { onLoadedData(); props.onLoadedData?.(e); }}
+      onError={(e) => { onError(); props.onError?.(e); }}
+      src={shouldLoad ? src : undefined}
+    >
       {shouldLoad ? children : null}
     </video>
+  );
+
+  if (!skeleton) return video;
+  return (
+    <>
+      <MediaSkeleton hidden={loaded} />
+      {video}
+    </>
   );
 }

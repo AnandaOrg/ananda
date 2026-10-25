@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import gsap from "gsap";
 import SpillWave from "./SpillWave";
 import { LinkWrap, useMediaAsset } from "./MediaProvider";
+import MediaSkeleton, { SkeletonImg, useMediaLoaded } from "./MediaSkeleton";
 
 const u = (n: number) => `calc(var(--u) * ${n})`;
 const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
@@ -65,6 +66,7 @@ export default function KyotoLiftoff({
   const spillInnerRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const bgRef = useRef<HTMLImageElement>(null);
+  const { loaded: videoLoaded, mediaRef: videoMediaRef, onLoadedData: onVideoLoaded } = useMediaLoaded();
   const engagedRef = useRef(false);
   const spillAliveRef = useRef(false);
   const spillIdleRef = useRef<gsap.core.Tween | null>(null);
@@ -219,6 +221,7 @@ export default function KyotoLiftoff({
       style={{ left: u(posLeft), top: u(posTop), width: u(PANEL_W), height: u(SCENE_H) }}
     >
       <div className="absolute inset-0 overflow-hidden" style={{ zIndex: 2 }}>
+        <MediaSkeleton hidden={videoLoaded} />
         {background.active && (
           <img
             ref={bgRef}
@@ -231,7 +234,8 @@ export default function KyotoLiftoff({
         )}
 
         <video
-          ref={videoRef}
+          ref={(el) => { videoRef.current = el; videoMediaRef(el); }}
+          onLoadedData={onVideoLoaded}
           className="pointer-events-none absolute inset-0 size-full object-cover"
           style={{ opacity: 1, willChange: "opacity" }}
           muted
@@ -289,7 +293,7 @@ export default function KyotoLiftoff({
         >
           {pouchImage.active && (
             <LinkWrap href={pouchImage.link} fill>
-              <img
+              <SkeletonImg
                 src={pouchImage.url}
                 alt="ANANDA KYOTO cocktail pouch — Strawberry / Lychee · Yuzu"
                 className="block size-full select-none"

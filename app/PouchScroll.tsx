@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { SkeletonImg } from "./MediaSkeleton";
 
 const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
 const u = (n: number) => `calc(var(--u) * ${n})`;
@@ -58,7 +59,7 @@ export default function PouchScroll() {
             boxShadow: `${u(11)} ${u(8)} ${u(28.7)} 0 rgba(0,0,0,0.25)`,
           }}
         >
-          <img
+          <SkeletonImg
             src="/c-pouch.png"
             alt="ANANDA cocktail pouch"
             className="absolute max-w-none"

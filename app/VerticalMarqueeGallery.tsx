@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import { SkeletonImage } from "./MediaSkeleton";
 import { useLayoutEffect, useRef, useState } from "react";
 import styles from "./VerticalMarqueeGallery.module.css";
 
@@ -106,7 +106,7 @@ function ImageList({ images, imageHeight, gap, priorityCount }: ImageListProps) 
             marginBottom: gap,
           }}
         >
-          <Image
+          <SkeletonImage
             src={img.src}
             alt={img.alt}
             fill

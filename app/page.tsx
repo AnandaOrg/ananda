@@ -36,7 +36,7 @@ export default async function Home() {
 
       <section className="relative flex h-screen items-center justify-center overflow-hidden">
         <h1 className="sr-only">ANANDA Cocktails — Premium Canned Cocktails</h1>
-        <AmbientVideo className="absolute inset-0 h-full w-full object-cover">
+        <AmbientVideo skeleton className="absolute inset-0 h-full w-full object-cover">
           {heroVideoMobile.active && <source src={heroVideoMobile.url} media="(max-width: 767px)" />}
           {heroVideo.active && <source src={heroVideo.url} />}
         </AmbientVideo>
@@ -46,7 +46,7 @@ export default async function Home() {
           width={283}
           height={228}
           priority
-          className="relative w-[74vw] max-w-[290px] md:w-[clamp(180px,22vw,283px)] md:max-w-none"
+          className="relative z-10 w-[74vw] max-w-[290px] md:w-[clamp(180px,22vw,283px)] md:max-w-none"
           style={{ height: "auto" }}
         />
         <ScrollCue />

@@ -9,6 +9,7 @@ import VerticalSlider from "./VerticalSlider";
 import { ABOUT_CARD } from "./configs";
 import { useExtraMedia, useManagedMaskUrl, useMediaAsset } from "./MediaProvider";
 import { HERO_KNOWN_PATHS } from "./hero-media";
+import MediaSkeleton, { useMediaLoaded } from "./MediaSkeleton";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -68,6 +69,8 @@ export default function DitchTheGlass() {
   const frameMaskUrl = useManagedMaskUrl("/m-photo-card.svg");
   const frameMaskUrlRef = useRef(frameMaskUrl);
   useEffect(() => { frameMaskUrlRef.current = frameMaskUrl; }, [frameMaskUrl]);
+
+  const { loaded: travelLoaded, onLoadedData: onTravelLoaded } = useMediaLoaded();
 
   // PHOTOS is a fixed-length (4) module-level array — calling the hook unrolled
   // per index keeps this within the rules of hooks.
@@ -275,7 +278,9 @@ export default function DitchTheGlass() {
         }}
       >
         <div ref={innerRef} className="absolute inset-0" style={{ willChange: "transform" }}>
+          <MediaSkeleton hidden={travelLoaded} />
           <video
+            onLoadedData={onTravelLoaded}
             muted
             loop
             playsInline

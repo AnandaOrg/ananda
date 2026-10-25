@@ -5,6 +5,7 @@ import gsap from "gsap";
 import SpillWave from "../SpillWave";
 import { mu, MU_VAR } from "./scale";
 import { LinkWrap, useMediaAsset } from "../MediaProvider";
+import MediaSkeleton, { SkeletonImg, useMediaLoaded } from "../MediaSkeleton";
 
 const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
 const smoothstep = (t: number) => t * t * (3 - 2 * t);
@@ -59,6 +60,7 @@ export default function MobileKyoto() {
   const spillInnerRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const bgRef = useRef<HTMLImageElement>(null);
+  const { loaded: videoLoaded, mediaRef: videoMediaRef, onLoadedData: onVideoLoaded } = useMediaLoaded();
   const engagedRef = useRef(false);
   const background = useMediaAsset("/kyoto/kyoto-background.png");
   const pouchImage = useMediaAsset("/kyoto/kyoto-image.png");
@@ -234,6 +236,7 @@ export default function MobileKyoto() {
         style={{ width: mu(SCENE_W), height: mu(SCENE_H) }}
       >
         <div className="absolute inset-0 overflow-hidden" style={{ zIndex: 2 }}>
+        <MediaSkeleton hidden={videoLoaded} />
         {background.active && (
           <img
             ref={bgRef}
@@ -246,7 +249,8 @@ export default function MobileKyoto() {
         )}
 
         <video
-          ref={videoRef}
+          ref={(el) => { videoRef.current = el; videoMediaRef(el); }}
+          onLoadedData={onVideoLoaded}
           className="pointer-events-none absolute inset-0 size-full object-cover"
           style={{ opacity: 1, willChange: "opacity" }}
           muted
@@ -304,7 +308,7 @@ export default function MobileKyoto() {
           >
             {pouchImage.active && (
               <LinkWrap href={pouchImage.link} fill>
-                <img
+                <SkeletonImg
                   src={pouchImage.url}
                   alt="ANANDA KYOTO cocktail pouch — Strawberry / Lychee · Yuzu"
                   decoding="async"

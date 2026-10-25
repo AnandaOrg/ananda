@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import { SkeletonImage } from "./MediaSkeleton";
 import { useEffect, useRef } from "react";
 import gsap from "gsap";
 import { LinkWrap, useManagedMaskUrl } from "./MediaProvider";
@@ -232,7 +232,7 @@ export default function VerticalSlider({
           style={{ position: "absolute", inset: 0 }}
         >
           <LinkWrap href={img.link ?? null} fill>
-            <Image
+            <SkeletonImage
               src={img.src}
               alt={img.alt}
               fill

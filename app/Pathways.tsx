@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import { SkeletonImage, SkeletonImg } from "./MediaSkeleton";
 import { useCallback, useEffect, useRef } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import gsap from "gsap";
@@ -66,7 +66,7 @@ function Floating({ src, alt, rotate, inner, box, center, crop, shadow, sizes }:
         >
           <LinkWrap href={asset.link} fill>
             {crop ? (
-              <img
+              <SkeletonImg
                 src={asset.url}
                 alt={alt}
                 loading="lazy"
@@ -75,7 +75,7 @@ function Floating({ src, alt, rotate, inner, box, center, crop, shadow, sizes }:
                 style={{ width: crop.width, height: crop.height, left: crop.left, top: crop.top }}
               />
             ) : (
-              <Image src={asset.url} alt={alt} fill sizes={sizes ?? "40vw"} className="object-cover" />
+              <SkeletonImage src={asset.url} alt={alt} fill sizes={sizes ?? "40vw"} className="object-cover" />
             )}
           </LinkWrap>
         </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import { SkeletonImage } from "../MediaSkeleton";
 import { useEffect, useRef } from "react";
 
 type Item = { src: string; alt: string; link?: string | null };
@@ -211,7 +211,7 @@ export default function WildCarousel({
     >
       {looped.map((p, i) => (
         <div key={i} className={`relative shrink-0 overflow-hidden ${snapType === "none" ? "" : alignClass}`} style={{ width: slideW, height: slideH }}>
-          <Image
+          <SkeletonImage
             src={p.src}
             alt={p.alt}
             fill

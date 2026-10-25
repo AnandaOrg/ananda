@@ -39,6 +39,7 @@ export default async function MobileCollageMedia() {
         >
           <div style={{ transform: "rotate(-90deg)" }}>
             <div
+              className="relative"
               style={{
                 width: mu(STRAW.h),
                 height: mu(STRAW.w),
@@ -46,6 +47,7 @@ export default async function MobileCollageMedia() {
               }}
             >
               <AmbientVideo
+                skeleton
                 src="/videos/kyoto-strawberries-mobile.mp4"
                 preload="auto"
                 aria-label="An ANANDA pouch nestled in fresh strawberries"

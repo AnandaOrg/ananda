@@ -60,6 +60,7 @@ export default async function AboutCollage() {
         >
           <div style={{ transform: "rotate(-90deg)" }}>
             <div
+              className="relative"
               style={{
                 width: u(604.722),
                 height: u(750.69),
@@ -67,6 +68,7 @@ export default async function AboutCollage() {
               }}
             >
               <AmbientVideo
+                skeleton
                 src="/videos/kyoto-strawberries.mp4"
                 aria-label="An ANANDA pouch nestled in fresh strawberries"
                 className="block size-full object-cover"
