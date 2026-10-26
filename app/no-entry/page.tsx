@@ -1,9 +1,13 @@
+import type { Metadata } from "next";
 import Image from "next/image";
 import { getTranslations } from "next-intl/server";
 import { getMediaAssets, resolveMediaAsset } from "@/lib/media/get-media-assets";
 import { LinkWrap } from "../MediaProvider";
 
 const gu = (n: number) => `calc(var(--agu) * ${n})`;
+
+/** The age gate's "I'm out" destination — never worth indexing. */
+export const metadata: Metadata = { robots: { index: false, follow: false } };
 
 export default async function NoEntryPage() {
   const t = await getTranslations("noEntry");

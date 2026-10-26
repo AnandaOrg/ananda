@@ -12,7 +12,10 @@ export default function robots(): MetadataRoute.Robots {
     rules: {
       userAgent: "*",
       allow: "/",
-      disallow: ["/no-entry", "/pinned-demo", "/api/", "/gh-zoom"],
+      // Only the API. Pages that must stay out of search (the age-gate exit page, the
+      // backoffice) carry noindex themselves — a Disallow here would hide that tag from
+      // crawlers and advertise the paths to anyone reading robots.txt.
+      disallow: ["/api/"],
     },
     sitemap: `${SITE_URL}/sitemap.xml`,
   };

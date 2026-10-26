@@ -77,7 +77,7 @@ export async function generateMetadata(): Promise<Metadata> {
       alternateLocale: alternateOgLocale,
     },
     twitter: {
-      card: "summary",
+      card: "summary_large_image",
       title,
       description: DESCRIPTION,
     },
@@ -104,14 +104,19 @@ export const viewport: Viewport = {
   ],
 };
 
+// Geist is only offered as an optional font choice in the backoffice rich-text
+// editor; nothing above the fold uses it, so it must not compete with the hero for
+// bandwidth (no preload).
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
+  preload: false,
 });
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
+  preload: false,
 });
 
 const anekKannada = localFont({
@@ -181,6 +186,22 @@ export default async function RootLayout({
       <head>
         <Script id="disable-scroll-restoration" strategy="beforeInteractive">
           {`if ("scrollRestoration" in history) { history.scrollRestoration = "manual"; }`}
+        </Script>
+        {/* Google Consent Mode v2: every storage signal denied before gtag.js loads, so
+            GA runs cookieless (anonymous pings only) until a consent banner grants
+            `analytics_storage` via gtag('consent', 'update', …). Must run before the
+            tag, hence beforeInteractive. */}
+        <Script id="consent-default" strategy="beforeInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('consent', 'default', {
+              ad_storage: 'denied',
+              ad_user_data: 'denied',
+              ad_personalization: 'denied',
+              analytics_storage: 'denied'
+            });
+          `}
         </Script>
         <script
           type="application/ld+json"
