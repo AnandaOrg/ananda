@@ -62,6 +62,7 @@ export default function PouchScroll() {
           <SkeletonImg
             src="/c-pouch.png"
             alt="ANANDA cocktail pouch"
+            sizes="35vw"
             className="absolute max-w-none"
             style={{ width: "177.86%", height: "111.18%", left: "-40.81%", top: "-7.3%" }}
           />

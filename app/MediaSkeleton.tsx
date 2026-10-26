@@ -79,8 +79,10 @@ export function SkeletonImage({ alt, ...props }: ImageProps) {
 }
 
 /** `src`/`srcSet`/`sizes` for a plain `<img>` so it is still served through the image
- *  optimizer (resized, AVIF/WebP) — for photos whose crop/position CSS does not fit
- *  `<Image fill>`. `sizes` is the usual rendered-width hint. SVGs and data URIs pass
+ *  optimizer (resized, AVIF/WebP). For the crop-positioned photos: next/image refuses
+ *  `fill` together with `style.width`/`style.height` ("Images with fill always use
+ *  width 100%"), and the percentage crops need exactly those, so `<Image>` cannot be
+ *  used there. `sizes` is the usual rendered-width hint. SVGs and data URIs pass
  *  through untouched (the optimizer does not take them). */
 export function optimizedImgProps(src: string, sizes: string, alt = ""): Pick<ImgHTMLAttributes<HTMLImageElement>, "src" | "srcSet" | "sizes"> {
   if (/\.svg(\?|#|$)/i.test(src) || src.startsWith("data:")) return { src };

@@ -21,9 +21,21 @@
   "ritual": {
     "eyebrow": "[03] How it works",
     "title": "The Ritual",
-    "step1": { "label": "[Step 01]", "title": "Chill", "body": "Submerge the pouch in ice or drop it in the freezer." },
-    "step2": { "label": "[Step 02]", "title": "Twist", "body": "Snap open the high-flow cap. Ditch the bottle openers, the sticky counters, and the heavy glass." },
-    "step3": { "label": "[Step 03]", "title": "Sip", "body": "Sip it straight from the pouch on the dancefloor, or pour it over crushed ice under the sun. Be entirely right here, right now." }
+    "step1": {
+      "label": "[Step 01]",
+      "title": "Chill",
+      "body": "Submerge the pouch in ice or drop it in the freezer."
+    },
+    "step2": {
+      "label": "[Step 02]",
+      "title": "Twist",
+      "body": "Snap open the high-flow cap. Ditch the bottle openers, the sticky counters, and the heavy glass."
+    },
+    "step3": {
+      "label": "[Step 03]",
+      "title": "Sip",
+      "body": "Sip it straight from the pouch on the dancefloor, or pour it over crushed ice under the sun. Be entirely right here, right now."
+    }
   },
   "wild": {
     "eyebrow": "[04] Our collective",
@@ -64,5 +76,10 @@
     "eyebrow": "[ 18+ only ]",
     "title": "Sorry, you can't enter.",
     "body": "Come back when it's official."
+  },
+  "notFound": {
+    "eyebrow": "[ 404 ]",
+    "title": "Nothing to sip here.",
+    "back": "Back to ANANDA"
   }
 }

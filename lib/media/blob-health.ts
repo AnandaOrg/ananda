@@ -7,15 +7,18 @@
  *  asset's original from `public/` (Vercel CDN) instead.
  *
  *  One HEAD request per instance per minute, stale-while-revalidate: once a verdict
- *  exists it is returned immediately and refreshed in the background after the TTL,
- *  so only the first request on a fresh instance waits for the probe (and that probe
- *  runs alongside the DB read, see get-media-assets.ts). Only a 403 is "blocked" — a
- *  404 means that one file is gone. A timeout or network error is inconclusive: it
- *  never stores a verdict, so an old one ages out instead of being renewed. */
+ *  exists it is returned immediately and refreshed in the background once it is older
+ *  than its TTL, so only the first request on a fresh instance waits for the probe
+ *  (and that probe runs alongside the DB read, see get-media-assets.ts). Only a 403
+ *  is "blocked" — a 404 means that one file is gone. A timeout or network error is
+ *  inconclusive: the previous answer (or "not blocked" if there is none) is kept, but
+ *  only for a short TTL, so an outage is re-checked soon without every request
+ *  paying for a probe that cannot answer. */
 const PROBE_TTL_MS = 60_000;
+const INCONCLUSIVE_TTL_MS = 15_000;
 const PROBE_TIMEOUT_MS = 1_500;
 
-let verdict: { blocked: boolean; at: number } | null = null;
+let verdict: { blocked: boolean; at: number; ttl: number } | null = null;
 let inFlight: Promise<boolean> | null = null;
 
 /** A URL on the project's own store that is safe to HEAD for the probe. The public
@@ -28,11 +31,14 @@ export function blobProbeUrl(): string | null {
 }
 
 export async function isBlobStoreBlocked(probeUrl: string): Promise<boolean> {
-  if (verdict && Date.now() - verdict.at < PROBE_TTL_MS) return verdict.blocked;
+  if (verdict && Date.now() - verdict.at < verdict.ttl) return verdict.blocked;
   inFlight ??= probe(probeUrl)
     .then((blocked) => {
-      if (blocked !== null) verdict = { blocked, at: Date.now() };
-      return blocked ?? verdict?.blocked ?? false;
+      verdict =
+        blocked === null
+          ? { blocked: verdict?.blocked ?? false, at: Date.now(), ttl: INCONCLUSIVE_TTL_MS }
+          : { blocked, at: Date.now(), ttl: PROBE_TTL_MS };
+      return verdict.blocked;
     })
     .finally(() => {
       inFlight = null;

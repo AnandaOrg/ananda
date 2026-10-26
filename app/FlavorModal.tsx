@@ -5,7 +5,7 @@ import { useTranslations } from "next-intl";
 import { AnimatePresence, animate, motion, useMotionValue, useReducedMotion, useSpring, type Transition, type Variants } from "framer-motion";
 import GlbViewer, { type GlbViewerHandle, type ModelEntry } from "./GlbViewer";
 import { LinkWrap, useMediaAsset } from "./MediaProvider";
-import { SkeletonImg } from "./MediaSkeleton";
+import { SkeletonImage, SkeletonImg } from "./MediaSkeleton";
 import { stripHtml } from "@/lib/content/strip-html";
 
 const u = (n: number) => `calc(var(--u) * ${n})`;
@@ -247,9 +247,9 @@ function FruitImg({ f, i, unit = u }: { f: Fruit; i: number; unit?: (n: number) 
   const media = (
     <LinkWrap href={asset.link} fill>
       {f.crop ? (
-        <SkeletonImg src={asset.url} alt="" className="absolute max-w-none" style={{ width: f.crop.w, height: f.crop.h, left: f.crop.left, top: f.crop.top }} />
+        <SkeletonImg src={asset.url} sizes="40vw" alt="" className="absolute max-w-none" style={{ width: f.crop.w, height: f.crop.h, left: f.crop.left, top: f.crop.top }} />
       ) : (
-        <SkeletonImg src={asset.url} alt="" className="absolute inset-0 size-full max-w-none object-cover" />
+        <SkeletonImage src={asset.url} alt="" fill sizes="40vw" className="max-w-none object-cover" />
       )}
     </LinkWrap>
   );

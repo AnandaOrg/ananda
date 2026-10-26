@@ -24,20 +24,20 @@ const readContentRows = unstable_cache(
   { tags: [CONTENT_CACHE_TAG], revalidate: DB_CACHE_REVALIDATE_SECONDS },
 );
 
-/** Assembles the next-intl messages object for a locale from the `content_entries` /
- *  `content_values` tables (everything the backoffice manages except the manifesto,
- *  which has its own rich `Run[][]` shape — see get-manifesto.ts). Falls back to the
- *  static `messages/*.json` baseline if the DB is unreachable or unseeded, so the site
- *  never hard-depends on DB uptime for its copy. */
+/** Assembles the next-intl messages object for a locale: the static `messages/*.json`
+ *  baseline with the `content_entries` / `content_values` rows laid over it (everything
+ *  the backoffice manages except the manifesto, which has its own rich `Run[][]` shape —
+ *  see get-manifesto.ts). The baseline underneath means a key that is new in the JSON
+ *  but not yet seeded in the DB still resolves, and the site never hard-depends on DB
+ *  uptime for its copy. */
 export async function getMessages(locale: AppLocale): Promise<Record<string, unknown>> {
+  const messages: Record<string, unknown> = structuredClone((await import(`../../messages/${locale}.json`)).default);
   try {
-    const rows = await readContentRows(locale);
-    const messages: Record<string, unknown> = {};
-    for (const row of rows) {
+    for (const row of await readContentRows(locale)) {
       setDeep(messages, `${row.namespace}.${row.key}`, row.value);
     }
-    return messages;
   } catch {
-    return (await import(`../../messages/${locale}.json`)).default;
+    // DB unreachable or unseeded — the baseline stands.
   }
+  return messages;
 }
