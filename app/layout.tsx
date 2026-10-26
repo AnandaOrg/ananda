@@ -184,15 +184,23 @@ export default async function RootLayout({
       suppressHydrationWarning
     >
       <head>
-        <Script id="disable-scroll-restoration" strategy="beforeInteractive">
-          {`if ("scrollRestoration" in history) { history.scrollRestoration = "manual"; }`}
-        </Script>
+        {/* Plain <script> (like the JSON-LD block below), not next/script: it runs while
+            the HTML <head> is parsed — before any Next.js code, i.e. the same timing as
+            `beforeInteractive` — and React hydrates it in place. An inline
+            `<Script strategy="beforeInteractive">` is re-created by React on the client,
+            which logs "Encountered a script tag while rendering React component". */}
+        <script
+          id="disable-scroll-restoration"
+          dangerouslySetInnerHTML={{ __html: `if ("scrollRestoration" in history) { history.scrollRestoration = "manual"; }` }}
+        />
         {/* Google Consent Mode v2: every storage signal denied before gtag.js loads, so
             GA runs cookieless (anonymous pings only) until a consent banner grants
             `analytics_storage` via gtag('consent', 'update', …). Must run before the
-            tag, hence beforeInteractive. */}
-        <Script id="consent-default" strategy="beforeInteractive">
-          {`
+            tag, hence here in <head>. */}
+        <script
+          id="consent-default"
+          dangerouslySetInnerHTML={{
+            __html: `
             window.dataLayer = window.dataLayer || [];
             function gtag(){dataLayer.push(arguments);}
             gtag('consent', 'default', {
@@ -201,8 +209,9 @@ export default async function RootLayout({
               ad_personalization: 'denied',
               analytics_storage: 'denied'
             });
-          `}
-        </Script>
+          `,
+          }}
+        />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
