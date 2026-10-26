@@ -4,7 +4,7 @@ import { useEffect, useRef } from "react";
 import gsap from "gsap";
 import SpillWave from "./SpillWave";
 import { LinkWrap, useMediaAsset } from "./MediaProvider";
-import MediaSkeleton, { SkeletonImg, useMediaLoaded } from "./MediaSkeleton";
+import MediaSkeleton, { SkeletonImg, optimizedImgProps, useMediaLoaded } from "./MediaSkeleton";
 
 const u = (n: number) => `calc(var(--u) * ${n})`;
 const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
@@ -225,7 +225,7 @@ export default function KyotoLiftoff({
         {background.active && (
           <img
             ref={bgRef}
-            src={background.url}
+            {...optimizedImgProps(background.url, "55vw")}
             alt=""
             aria-hidden="true"
             className="pointer-events-none absolute inset-0 size-full object-cover"
@@ -295,6 +295,7 @@ export default function KyotoLiftoff({
             <LinkWrap href={pouchImage.link} fill>
               <SkeletonImg
                 src={pouchImage.url}
+                sizes="35vw"
                 alt="ANANDA KYOTO cocktail pouch — Strawberry / Lychee · Yuzu"
                 className="block size-full select-none"
               />

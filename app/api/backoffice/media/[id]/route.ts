@@ -1,8 +1,10 @@
+import { revalidateTag } from "next/cache";
 import { NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import { mediaAssets } from "@/db/schema";
 import { getSession } from "@/lib/auth/session";
+import { MEDIA_CACHE_TAG, EXPIRE_NOW } from "@/lib/cache-tags";
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await getSession();
@@ -33,5 +35,6 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     })
     .where(eq(mediaAssets.id, assetId));
 
+  revalidateTag(MEDIA_CACHE_TAG, EXPIRE_NOW);
   return NextResponse.json({ ok: true });
 }

@@ -5,7 +5,7 @@ import gsap from "gsap";
 import SpillWave from "../SpillWave";
 import { mu, MU_VAR } from "./scale";
 import { LinkWrap, useMediaAsset } from "../MediaProvider";
-import MediaSkeleton, { SkeletonImg, useMediaLoaded } from "../MediaSkeleton";
+import MediaSkeleton, { SkeletonImg, optimizedImgProps, useMediaLoaded } from "../MediaSkeleton";
 
 const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
 const smoothstep = (t: number) => t * t * (3 - 2 * t);
@@ -240,7 +240,7 @@ export default function MobileKyoto() {
         {background.active && (
           <img
             ref={bgRef}
-            src={background.url}
+            {...optimizedImgProps(background.url, "100vw")}
             alt=""
             aria-hidden="true"
             className="pointer-events-none absolute inset-0 size-full object-cover"
@@ -310,6 +310,7 @@ export default function MobileKyoto() {
               <LinkWrap href={pouchImage.link} fill>
                 <SkeletonImg
                   src={pouchImage.url}
+                  sizes="80vw"
                   alt="ANANDA KYOTO cocktail pouch — Strawberry / Lychee · Yuzu"
                   decoding="async"
                   className="block size-full select-none"

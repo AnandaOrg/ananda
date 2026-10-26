@@ -68,6 +68,7 @@ function Floating({ src, alt, rotate, inner, box, center, crop, shadow, sizes }:
             {crop ? (
               <SkeletonImg
                 src={asset.url}
+                sizes={sizes ?? "40vw"}
                 alt={alt}
                 loading="lazy"
                 decoding="async"

@@ -1,9 +1,11 @@
 import { randomUUID } from "node:crypto";
+import { revalidateTag } from "next/cache";
 import { NextResponse } from "next/server";
 import { getDb } from "@/db/client";
 import { mediaAssets } from "@/db/schema";
 import { getSession } from "@/lib/auth/session";
-import { isAddableCategory } from "@/lib/media/addable";
+import { MEDIA_CACHE_TAG, EXPIRE_NOW } from "@/lib/cache-tags";
+import { isAddableCategory, UPLOAD_PATH_PREFIX } from "@/lib/media/addable";
 import { uploadAsset } from "@/lib/media/blob";
 
 const MAX_SIZE_BYTES = 10 * 1024 * 1024;
@@ -36,7 +38,7 @@ export async function POST(request: Request) {
   if (!file.type.startsWith("image/")) return NextResponse.json({ error: "File must be an image" }, { status: 400 });
 
   const ext = file.name.includes(".") ? file.name.slice(file.name.lastIndexOf(".")) : "";
-  const path = `/media/${category}/${randomUUID()}${ext}`;
+  const path = `${UPLOAD_PATH_PREFIX}${category}/${randomUUID()}${ext}`;
 
   const buffer = Buffer.from(await file.arrayBuffer());
   const blob = await uploadAsset(path, buffer);
@@ -55,5 +57,6 @@ export async function POST(request: Request) {
     })
     .returning();
 
+  revalidateTag(MEDIA_CACHE_TAG, EXPIRE_NOW);
   return NextResponse.json({ asset: row });
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import Image, { type ImageProps } from "next/image";
+import Image, { getImageProps, type ImageProps } from "next/image";
 import { useCallback, useEffect, useState, type CSSProperties, type ImgHTMLAttributes } from "react";
 
 /** A hung request never leaves a permanent skeleton over a photo. */
@@ -78,14 +78,27 @@ export function SkeletonImage({ alt, ...props }: ImageProps) {
   );
 }
 
-/** Plain `<img>` variant, for the crop-positioned photos. */
-export function SkeletonImg({ alt = "", ...props }: ImgHTMLAttributes<HTMLImageElement>) {
+/** `src`/`srcSet`/`sizes` for a plain `<img>` so it is still served through the image
+ *  optimizer (resized, AVIF/WebP) — for photos whose crop/position CSS does not fit
+ *  `<Image fill>`. `sizes` is the usual rendered-width hint. SVGs and data URIs pass
+ *  through untouched (the optimizer does not take them). */
+export function optimizedImgProps(src: string, sizes: string, alt = ""): Pick<ImgHTMLAttributes<HTMLImageElement>, "src" | "srcSet" | "sizes"> {
+  if (/\.svg(\?|#|$)/i.test(src) || src.startsWith("data:")) return { src };
+  const { props } = getImageProps({ src, alt, fill: true, sizes });
+  return { src: props.src, srcSet: props.srcSet, sizes: props.sizes };
+}
+
+/** Plain `<img>` variant, for the crop-positioned photos. Pass `sizes` to serve it
+ *  through the image optimizer (see `optimizedImgProps`); without it the raw file loads. */
+export function SkeletonImg({ alt = "", src, sizes, ...props }: ImgHTMLAttributes<HTMLImageElement>) {
   const { loaded, mediaRef, onLoad, onError } = useMediaLoaded();
+  const source = typeof src === "string" && sizes ? optimizedImgProps(src, sizes, alt) : { src, sizes };
   return (
     <>
       <MediaSkeleton hidden={loaded} />
       <img
         {...props}
+        {...source}
         alt={alt}
         ref={mediaRef}
         onLoad={(e) => { onLoad(); props.onLoad?.(e); }}

@@ -43,7 +43,7 @@ function Floating({ src, alt, rotate, inner, box, center, crop, shadow }: Floati
         <div className="relative overflow-hidden" style={{ width: mu(inner.width), height: mu(inner.height), boxShadow: shadow ? `${mu(4.911)} ${mu(3.571)} ${mu(12.812)} 0 rgba(0,0,0,0.25)` : undefined }}>
           <LinkWrap href={asset.link} fill>
             {crop ? (
-              <SkeletonImg src={asset.url} alt={alt} loading="lazy" decoding="async" className="absolute max-w-none" style={{ width: crop.width, height: crop.height, left: crop.left, top: crop.top }} />
+              <SkeletonImg src={asset.url} sizes="60vw" alt={alt} loading="lazy" decoding="async" className="absolute max-w-none" style={{ width: crop.width, height: crop.height, left: crop.left, top: crop.top }} />
             ) : (
               <SkeletonImage src={asset.url} alt={alt} fill sizes="50vw" className="object-cover" />
             )}

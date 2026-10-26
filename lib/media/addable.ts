@@ -11,3 +11,8 @@ export type AddableCategory = (typeof ADDABLE_CATEGORIES)[number];
 export function isAddableCategory(category: string): category is AddableCategory {
   return (ADDABLE_CATEGORIES as readonly string[]).includes(category);
 }
+
+/** Where backoffice-added images live (`/media/<category>/<uuid>.<ext>`, see
+ *  app/api/backoffice/media/route.ts). Unlike the seeded assets they have no
+ *  original in `public/` to fall back to. */
+export const UPLOAD_PATH_PREFIX = "/media/";

@@ -1,9 +1,11 @@
+import { revalidateTag } from "next/cache";
 import { NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
 import sanitizeHtml from "sanitize-html";
 import { getDb } from "@/db/client";
 import { contentEntries, contentValues } from "@/db/schema";
 import { getSession } from "@/lib/auth/session";
+import { CONTENT_CACHE_TAG, EXPIRE_NOW } from "@/lib/cache-tags";
 
 const PLAIN_OPTIONS = { allowedTags: [], allowedAttributes: {} };
 
@@ -75,5 +77,6 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       });
   }
 
+  revalidateTag(CONTENT_CACHE_TAG, EXPIRE_NOW);
   return NextResponse.json({ ok: true });
 }

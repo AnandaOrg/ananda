@@ -1,15 +1,17 @@
 import { cache } from "react";
 import { and, eq } from "drizzle-orm";
+import { unstable_cache } from "next/cache";
 import { getDb } from "@/db/client";
 import { contentEntries, contentValues } from "@/db/schema";
 import { MANIFESTO, MANIFESTO_MOBILE, type Run } from "@/app/manifesto-copy";
 import type { AppLocale } from "@/i18n/config";
+import { CONTENT_CACHE_TAG, DB_CACHE_REVALIDATE_SECONDS } from "@/lib/cache-tags";
 import { htmlToParas, joinParasForMobile } from "./manifesto-html";
 
-/** `cache()` dedupes this within a single request — Manifesto.tsx (desktop) and
- *  MobileAbout.tsx (mobile) both need it, but it should only hit the DB once. */
-const getManifestoHtml = cache(async (locale: AppLocale): Promise<string | null> => {
-  try {
+/** The manifesto HTML for one locale, cached across requests (Next data cache; the
+ *  backoffice content route revalidates the tag after every save). */
+const readManifestoHtml = unstable_cache(
+  async (locale: AppLocale): Promise<string> => {
     const db = getDb();
     const [row] = await db
       .select({ value: contentValues.value })
@@ -17,7 +19,19 @@ const getManifestoHtml = cache(async (locale: AppLocale): Promise<string | null>
       .innerJoin(contentEntries, eq(contentValues.entryId, contentEntries.id))
       .where(and(eq(contentEntries.namespace, "manifesto"), eq(contentEntries.key, "body"), eq(contentValues.locale, locale)))
       .limit(1);
-    return row?.value ?? null;
+    // Not cached when missing: the seed scripts run outside Next and cannot expire the tag.
+    if (!row) throw new Error("manifesto body is empty — falling back to the static copy");
+    return row.value;
+  },
+  ["content-manifesto"],
+  { tags: [CONTENT_CACHE_TAG], revalidate: DB_CACHE_REVALIDATE_SECONDS },
+);
+
+/** `cache()` dedupes this within a single request — Manifesto.tsx (desktop) and
+ *  MobileAbout.tsx (mobile) both need it, but it should only read it once. */
+const getManifestoHtml = cache(async (locale: AppLocale): Promise<string | null> => {
+  try {
+    return await readManifestoHtml(locale);
   } catch {
     return null;
   }

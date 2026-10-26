@@ -1,8 +1,10 @@
+import { revalidateTag } from "next/cache";
 import { NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import { mediaAssets } from "@/db/schema";
 import { getSession } from "@/lib/auth/session";
+import { MEDIA_CACHE_TAG, EXPIRE_NOW } from "@/lib/cache-tags";
 import { deleteAsset, uploadAsset } from "@/lib/media/blob";
 
 const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
@@ -42,5 +44,6 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 
   deleteAsset(previousUrl).catch(() => {});
 
+  revalidateTag(MEDIA_CACHE_TAG, EXPIRE_NOW);
   return NextResponse.json({ ok: true, url: blob.url });
 }
