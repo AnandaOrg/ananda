@@ -249,10 +249,18 @@ const GlbViewer = forwardRef<GlbViewerHandle, Props>(function GlbViewer({
       const loader = new GLTFLoader();
 
       function fitGroup(group: THREE_TYPES.Group) {
+        group.updateMatrixWorld(true);
         const box = new THREE.Box3().setFromObject(group);
         const center = box.getCenter(new THREE.Vector3());
         const size = box.getSize(new THREE.Vector3());
-        group.position.sub(center);
+        // Move the model's bounding-box center onto the group's origin via an
+        // inner pivot, so the per-frame spin/tilt (applied to `group`) rotates
+        // about the true center no matter where the GLB's own origin sits.
+        const pivot = new THREE.Group();
+        pivot.add(...group.children);
+        pivot.position.copy(center).negate();
+        group.add(pivot);
+        group.position.set(0, 0, 0);
         group.scale.setScalar(FIT_SIZE / Math.max(size.x, size.y, size.z));
         group.rotation.order = "XZY";
         group.rotation.z = -Math.PI / 2;
