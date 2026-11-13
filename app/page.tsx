@@ -1,4 +1,5 @@
 import Image, { getImageProps } from "next/image";
+import { getTranslations } from "next-intl/server";
 import AmbientVideo from "./AmbientVideo";
 import heroPoster from "@/public/hero-poster.jpg";
 import heroPosterMobile from "@/public/hero-poster-mobile.jpg";
@@ -34,6 +35,7 @@ const {
 } = getImageProps({ ...POSTER, src: heroPoster });
 
 export default async function Home() {
+  const tMeta = await getTranslations("meta");
   const mediaAssets = await getMediaAssets();
   const heroVideo = resolveMediaAsset(mediaAssets, "/videos/hero.webm");
   const heroVideoMobile = resolveMediaAsset(mediaAssets, "/videos/hero-mobile.webm");
@@ -47,7 +49,7 @@ export default async function Home() {
       <LanguageSwitcher />
 
       <section className="relative flex h-screen items-center justify-center overflow-hidden bg-black">
-        <h1 className="sr-only">ANANDA Cocktails — Premium Canned Cocktails</h1>
+        <h1 className="sr-only">{tMeta("title")}</h1>
         {/* Static poster: paints with the HTML, and the <video> (transparent until it has
             data) simply covers it once playing. */}
         <picture>

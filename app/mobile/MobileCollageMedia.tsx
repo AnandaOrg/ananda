@@ -1,6 +1,7 @@
 import AmbientVideo from "../AmbientVideo";
 import ScrollVideoCanvas from "../ScrollVideoCanvas";
 import { mu, MU_VAR, maskStyle } from "./scale";
+import { getTranslations } from "next-intl/server";
 import { getMediaAssets, resolveMediaAsset } from "@/lib/media/get-media-assets";
 
 const PINE = { top: 40, w: 160, h: 320 };
@@ -9,6 +10,7 @@ const PAD_BOTTOM = 40;
 const SECTION_H = PINE.top + PINE.h + PAD_BOTTOM;
 
 export default async function MobileCollageMedia() {
+  const tA11y = await getTranslations("a11y");
   const assets = await getMediaAssets();
   const pineappleMask = resolveMediaAsset(assets, "/m-pineapple.svg");
   const collageMask = resolveMediaAsset(assets, "/m-14.svg");
@@ -22,7 +24,7 @@ export default async function MobileCollageMedia() {
         <ScrollVideoCanvas
           frameBase="/frames/ananas/"
           frameCount={120}
-          alt="Pineapple slices against a blue sky"
+          alt={tA11y("pineapple")}
           style={{
             position: "absolute",
             right: 0,
@@ -50,7 +52,7 @@ export default async function MobileCollageMedia() {
                 skeleton
                 src="/videos/kyoto-strawberries-mobile.mp4"
                 preload="auto"
-                aria-label="An ANANDA pouch nestled in fresh strawberries"
+                aria-label={tA11y("strawberries")}
                 className="block size-full object-cover"
               />
             </div>

@@ -24,13 +24,18 @@ const GALLERY_CYCLE_S = 1.5;
 
 // One-shot entrance (no pin, no scrub — the page never stops under this
 // section): the heading → diamond-travel → gallery/copy choreography plays
-// once, over ENTRANCE_S seconds of wall-clock time, when the section scrolls
-// into view. render()'s sub-phases are written against the old scrubbed
-// 0→1 progress where everything completed by 0.38 (the end of the gallery
-// handoff) — tweening prog to PROG_DONE instead of 1 keeps those phase
-// proportions spread across the whole entrance.
+// once, over ENTRANCE_S seconds of wall-clock time, once the section has
+// nearly reached the top (ENTRANCE_START). The heading fades in first, as it
+// scrolls on screen (HEADING_START) — the entrance fades it back out, so it
+// must not start while the vertically-centred heading is still below the fold.
+// render()'s sub-phases are written against the old scrubbed 0→1 progress
+// where everything completed by 0.38 (the end of the gallery handoff) —
+// tweening prog to PROG_DONE instead of 1 keeps those phase proportions
+// spread across the whole entrance.
 const ENTRANCE_S = 1.6
 const PROG_DONE = 0.38;
+const HEADING_START = "top 60%";
+const ENTRANCE_START = "top 15%";
 
 const PHOTOS = [
   { src: "/hero_3/2.png", alt: "ANANDA moment" },
@@ -56,8 +61,10 @@ const coverScale = (w: number, h: number, rotDeg: number) => {
 
 export default function DitchTheGlass() {
   const t = useTranslations("hero");
+  const tA11y = useTranslations("a11y");
   const locale = useLocale();
   const sectionRef = useRef<HTMLElement>(null);
+  const headingRef = useRef<HTMLDivElement>(null);
   const placeholderRef = useRef<HTMLSpanElement>(null);
   const travelRef = useRef<HTMLDivElement>(null);
   const innerRef = useRef<HTMLDivElement>(null);
@@ -75,7 +82,7 @@ export default function DitchTheGlass() {
   // PHOTOS is a fixed-length (4) module-level array — calling the hook unrolled
   // per index keeps this within the rules of hooks.
   const photoAssets = [useMediaAsset(PHOTOS[0].src), useMediaAsset(PHOTOS[1].src), useMediaAsset(PHOTOS[2].src), useMediaAsset(PHOTOS[3].src)];
-  const knownPhotos = PHOTOS.map((p, i) => ({ ...p, src: photoAssets[i].url, link: photoAssets[i].link, active: photoAssets[i].active })).filter(
+  const knownPhotos = PHOTOS.map((p, i) => ({ ...p, alt: tA11y("heroPhoto"), src: photoAssets[i].url, link: photoAssets[i].link, active: photoAssets[i].active })).filter(
     (p) => p.active
   );
   const extraPhotos = useExtraMedia("hero", HERO_KNOWN_PATHS);
@@ -85,12 +92,13 @@ export default function DitchTheGlass() {
 
   useEffect(() => {
     const section = sectionRef.current;
+    const heading = headingRef.current;
     const placeholder = placeholderRef.current;
     const travel = travelRef.current;
     const inner = innerRef.current;
     const gallery = galleryRef.current;
     const copy = copyRef.current;
-    if (!section || !placeholder || !travel || !inner || !gallery || !copy) return;
+    if (!section || !heading || !placeholder || !travel || !inner || !gallery || !copy) return;
 
     const video = inner.querySelector<HTMLVideoElement>("video");
     const words = Array.from(section.querySelectorAll<HTMLElement>(".dtg-word"));
@@ -160,12 +168,17 @@ export default function DitchTheGlass() {
       const state = { prog: 0 };
       measure();
       render(0);
+      const headingTween = gsap.fromTo(
+        heading,
+        { opacity: 0 },
+        { opacity: 1, duration: 0.9, ease: "power3.out", scrollTrigger: { trigger: section, start: HEADING_START, once: true } }
+      );
       const tween = gsap.to(state, {
         prog: PROG_DONE,
         duration: ENTRANCE_S,
         ease: "power2.inOut",
         onUpdate: () => render(state.prog),
-        scrollTrigger: { trigger: section, start: "top 60%", once: true },
+        scrollTrigger: { trigger: section, start: ENTRANCE_START, once: true },
       });
       const onResize = () => { measure(); render(state.prog); };
       window.addEventListener("resize", onResize);
@@ -185,6 +198,8 @@ export default function DitchTheGlass() {
         window.removeEventListener("resize", onResize);
         io.disconnect();
         dc?.kill();
+        headingTween.scrollTrigger?.kill();
+        headingTween.kill();
         tween.scrollTrigger?.kill();
         tween.kill();
       };
@@ -209,7 +224,7 @@ export default function DitchTheGlass() {
       className="relative flex h-screen items-center justify-center overflow-hidden bg-[#fff0e5] px-6 text-[#eb4638]"
       style={{ containerType: "inline-size", ["--u" as string]: "calc(100cqw / 1440)" }}
     >
-      <div className="flex flex-col items-center text-center">
+      <div ref={headingRef} className="flex flex-col items-center text-center" style={{ willChange: "opacity" }}>
         <p
           className="dtg-word mb-[clamp(1.5rem,4vw,3.5rem)] text-[14px] uppercase leading-[0.87] tracking-[0.98px]"
           style={{ fontFamily: "var(--font-mono-label)", willChange: "opacity" }}
@@ -220,7 +235,7 @@ export default function DitchTheGlass() {
           className="font-bold uppercase leading-[0.8]"
           style={{
             fontFamily: "var(--font-display)",
-            fontSize: locale === "bg" ? "clamp(2rem, 7.3vw, 105px)" : "clamp(2.75rem, 12.5vw, 180px)",
+            fontSize: locale === "bg" ? "clamp(2rem, 6.2vw, 90px)" : "clamp(2.75rem, 12.5vw, 180px)",
             letterSpacing: locale === "bg" ? "-0.03em" : "-0.08em",
           }}
         >

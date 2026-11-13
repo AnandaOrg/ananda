@@ -110,6 +110,7 @@ const FLAVORS = [
 
 export default function Pathways() {
   const t = useTranslations("flavors");
+  const tA11y = useTranslations("a11y");
   const bg = useLocale() === "bg";
   const { open } = useFlavor();
   const glbRef = useRef<GlbViewerHandle>(null);
@@ -218,7 +219,7 @@ export default function Pathways() {
           <button
             key={b.color + b.top}
             type="button"
-            aria-label={`Open ${FLAVORS[i].label}`}
+            aria-label={tA11y("openFlavor", { name: FLAVORS[i].label })}
             onClick={() => openWithSpin(i)}
             className="absolute cursor-pointer appearance-none border-0 p-0"
             style={{ left: u(-1.97), top: u(b.top), width: u(1477), height: u(321.713), backgroundColor: b.color }}
@@ -248,7 +249,7 @@ export default function Pathways() {
 
         <Floating
           src="/s4-lemon.png"
-          alt="Fresh lemon with leaves"
+          alt={tA11y("lemon")}
           rotate={-8.95}
           box={{ left: 1091.12, top: 511.44, width: 383.906, height: 442.232 }}
           inner={{ width: 326.198, height: 396.289 }}
@@ -257,7 +258,7 @@ export default function Pathways() {
 
         <Floating
           src="/s4-mango.png"
-          alt="Ripe mango"
+          alt={tA11y("mango")}
           rotate={-7.55}
           box={{ left: 34.77, top: 841.33, width: 336.961, height: 383 }}
           inner={{ width: 293.887, height: 347.418 }}
@@ -266,7 +267,7 @@ export default function Pathways() {
 
         <Floating
           src="/s4-flowers.png"
-          alt="White elderflower blossom"
+          alt={tA11y("elderflower")}
           rotate={15.25}
           box={{ left: 830.64, top: 1171.01, width: 396.087, height: 426.724 }}
           inner={{ width: 313.253, height: 356.907 }}
@@ -274,7 +275,7 @@ export default function Pathways() {
 
         <Floating
           src="/s4-raspberry.png"
-          alt="Fresh raspberry"
+          alt={tA11y("lychee")}
           rotate={46.6}
           box={{ left: 232.63, top: 1751.43, width: 290.952, height: 290.693 }}
           inner={{ width: 202.429, height: 209.017 }}

@@ -57,6 +57,7 @@ const GALLERY_AUTOPLAY_MS = 1600;
 export default function MobileIntro() {
   const t = useTranslations("hero");
   const tAbout = useTranslations("about");
+  const tA11y = useTranslations("a11y");
   const locale = useLocale();
   const headingWords = [...t("line1").split(" "), ...t("line2a").split(" "), t("line2b")];
 
@@ -76,12 +77,12 @@ export default function MobileIntro() {
     useMediaAsset(GALLERY[3].src),
     useMediaAsset(GALLERY[4].src),
   ];
-  const knownGallery = GALLERY.map((g, i) => ({ ...g, src: galleryAssets[i].url, link: galleryAssets[i].link, active: galleryAssets[i].active })).filter(
+  const knownGallery = GALLERY.map((g, i) => ({ ...g, alt: tA11y("heroPhoto"), src: galleryAssets[i].url, link: galleryAssets[i].link, active: galleryAssets[i].active })).filter(
     (g) => g.active
   );
   const extraGallery = useExtraMedia("hero", HERO_KNOWN_PATHS);
   const gallery = [...knownGallery, ...extraGallery];
-  const diamondPhoto = knownGallery[0] ?? GALLERY[0];
+  const diamondPhoto = knownGallery[0] ?? { ...GALLERY[0], alt: tA11y("heroPhoto") };
 
   useEffect(() => {
     const section = sectionRef.current;

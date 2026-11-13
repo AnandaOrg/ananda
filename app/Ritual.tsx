@@ -8,23 +8,24 @@ const u = (n: number) => `calc(var(--u) * ${n})`;
 const RED = "#eb4638";
 
 const WILD = [
-  { src: "/s5-wild1.png", w: 525.269, h: 652.058, alt: "Friends enjoying ANANDA outdoors" },
-  { src: "/s5-wild2.png", w: 525.269, h: 652.058, alt: "A couple toasting with ANANDA pouches" },
-  { src: "/s5-wild3.png", w: 522.503, h: 648.624, alt: "Holding a fan of colourful ANANDA pouches" },
-  { src: "/s5-wild4.png", w: 521.32, h: 647.155, alt: "ANANDA on the go" },
-  { src: "/s5-wild5.png", w: 582.282, h: 652.058, alt: "Sharing ANANDA cocktails" },
+  { src: "/s5-wild1.png", w: 525.269, h: 652.058, altKey: "wild1" },
+  { src: "/s5-wild2.png", w: 525.269, h: 652.058, altKey: "wild2" },
+  { src: "/s5-wild3.png", w: 522.503, h: 648.624, altKey: "wild3" },
+  { src: "/s5-wild4.png", w: 521.32, h: 647.155, altKey: "wild4" },
+  { src: "/s5-wild5.png", w: 582.282, h: 652.058, altKey: "wild5" },
 ];
 
 export default async function Ritual() {
   const tRitual = await getTranslations("ritual");
   const tWild = await getTranslations("wild");
+  const tA11y = await getTranslations("a11y");
   const bg = (await getLocale()) === "bg";
   const tags = [tWild.raw("tag1"), tWild.raw("tag2")];
 
   const mediaAssets = await getMediaAssets();
   const wild = WILD.map((w) => {
     const resolved = resolveMediaAsset(mediaAssets, w.src);
-    return { ...w, src: resolved.url, link: resolved.link, active: resolved.active };
+    return { ...w, alt: tA11y(w.altKey), src: resolved.url, link: resolved.link, active: resolved.active };
   }).filter((w) => w.active);
   const extraWild = extraMediaFor(await getMediaAssetsByCategory(), "social", WILD.map((w) => w.src));
   const allWild = [...wild, ...extraWild];

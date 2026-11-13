@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import gsap from "gsap";
+import { useTranslations } from "next-intl";
 import SpillWave from "./SpillWave";
 import { LinkWrap, useMediaAsset } from "./MediaProvider";
 import Image from "next/image";
@@ -61,6 +62,7 @@ export default function KyotoLiftoff({
   posLeft?: number;
   posTop?: number;
 } = {}) {
+  const tA11y = useTranslations("a11y");
   const wrapRef = useRef<HTMLDivElement>(null);
   const pouchRef = useRef<HTMLDivElement>(null);
   const spillRef = useRef<HTMLDivElement>(null);
@@ -298,7 +300,7 @@ export default function KyotoLiftoff({
             <LinkWrap href={pouchImage.link} fill>
               <SkeletonImage
                 src={pouchImage.url}
-                alt="ANANDA KYOTO cocktail pouch — Strawberry / Lychee · Yuzu"
+                alt={tA11y("kyotoPouch")}
                 fill
                 sizes="35vw"
                 className="select-none"

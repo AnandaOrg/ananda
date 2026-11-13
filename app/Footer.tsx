@@ -44,7 +44,7 @@ export default async function Footer() {
                 </LinkWrap>
               )}
               <Socials scale={mu} icons={icons} />
-              <p className="text-center text-[#fff0e5]" style={{ fontFamily: "var(--font-body)", fontWeight: 400, fontSize: mu(14), lineHeight: mu(18), width: mu(280) }}>
+              <p className="text-center text-[#fff0e5]" style={{ fontFamily: "var(--font-body)", fontWeight: 400, fontSize: mu(14), lineHeight: mu(18), width: mu(342) }}>
                 {t("copyright", { year: getCurrentYear() })}
               </p>
             </div>
@@ -61,7 +61,7 @@ export default async function Footer() {
                 <img src={logo.url} alt="ANANDA Cocktails" style={{ width: ud(152.482), height: "auto" }} />
               </LinkWrap>
             )}
-            <p className="text-center text-[#fff0e5]" style={{ fontFamily: "var(--font-body)", fontWeight: 400, fontSize: ud(14), lineHeight: ud(14), width: ud(280) }}>
+            <p className="whitespace-nowrap text-center text-[#fff0e5]" style={{ fontFamily: "var(--font-body)", fontWeight: 400, fontSize: ud(14), lineHeight: ud(14), width: ud(420) }}>
               {t("copyright", { year: getCurrentYear() })}
             </p>
             <Socials scale={ud} icons={icons} />

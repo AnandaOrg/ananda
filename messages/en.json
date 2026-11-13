@@ -1,4 +1,9 @@
 {
+  "meta": {
+    "title": "ANANDA Cocktails — Premium Pouch Cocktails",
+    "description": "Premium, bar-strength pouch cocktails mixed for the makers, the movers, and the midnight sun. No glass, no pretence — just pure, uninhibited joy, ready wherever you are.",
+    "keywords": "ANANDA Cocktails, pouch cocktails, cocktail pouches, ready to drink cocktails, RTD cocktails, premium cocktails"
+  },
   "splash": {
     "scrollDown": "Scroll Down"
   },
@@ -10,13 +15,31 @@
   },
   "about": {
     "eyebrow": "What we're about",
-    "p1": "Premium, bar–strength cocktails mixed for the makers, the movers, and the midnight sun.",
-    "p2": "No glass, no pretense. Just pure, uninhibited joy – ready whenever and wherever you are."
+    "p1": "Premium, bar-strength cocktails mixed for the makers, the movers, and the midnight sun.",
+    "p2": "No glass, no pretence. Just pure, uninhibited joy – ready whenever and wherever you are."
   },
   "flavors": {
     "eyebrow": "[02] Choose your ANANDA",
     "title": "The Pathways to Bliss",
-    "cta": "see flavors"
+    "cta": "see flavours"
+  },
+  "flavorItems": {
+    "santorini": {
+      "name": "Santorini",
+      "ingredients": { "0": "Anise, mint and lemon.", "1": "Mediterranean freshness." }
+    },
+    "aloha": {
+      "name": "Aloha",
+      "ingredients": { "0": "Mango, pineapple and passion fruit.", "1": "A sweet tropical breeze." }
+    },
+    "gaia": {
+      "name": "Gaia",
+      "ingredients": { "0": "Passion fruit, lemongrass and elderflower.", "1": "The power of wild nature." }
+    },
+    "kyoto": {
+      "name": "Kyoto",
+      "ingredients": { "0": "Strawberry, lychee and yuzu.", "1": "Precise Japanese elegance." }
+    }
   },
   "ritual": {
     "eyebrow": "[03] How it works",
@@ -29,19 +52,19 @@
     "step2": {
       "label": "[Step 02]",
       "title": "Twist",
-      "body": "Snap open the high-flow cap. Ditch the bottle openers, the sticky counters, and the heavy glass."
+      "body": "Twist open the high-flow cap. Ditch the bottle openers, the sticky counters, and the heavy glass."
     },
     "step3": {
       "label": "[Step 03]",
       "title": "Sip",
-      "body": "Sip it straight from the pouch on the dancefloor, or pour it over crushed ice under the sun. Be entirely right here, right now."
+      "body": "Sip it straight from the pouch on the dance floor, or pour it over crushed ice under the sun. Be entirely right here, right now."
     }
   },
   "wild": {
     "eyebrow": "[04] Our collective",
     "title1": "ANANDA IN",
     "title2": "THE WILD",
-    "tag1": "100% Pure joy",
+    "tag1": "100% pure joy",
     "tag2": "Tag @AnandaCocktails to join the collective"
   },
   "dropList": {
@@ -56,14 +79,35 @@
     "submitAria": "Subscribe"
   },
   "footer": {
-    "copyright": "© {year} Ananda Cocktails. All Rights Reserved."
+    "copyright": "© {year} ANANDA Cocktails. All Rights Reserved."
   },
   "modal": {
     "ingredients": "Ingredients",
     "close": "Close",
     "prev": "Previous flavour",
     "next": "Next flavour",
-    "autoClosing": "All flavours viewed — closing"
+    "autoClosing": "All flavours viewed — closing",
+    "dialog": "{name} cocktail"
+  },
+  "a11y": {
+    "language": "Language",
+    "openFlavor": "Open {name}",
+    "heroPhoto": "ANANDA moment",
+    "pineapple": "Pineapple slices against a blue sky",
+    "strawberries": "An ANANDA pouch nestled in fresh strawberries",
+    "kyotoPouch": "ANANDA KYOTO cocktail pouch — strawberry, lychee and yuzu",
+    "lemon": "Fresh lemon with leaves",
+    "mango": "Ripe mango",
+    "elderflower": "White elderflower blossom",
+    "lychee": "Fresh lychee",
+    "step1": "ANANDA pouches chilling in a cooler of ice",
+    "step2": "Twisting open the high-flow cap",
+    "step3": "Sipping an ANANDA pouch on the dance floor",
+    "wild1": "Friends enjoying ANANDA outdoors",
+    "wild2": "A couple toasting with ANANDA pouches",
+    "wild3": "Holding a fan of colourful ANANDA pouches",
+    "wild4": "ANANDA on the go",
+    "wild5": "Sharing ANANDA cocktails"
   },
   "ageGate": {
     "title": "18+?",

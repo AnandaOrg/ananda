@@ -5,22 +5,23 @@ import WildCarousel from "./WildCarousel";
 import { getMediaAssets, getMediaAssetsByCategory, resolveMediaAsset, extraMediaFor } from "@/lib/media/get-media-assets";
 
 const WILD = [
-  { src: "/s5-wild1.png", w: 405.682, alt: "Friends enjoying ANANDA outdoors" },
-  { src: "/s5-wild2.png", w: 405.682, alt: "A couple toasting with ANANDA pouches" },
-  { src: "/s5-wild3.png", w: 405.682, alt: "Holding a fan of colourful ANANDA pouches" },
-  { src: "/s5-wild4.png", w: 405.35, alt: "ANANDA on the go" },
-  { src: "/s5-wild5.png", w: 449.716, alt: "Sharing ANANDA cocktails" },
+  { src: "/s5-wild1.png", w: 405.682, altKey: "wild1" },
+  { src: "/s5-wild2.png", w: 405.682, altKey: "wild2" },
+  { src: "/s5-wild3.png", w: 405.682, altKey: "wild3" },
+  { src: "/s5-wild4.png", w: 405.35, altKey: "wild4" },
+  { src: "/s5-wild5.png", w: 449.716, altKey: "wild5" },
 ];
 
 export default async function MobileSocial() {
   const t = await getTranslations("wild");
+  const tA11y = await getTranslations("a11y");
   const bg = (await getLocale()) === "bg";
   const tags = [t.raw("tag1"), t.raw("tag2")];
 
   const mediaAssets = await getMediaAssets();
   const wild = WILD.map((w) => {
     const resolved = resolveMediaAsset(mediaAssets, w.src);
-    return { ...w, src: resolved.url, link: resolved.link, active: resolved.active };
+    return { ...w, alt: tA11y(w.altKey), src: resolved.url, link: resolved.link, active: resolved.active };
   }).filter((w) => w.active);
   const extraWild = extraMediaFor(await getMediaAssetsByCategory(), "social", WILD.map((w) => w.src));
   const allWild = [...wild, ...extraWild];
