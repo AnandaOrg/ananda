@@ -1,10 +1,14 @@
-/** One-time seed: admin user, all next-intl message strings (from messages/*.json),
- *  the flavor name/ingredient text (currently hardcoded, English-only, in
- *  FlavorModal.tsx), and the manifesto body. Safe to re-run — uses onConflictDoNothing
- *  throughout, so it will never overwrite content already edited via the backoffice. */
+/** Seeds the admin user, every next-intl message string (from messages/*.json, the
+ *  flavor names/ingredients included) and the manifesto body, in both locales.
+ *
+ *  Default mode is safe to re-run: it inserts missing entries and fills values that are
+ *  still empty, but never overwrites a non-empty value, so content edited via the
+ *  backoffice survives. Pass `--overwrite` (`pnpm db:seed --overwrite`) to also replace
+ *  non-empty values that differ from the defaults — use it after a copy review, when
+ *  messages/*.json and manifesto-copy.ts are the source of truth. */
 import fs from "node:fs";
 import path from "node:path";
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { getDb } from "./client";
 import { backofficeUsers, contentEntries, contentValues } from "./schema";
 import { flattenMessages } from "../lib/content/flatten";
@@ -14,6 +18,7 @@ import { hashPassword } from "../lib/auth/password";
 
 const SEED_ADMIN_EMAIL = "martin.y.kiriloff@gmail.com";
 const SEED_ADMIN_PASSWORD = "Marto!2345";
+const OVERWRITE = process.argv.includes("--overwrite");
 
 type SeedEntry = { namespace: string; key: string; format: "plain" | "rich" | "emphasis"; en: string; bg: string };
 
@@ -32,7 +37,6 @@ function readMessages(locale: "en" | "bg"): Record<string, string> {
 const RICH_MESSAGE_KEYS = new Set([
   "about.p1",
   "about.p2",
-  "about.p3",
   "ritual.step1.body",
   "ritual.step2.body",
   "ritual.step3.body",
@@ -77,26 +81,9 @@ function buildMessageEntries(): SeedEntry[] {
   const bg = readMessages("bg");
   return Object.entries(en).map(([path, value]) => {
     const [namespace, ...rest] = path.split(".");
-    const format = RICH_MESSAGE_KEYS.has(path) ? "rich" : "plain";
+    const format = RICH_MESSAGE_KEYS.has(path) || namespace === "flavorItems" ? "rich" : "plain";
     return { namespace, key: rest.join("."), format, en: value, bg: bg[path] ?? "" };
   });
-}
-
-const FLAVOR_TEXT: Record<string, { name: string; ingredients: [string, string] }> = {
-  santorini: { name: "Santorini", ingredients: ["Anise, Mint and Lemon.", "Mediterranean freshness."] },
-  aloha: { name: "Aloha", ingredients: ["Mango, Pineapple and Passion fruit.", "A sweet tropical breeze."] },
-  gaia: { name: "Gaia", ingredients: ["Passion fruit, Lemongrass and Elderflower.", "The power of wild nature."] },
-  kyoto: { name: "Kyoto", ingredients: ["Strawberry, Lychee and Yuzu.", "Precise Japanese elegance."] },
-};
-
-function buildFlavorEntries(): SeedEntry[] {
-  const entries: SeedEntry[] = [];
-  for (const [key, { name, ingredients }] of Object.entries(FLAVOR_TEXT)) {
-    entries.push({ namespace: "flavorItems", key: `${key}.name`, format: "rich", en: name, bg: "" });
-    entries.push({ namespace: "flavorItems", key: `${key}.ingredients.0`, format: "rich", en: ingredients[0], bg: "" });
-    entries.push({ namespace: "flavorItems", key: `${key}.ingredients.1`, format: "rich", en: ingredients[1], bg: "" });
-  }
-  return entries;
 }
 
 function buildManifestoEntry(): SeedEntry {
@@ -122,6 +109,7 @@ async function seedUser(db: ReturnType<typeof getDb>) {
 
 async function seedContent(db: ReturnType<typeof getDb>, entries: SeedEntry[]) {
   let created = 0;
+  let updated = 0;
   for (const entry of entries) {
     const [row] = await db
       .insert(contentEntries)
@@ -140,21 +128,31 @@ async function seedContent(db: ReturnType<typeof getDb>, entries: SeedEntry[]) {
     if (!entryRow) continue;
 
     for (const [locale, value] of [["en", entry.en], ["bg", entry.bg]] as const) {
-      await db
+      const [written] = await db
         .insert(contentValues)
         .values({ entryId: entryRow.id, locale, value })
-        .onConflictDoNothing({ target: [contentValues.entryId, contentValues.locale] });
+        .onConflictDoUpdate({
+          target: [contentValues.entryId, contentValues.locale],
+          set: { value, updatedAt: new Date(), updatedBy: null },
+          // Blank values are never-filled seeds, not edits — always safe to fill.
+          setWhere: OVERWRITE ? sql`${contentValues.value} <> ${value}` : sql`${contentValues.value} = ''`,
+        })
+        .returning({ id: contentValues.id });
+      if (written && !row) {
+        updated++;
+        console.log(`  ~ ${locale} ${entry.namespace}.${entry.key}`);
+      }
     }
     if (row) created++;
   }
-  console.log(`- ${created} new content entries seeded (${entries.length} total checked)`);
+  console.log(`- ${created} new content entries seeded, ${updated} existing values updated (${entries.length} total checked)`);
 }
 
 async function main() {
   const db = getDb();
-  console.log("Seeding ananda backoffice database…");
+  console.log(`Seeding ananda backoffice database${OVERWRITE ? " (overwriting changed values)" : ""}…`);
   await seedUser(db);
-  await seedContent(db, [...buildMessageEntries(), ...buildFlavorEntries(), buildManifestoEntry()]);
+  await seedContent(db, [...buildMessageEntries(), buildManifestoEntry()]);
   console.log("Done.");
 }
 

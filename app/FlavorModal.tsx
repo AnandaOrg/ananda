@@ -124,7 +124,7 @@ export const FLAVORS: Flavor[] = [
     textColor: "#fff0e5",
     pattern: "/fl-bg-blue.svg",
     pouch: { src: "/fl-pouch-blue.png", w: 239.498, crop: { w: "309.93%", h: "112.64%", left: "-107.01%", top: "-8.24%" } },
-    ingredients: ["Anise, Mint and Lemon.", "Mediterranean freshness."],
+    ingredients: ["Anise, mint and lemon.", "Mediterranean freshness."],
     fruits: [
       { src: "/fl-lemon.png", box: { left: 1394.65, top: 129.43, w: 498.3, h: 511.147 }, inner: { w: 325.032, h: 394.871 }, rotate: 37.53, crop: LEMON },
       { src: "/fl-lemon.png", box: { left: -273.6, top: 129.43, w: 860.531, h: 887.238 }, inner: { w: 564.863, h: 686.234 }, rotate: -36.05, blur: 4.148, crop: LEMON },
@@ -152,7 +152,7 @@ export const FLAVORS: Flavor[] = [
     textColor: "#eb4638",
     pattern: "/fl-bg-orange.svg",
     pouch: { src: "/fl-pouch-orange.png", w: 239.529, crop: { w: "306.37%", h: "111.19%", left: "-102.61%", top: "-6.91%" } },
-    ingredients: ["Mango, Pineapple and Passion fruit.", "A sweet tropical breeze."],
+    ingredients: ["Mango, pineapple and passion fruit.", "A sweet tropical breeze."],
     fruits: [
       { src: "/fl-passion-a.png", inset: { left: "78.63%", top: "16.12%", w: "11.35%", h: "19.36%" }, blur: 4.05 },
       { src: "/fl-mango.png", box: { left: 340.38, top: -31.41, w: 361.572, h: 410.974 }, inner: { w: 315.352, h: 372.794 }, rotate: -7.55, crop: MANGO },
@@ -179,7 +179,7 @@ export const FLAVORS: Flavor[] = [
     textColor: "#fff0e5",
     pattern: "/fl-bg-green.svg",
     pouch: { src: "/fl-pouch-green.png", w: 238.055 },
-    ingredients: ["Passion fruit, Lemongrass and Elderflower.", "The power of wild nature."],
+    ingredients: ["Passion fruit, lemongrass and elderflower.", "The power of wild nature."],
     fruits: [
       { src: "/fl-elderflower.png", box: { left: 943, top: 216.4, w: 459, h: 471 }, rotate: 34.04 },
       { src: "/fl-elderflower.png", box: { left: -413, top: -184.13, w: 1151, h: 1176 }, rotate: 35.61, blur: 3.95 },
@@ -205,7 +205,7 @@ export const FLAVORS: Flavor[] = [
     textColor: "#fff0e5",
     pattern: "/fl-bg-red.svg",
     pouch: { src: "/fl-pouch-red.png", w: 251.076, crop: { w: "305.8%", h: "116.33%", left: "-100.79%", top: "-9.26%" } },
-    ingredients: ["Strawberry, Lychee and Yuzu.", "Precise Japanese elegance."],
+    ingredients: ["Strawberry, lychee and yuzu.", "Precise Japanese elegance."],
     fruits: [
       { src: "/fl-lychee.png", box: { left: 535.66, top: 3.38, w: 290.952, h: 290.693 }, inner: { w: 202.429, h: 209.017 }, rotate: 46.6 },
       { src: "/fl-lychee.png", box: { left: 1112.58, top: 469, w: 227.796, h: 231.241 }, inner: { w: 176.367, h: 182.106 }, rotate: -19.89 },
@@ -466,7 +466,7 @@ export default function FlavorModal({
     <motion.div
       role="dialog"
       aria-modal="true"
-      aria-label={`${flavorNamePlain} cocktail`}
+      aria-label={t("dialog", { name: flavorNamePlain })}
       className="fixed inset-0 z-50 overflow-hidden"
       style={{ originX: origin.x, originY: origin.y }}
       initial={{ scale: 0, opacity: 0 }}

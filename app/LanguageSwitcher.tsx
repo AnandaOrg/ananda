@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
-import { useLocale } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
@@ -15,6 +15,7 @@ function setLocaleCookie(next: AppLocale) {
 
 export default function LanguageSwitcher() {
   const locale = useLocale();
+  const t = useTranslations("a11y");
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [visible, setVisible] = useState(false);
@@ -52,7 +53,7 @@ export default function LanguageSwitcher() {
   return (
     <div
       role="group"
-      aria-label="Language"
+      aria-label={t("language")}
       className="fixed z-40 flex overflow-hidden"
       style={{
         top: 20,

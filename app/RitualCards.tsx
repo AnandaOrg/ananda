@@ -21,9 +21,9 @@ const REL = {
 };
 
 const STEP_MEDIA = [
-  { src: "/s5-step1.png", alt: "ANANDA pouches chilling in a cooler of ice" },
-  { src: "/s5-step2.png", alt: "Snapping open the high-flow cap" },
-  { src: "/s5-step3.png", alt: "Sipping an ANANDA pouch on the dancefloor" },
+  { src: "/s5-step1.png", altKey: "step1" },
+  { src: "/s5-step2.png", altKey: "step2" },
+  { src: "/s5-step3.png", altKey: "step3" },
 ];
 
 const SLOTS = [
@@ -44,20 +44,24 @@ const REVEAL = [
   { prop: "xPercent", enter: -100, exit: 100 },
 ] as const;
 
-const CLIP_HIDDEN = "inset(0% 100% 0% 0%)";
-const CLIP_SHOWN = "inset(0% 0% 0% 0%)";
+// Vertical overflow room so accents above the cap height (the breve on "Й") and
+// descenders aren't clipped — the titles sit at line-height 1.
+const CLIP_HIDDEN = "inset(-50% 100% -50% 0%)";
+const CLIP_SHOWN = "inset(-50% 0% -50% 0%)";
 
 const stepOf = (frame: number, tick: number) => (frame + tick) % N;
 
 export default function RitualCards() {
   const t = useTranslations("ritual");
   const bg = useLocale() === "bg";
+  const tA11y = useTranslations("a11y");
   const cardMask = useMediaAsset("/s5-card2.svg");
   // STEP_MEDIA is a fixed-length (3) module-level array — calling the hook
   // unrolled per index keeps this within the rules of hooks.
   const stepMedia = [useMediaAsset(STEP_MEDIA[0].src), useMediaAsset(STEP_MEDIA[1].src), useMediaAsset(STEP_MEDIA[2].src)];
   const steps = STEP_MEDIA.map((m, i) => ({
     ...m,
+    alt: tA11y(m.altKey),
     url: stepMedia[i].url,
     active: stepMedia[i].active,
     link: stepMedia[i].link,

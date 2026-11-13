@@ -6,7 +6,7 @@ import { join } from "node:path";
  *  the white logo centred — generated once at build (no request-time data). Also
  *  re-exported as twitter-image.tsx. Satori (the renderer) needs explicit flex
  *  containers and explicit top/left/width/height — no `inset` shorthand. */
-export const alt = "ANANDA Cocktails — premium canned cocktails";
+export const alt = "ANANDA Cocktails — premium pouch cocktails";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 

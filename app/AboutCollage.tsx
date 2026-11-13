@@ -1,6 +1,7 @@
 import AmbientVideo from "./AmbientVideo";
 import ScrollVideoCanvas from "./ScrollVideoCanvas";
 import KyotoLiftoff from "./KyotoLiftoff";
+import { getTranslations } from "next-intl/server";
 import { getMediaAssets, resolveMediaAsset } from "@/lib/media/get-media-assets";
 
 const u = (n: number) => `calc(var(--u) * ${n})`;
@@ -27,6 +28,7 @@ const EXTRA_H = 170;
 const SPILL_OVERLAP_H = 80;
 
 export default async function AboutCollage() {
+  const tA11y = await getTranslations("a11y");
   const assets = await getMediaAssets();
   const pineappleMask = resolveMediaAsset(assets, "/m-pineapple.svg");
   const collageMask = resolveMediaAsset(assets, "/m-14.svg");
@@ -43,7 +45,7 @@ export default async function AboutCollage() {
         <ScrollVideoCanvas
           frameBase="/frames/ananas/"
           frameCount={120}
-          alt="Pineapple slices against a blue sky"
+          alt={tA11y("pineapple")}
           style={{
             position: "absolute",
             right: 0,
@@ -70,7 +72,7 @@ export default async function AboutCollage() {
               <AmbientVideo
                 skeleton
                 src="/videos/kyoto-strawberries.mp4"
-                aria-label="An ANANDA pouch nestled in fresh strawberries"
+                aria-label={tA11y("strawberries")}
                 className="block size-full object-cover"
               />
             </div>

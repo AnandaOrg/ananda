@@ -79,6 +79,7 @@ const GLB_TRANSITION_DURATION = 0.04;
 
 export default function MobilePathways() {
   const t = useTranslations("flavors");
+  const tA11y = useTranslations("a11y");
   const locale = useLocale();
   const { open } = useFlavor();
   const glbRef = useRef<GlbViewerHandle>(null);
@@ -173,7 +174,7 @@ export default function MobilePathways() {
     <section ref={sectionRef} className="relative w-full overflow-hidden bg-[#eb4638] md:hidden" style={{ containerType: "inline-size", ...MU_VAR }}>
       <div ref={contentRef} className="relative overflow-hidden" style={{ width: mu(390), height: mu(1176) }}>
         {BANDS.map((b, i) => (
-          <button key={b.color} type="button" aria-label={`Open ${FLAVORS[i].label}`} onClick={() => openWithSpin(i)} className="absolute cursor-pointer appearance-none border-0 p-0" style={{ left: 0, top: mu(b.top), width: mu(390), height: mu(200), backgroundColor: b.color }} />
+          <button key={b.color} type="button" aria-label={tA11y("openFlavor", { name: FLAVORS[i].label })} onClick={() => openWithSpin(i)} className="absolute cursor-pointer appearance-none border-0 p-0" style={{ left: 0, top: mu(b.top), width: mu(390), height: mu(200), backgroundColor: b.color }} />
         ))}
 
         {FLAVORS.map((f, i) => (

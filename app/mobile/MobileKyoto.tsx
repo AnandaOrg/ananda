@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import gsap from "gsap";
+import { useTranslations } from "next-intl";
 import SpillWave from "../SpillWave";
 import { mu, MU_VAR } from "./scale";
 import { LinkWrap, useMediaAsset } from "../MediaProvider";
@@ -53,6 +54,7 @@ const prefersReducedMotion = () =>
   window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 export default function MobileKyoto() {
+  const tA11y = useTranslations("a11y");
   const sectionRef = useRef<HTMLElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -313,7 +315,7 @@ export default function MobileKyoto() {
               <LinkWrap href={pouchImage.link} fill>
                 <SkeletonImage
                   src={pouchImage.url}
-                  alt="ANANDA KYOTO cocktail pouch — Strawberry / Lychee · Yuzu"
+                  alt={tA11y("kyotoPouch")}
                   fill
                   sizes="80vw"
                   className="select-none"

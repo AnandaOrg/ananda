@@ -28,13 +28,14 @@ const readContentRows = unstable_cache(
  *  baseline with the `content_entries` / `content_values` rows laid over it (everything
  *  the backoffice manages except the manifesto, which has its own rich `Run[][]` shape —
  *  see get-manifesto.ts). The baseline underneath means a key that is new in the JSON
- *  but not yet seeded in the DB still resolves, and the site never hard-depends on DB
- *  uptime for its copy. */
+ *  but not yet seeded in the DB (or seeded blank) still resolves, and the site never
+ *  hard-depends on DB uptime for its copy. */
 export async function getMessages(locale: AppLocale): Promise<Record<string, unknown>> {
   const messages: Record<string, unknown> = structuredClone((await import(`../../messages/${locale}.json`)).default);
   try {
     for (const row of await readContentRows(locale)) {
-      setDeep(messages, `${row.namespace}.${row.key}`, row.value);
+      // A blank value is an unfilled translation, not intentional copy — keep the baseline.
+      if (row.value) setDeep(messages, `${row.namespace}.${row.key}`, row.value);
     }
   } catch {
     // DB unreachable or unseeded — the baseline stands.

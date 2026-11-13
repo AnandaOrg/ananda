@@ -11,9 +11,9 @@ import { LinkWrap, useMediaAsset } from "../MediaProvider";
 gsap.registerPlugin(ScrollTrigger);
 
 const STEP_MEDIA = [
-  { src: "/s5-step1.png", alt: "ANANDA pouches chilling in a cooler of ice" },
-  { src: "/s5-step2.png", alt: "Snapping open the high-flow cap" },
-  { src: "/s5-step3.png", alt: "Sipping an ANANDA pouch on the dancefloor" },
+  { src: "/s5-step1.png", altKey: "step1" },
+  { src: "/s5-step2.png", altKey: "step2" },
+  { src: "/s5-step3.png", altKey: "step3" },
 ];
 
 const CARD = { w: 342.303, h: 491.887 };
@@ -30,12 +30,14 @@ const CLIP_SHOWN = "inset(-50% 0% -50% 0%)";
 export default function MobileRitual() {
   const t = useTranslations("ritual");
   const bg = useLocale() === "bg";
+  const tA11y = useTranslations("a11y");
   const cardMask = useMediaAsset("/s5-card2.svg");
   // STEP_MEDIA is a fixed-length (3) module-level array — calling the hook
   // unrolled per index keeps this within the rules of hooks.
   const stepMedia = [useMediaAsset(STEP_MEDIA[0].src), useMediaAsset(STEP_MEDIA[1].src), useMediaAsset(STEP_MEDIA[2].src)];
   const steps = STEP_MEDIA.map((m, i) => ({
     ...m,
+    alt: tA11y(m.altKey),
     url: stepMedia[i].url,
     active: stepMedia[i].active,
     link: stepMedia[i].link,

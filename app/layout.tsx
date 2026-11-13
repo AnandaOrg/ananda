@@ -6,7 +6,7 @@ import { Geist, Geist_Mono, IBM_Plex_Mono, Barlow } from "next/font/google";
 import localFont from "next/font/local";
 import Script from "next/script";
 import { NextIntlClientProvider } from "next-intl";
-import { getLocale } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
 import SwRegister from "./SwRegister";
 import { MediaProvider } from "./MediaProvider";
 import { getMediaAssets, getMediaAssetsByCategory } from "@/lib/media/get-media-assets";
@@ -16,9 +16,6 @@ import "./globals.css";
 const GA_MEASUREMENT_ID = "G-HBNX982Z9W";
 
 const isProduction = process.env.VERCEL_ENV === "production";
-
-const DESCRIPTION =
-  "Premium, bar-strength canned cocktails mixed for the makers, the movers, and the midnight sun. No glass, no pretense — just pure, uninhibited joy, ready wherever you are.";
 
 const organizationJsonLd = {
   "@context": "https://schema.org",
@@ -37,7 +34,9 @@ export async function generateMetadata(): Promise<Metadata> {
   const locale = await getLocale();
   const ogLocale = locale === "bg" ? "bg_BG" : "en_US";
   const alternateOgLocale = locale === "bg" ? "en_US" : "bg_BG";
-  const title = "ANANDA Cocktails — Premium Canned Cocktails";
+  const t = await getTranslations("meta");
+  const title = t("title");
+  const description = t("description");
 
   return {
     metadataBase: new URL(SITE_URL),
@@ -45,15 +44,8 @@ export async function generateMetadata(): Promise<Metadata> {
       default: title,
       template: "%s | ANANDA Cocktails",
     },
-    description: DESCRIPTION,
-    keywords: [
-      "ANANDA Cocktails",
-      "canned cocktails",
-      "ready to drink cocktails",
-      "RTD cocktails",
-      "pouch cocktails",
-      "premium cocktails",
-    ],
+    description,
+    keywords: t("keywords").split(",").map((k) => k.trim()).filter(Boolean),
     applicationName: "ANANDA Cocktails",
     icons: {
       icon: [
@@ -72,14 +64,14 @@ export async function generateMetadata(): Promise<Metadata> {
       url: "/",
       siteName: "ANANDA Cocktails",
       title,
-      description: DESCRIPTION,
+      description,
       locale: ogLocale,
       alternateLocale: alternateOgLocale,
     },
     twitter: {
       card: "summary_large_image",
       title,
-      description: DESCRIPTION,
+      description,
     },
     robots: isProduction
       ? {
