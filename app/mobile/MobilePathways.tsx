@@ -189,7 +189,7 @@ export default function MobilePathways() {
           </button>
         ))}
 
-        <div className="absolute flex flex-col items-start" style={{ left: mu(locale === "bg" ? 14 : 24), top: mu(43), width: mu(276.93), gap: mu(24) }}>
+        <div className="absolute flex flex-col items-start" style={{ left: mu(locale === "bg" ? 14 : 24), top: mu(43), width: mu(276.93), gap: mu(24), zIndex: 1 }}>
           <div className="flex flex-col items-start uppercase text-[#fff0e5]" style={{ gap: mu(16) }}>
             <p
               className="whitespace-nowrap"
@@ -199,7 +199,7 @@ export default function MobilePathways() {
             <LiquidText
               text={t("title")}
               className="relative font-bold"
-              style={{ fontFamily: "var(--font-display)", fontSize: locale === "bg" ? mu(56) : mu(64), lineHeight: 0.8, letterSpacing: locale === "bg" ? mu(-1.68) : mu(-5.12), width: locale === "bg" ? mu(342) : mu(276.93) }}
+              style={{ fontFamily: "var(--font-display)", fontSize: locale === "bg" ? mu(44) : mu(64), lineHeight: 0.8, letterSpacing: locale === "bg" ? mu(-1.32) : mu(-5.12), width: locale === "bg" ? mu(342) : mu(276.93) }}
             />
           </div>
           <button type="button" onClick={() => openWithSpin(0)} className="flex cursor-pointer appearance-none items-center justify-center overflow-hidden border-0 bg-[#fff0e5]" style={{ padding: `${mu(8)} ${mu(12)}`, borderRadius: mu(25.016) }}>
@@ -214,10 +214,10 @@ export default function MobilePathways() {
           </button>
         </div>
 
-        <Floating src="/s4-mango.png" alt="Ripe mango" rotate={-7.55} box={{ left: -10.13, top: 514.54, width: 152.327, height: 173.139 }} inner={{ width: 132.855, height: 157.054 }} crop={{ width: "143.08%", height: "181.55%", left: "-22.78%", top: "-36.97%" }} />
-        <Floating src="/s4-raspberry.png" alt="Fresh lychee" rotate={46.6} box={{ left: 25.53, top: 1066.39, width: 131.528, height: 131.411 }} inner={{ width: 91.51, height: 94.488 }} />
-        <Floating src="/s4-lemon.png" alt="Fresh lemon with leaves" rotate={-8.95} box={{ left: 221.52, top: 260.19, width: 173.549, height: 199.915 }} inner={{ width: 147.461, height: 179.146 }} crop={{ width: "134.65%", height: "166.26%", left: "-22.14%", top: "-38.75%" }} />
-        <Floating src="/s4-flowers.png" alt="White elderflower blossom" rotate={15.25} box={{ left: 230.24, top: 699.44, width: 179.055, height: 192.905 }} inner={{ width: 141.609, height: 161.344 }} />
+        <Floating src="/s4-mango.png" alt={tA11y("mango")} rotate={-7.55} box={{ left: -10.13, top: 514.54, width: 152.327, height: 173.139 }} inner={{ width: 132.855, height: 157.054 }} crop={{ width: "143.08%", height: "181.55%", left: "-22.78%", top: "-36.97%" }} />
+        <Floating src="/s4-raspberry.png" alt={tA11y("lychee")} rotate={46.6} box={{ left: 25.53, top: 1066.39, width: 131.528, height: 131.411 }} inner={{ width: 91.51, height: 94.488 }} />
+        <Floating src="/s4-lemon.png" alt={tA11y("lemon")} rotate={-8.95} box={{ left: 221.52, top: 260.19, width: 173.549, height: 199.915 }} inner={{ width: 147.461, height: 179.146 }} crop={{ width: "134.65%", height: "166.26%", left: "-22.14%", top: "-38.75%" }} />
+        <Floating src="/s4-flowers.png" alt={tA11y("elderflower")} rotate={15.25} box={{ left: 230.24, top: 699.44, width: 179.055, height: 192.905 }} inner={{ width: 141.609, height: 161.344 }} />
         <div ref={scrollRef} aria-hidden className="pointer-events-none absolute" style={{ left: 0, top: mu(360), width: mu(1), height: mu(816), visibility: "hidden" }} />
       </div>
 

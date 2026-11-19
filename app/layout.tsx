@@ -124,6 +124,10 @@ const anekKannada = localFont({
   ],
   variable: "--font-display-latin",
   display: "swap",
+  // No generated "anekKannada Fallback" (local Arial) in the stack: Arial covers
+  // Cyrillic, so it would catch every Cyrillic glyph before Golos is reached in
+  // --font-display. Golos's own fallback face covers the Latin swap period.
+  adjustFontFallback: false,
 });
 
 const ibmPlexMono = IBM_Plex_Mono({
@@ -136,6 +140,8 @@ const barlow = Barlow({
   variable: "--font-body-latin",
   weight: ["400", "500"],
   subsets: ["latin"],
+  // Same reason as AnekKannada: the Arial fallback would shadow Golos for Cyrillic.
+  adjustFontFallback: false,
 });
 
 const golosDisplay = localFont({
