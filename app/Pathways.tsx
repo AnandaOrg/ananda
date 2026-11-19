@@ -208,10 +208,14 @@ export default function Pathways() {
             left: u(95.75),
             top: u(297.49),
             width: u(1102.287),
+            // Above the floating lemon, which overlaps the heading.
+            zIndex: 1,
             fontFamily: "var(--font-display)",
-            fontSize: u(bg ? 180 : 170),
+            // BG sets on two lines ("ЧЕТИРИ ПЪТЯ КЪМ" ≈1071u of the 1102 box, then
+            // "БЛАЖЕНСТВОТО" ≈957u) that end above and left of the lemon (top 511, left 1091).
+            fontSize: u(bg ? 125 : 170),
             lineHeight: 0.8,
-            letterSpacing: u(bg ? -5.4 : -14.4),
+            letterSpacing: u(bg ? -3.75 : -14.4),
           }}
         />
 
